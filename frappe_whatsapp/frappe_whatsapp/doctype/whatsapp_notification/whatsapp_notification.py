@@ -221,7 +221,16 @@ class WhatsAppNotification(Document):
                          filename=None, template=None, doc_data=None, parameters=None):
         """Send message via Evolution API."""
 
-        evolution_settings = frappe.get_doc("Evolution Phone Settings", self.sender_number)
+        # Check if logged-in user has a linked Evolution Phone Settings
+        user_evolution_settings = frappe.db.get_value(
+            "Evolution Phone Settings",
+            {"user": frappe.session.user},
+            "name"
+        )
+        if user_evolution_settings:
+            evolution_settings = frappe.get_doc("Evolution Phone Settings", user_evolution_settings)
+        else:
+            evolution_settings = frappe.get_doc("Evolution Phone Settings", self.sender_number)
 
         if not evolution_settings.base_url or not evolution_settings.instance_name:
             frappe.throw("Evolution Phone Settings not configured")

@@ -10,6 +10,7 @@
   "base_url",
   "global_api_key",
   "instance_name",
+  "user",
   "message_template"
  ],
  "fields": [
@@ -40,12 +41,18 @@
    "fieldname": "message_template",
    "fieldtype": "Text",
    "label": "Message Template"
+  },
+  {
+   "fieldname": "user",
+   "fieldtype": "Link",
+   "label": "User",
+   "options": "User"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-29 22:08:23.501354",
+ "modified": "2026-01-10 16:30:52.256386",
  "modified_by": "Administrator",
  "module": "Frappe Whatsapp",
  "name": "Evolution Phone Settings",
