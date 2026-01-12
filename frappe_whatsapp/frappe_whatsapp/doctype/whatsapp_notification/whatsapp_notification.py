@@ -155,14 +155,7 @@ class WhatsAppNotification(Document):
                 if doctype.default_print_format:
                     print_format = doctype.default_print_format
             else:
-                default_print_format = frappe.db.get_value(
-                    "Property Setter",
-                    filters={
-                        "doc_type": doc_data['doctype'],
-                        "property": "default_print_format"
-                    },
-                    fieldname="value"
-                )
+                default_print_format = self.print_format
                 print_format = default_print_format if default_print_format else print_format
 
             # Generate PDF using attach_print (handles permissions and PDF generation properly)

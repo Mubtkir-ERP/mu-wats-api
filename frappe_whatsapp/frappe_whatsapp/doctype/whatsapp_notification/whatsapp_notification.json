@@ -10,6 +10,7 @@
   "notification_name",
   "notification_type",
   "reference_doctype",
+  "print_format",
   "field_name",
   "event_frequency",
   "doctype_event",
@@ -216,11 +217,17 @@
    "label": "Sender Number",
    "options": "Evolution Phone Settings",
    "reqd": 1
+  },
+  {
+   "fieldname": "print_format",
+   "fieldtype": "Link",
+   "label": "Print Format",
+   "options": "Print Format"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-11-29 22:20:52.594281",
+ "modified": "2026-01-12 23:22:44.286893",
  "modified_by": "Administrator",
  "module": "Frappe Whatsapp",
  "name": "WhatsApp Notification",
