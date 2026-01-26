@@ -64,19 +64,31 @@ class BulkWhatsAppMessage(Document):
                     recipient=recipient
                 )
         else:
-            # Use recipients from the current document
+            # Use recipients from the current document - convert to dict for enqueue
             for recipient in self.recipients:
+                recipient_dict = {
+                    "mobile_number": recipient.mobile_number,
+                    "recipient_name": recipient.recipient_name,
+                    "recipient_data": recipient.recipient_data or "{}"
+                }
                 frappe.enqueue_doc(
                     self.doctype, self.name,
                     "create_single_message",
                     "long", 4000,
-                    recipient=recipient
+                    recipient=recipient_dict
                 )
     
     def create_single_message(self, recipient):
         """Send a single message via Evolution API"""
         # Reload document to ensure all fields are available when running in background
         self.reload()
+        
+        # Debug logging to trace values
+        frappe.log_error(
+            f"Debug: use_template={self.use_template}, template={self.template}, "
+            f"sender_number={self.sender_number}, recipient={recipient}",
+            "WhatsApp Bulk Debug"
+        )
         
         # Add delay between messages to prevent blocking
         delay = cint(self.message_delay) or 5
@@ -129,7 +141,7 @@ class BulkWhatsAppMessage(Document):
         
         try:
             # Get template if using template
-            if self.use_template:
+            if self.use_template and self.template:
                 template = frappe.db.get_value(
                     "WhatsApp Templates", self.template,
                     fieldname='*'
