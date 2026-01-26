@@ -4,6 +4,7 @@
 import frappe
 from frappe import _
 import json
+import requests
 from frappe.utils import cint, get_datetime, now
 from frappe.model.document import Document
 from frappe.model.naming import make_autoname
@@ -72,52 +73,200 @@ class BulkWhatsAppMessage(Document):
                 )
     
     def create_single_message(self, recipient):
-        """Create a single message in the queue"""
-        # message_content = self.message_content
+        """Send a single message via Evolution API"""
+        self.db_set("status", "In Progress")
         
-        # Replace variables in the message if any
-        self.status == "In Progress"
+        # Get phone number
+        phone_number = recipient.get("mobile_number")
+        if not phone_number:
+            frappe.log_error("No phone number for recipient", "WhatsApp Bulk Messaging")
+            return
+        
+        # Format phone number
+        phone_number = self.format_number(phone_number)
+        
+        # Parse recipient data for template variables
+        recipient_data = {}
         if recipient.get("recipient_data"):
             try:
-                variables = json.loads(recipient.get("recipient_data", "{}"))
-                # for var_name, var_value in variables.items():
-                #     message_content = message_content.replace(f"{{{{{var_name}}}}}", str(var_value))
+                recipient_data = json.loads(recipient.get("recipient_data", "{}"))
             except Exception as e:
                 frappe.log_error(f"Error parsing recipient data: {str(e)}", "WhatsApp Bulk Messaging")
         
-        # Create WhatsApp message
-        wa_message = frappe.new_doc("WhatsApp Message")
-        # wa_message.from_number = self.from_number
-        wa_message.to = recipient.get("mobile_number")
-        wa_message.message_type = "Text"
-        # wa_message.message = message_content
-        wa_message.flags.custom_ref_doc = json.loads(recipient.get("recipient_data", "{}"))
-        wa_message.bulk_message_reference = self.name
+        # Get Evolution Phone Settings - check user first, then sender_number
+        user_evolution_settings = frappe.db.get_value(
+            "Evolution Phone Settings",
+            {"user": frappe.session.user},
+            "name"
+        )
+        if user_evolution_settings:
+            evolution_settings = frappe.get_doc("Evolution Phone Settings", user_evolution_settings)
+        else:
+            evolution_settings = frappe.get_doc("Evolution Phone Settings", self.sender_number)
         
-        # If template is being used
-        if self.use_template:
-            wa_message.template = self.template
-            wa_message.message_type = 'Template'
-            wa_message.use_template = self.use_template
-            # Handle template variables if needed
-
-            if recipient.get("recipient_data") and self.variable_type=='Unique':
-                wa_message.body_param = recipient.get("recipient_data")
-            elif self.template_variables and self.variable_type=='Common':
-                wa_message.body_param = self.template_variables
-            if self.attach:
-                wa_message.attach = self.attach
-        
-        # Set status to queued
-        wa_message.status = "Queued"
-        try:
-            wa_message.insert(ignore_permissions=True)
-        except Exception:
+        if not evolution_settings.base_url or not evolution_settings.instance_name:
+            frappe.log_error("Evolution Phone Settings not configured", "WhatsApp Bulk Messaging")
             self.db_set("status", "Partially Failed")
-        # Update message count
-        self.db_set("sent_count", cint(self.sent_count) + 1)
-        if self.recipient_count == self.sent_count:
-            self.db_set("status", "Completed")
+            return
+        
+        headers = {
+            "Content-Type": "application/json",
+            "apikey": evolution_settings.global_api_key
+        }
+        
+        success = False
+        response_data = None
+        error_message = None
+        message_text = None
+        
+        try:
+            # Get template if using template
+            if self.use_template:
+                template = frappe.db.get_value(
+                    "WhatsApp Templates", self.template,
+                    fieldname='*'
+                )
+                
+                if not template:
+                    frappe.log_error(f"Template {self.template} not found", "WhatsApp Bulk Messaging")
+                    return
+                
+                # Build parameters for template
+                parameters = []
+                if recipient.get("recipient_data") and self.variable_type == 'Unique':
+                    params = list(json.loads(recipient.get("recipient_data", "{}")).values())
+                    parameters = params
+                elif self.template_variables and self.variable_type == 'Common':
+                    params = list(json.loads(self.template_variables).values())
+                    parameters = params
+                
+                # Build message text from template (for text sending)
+                message_text = template.get("message_content", "") or ""
+                for i, param in enumerate(parameters, 1):
+                    message_text = message_text.replace(f"{{{{{i}}}}}", str(param))
+                
+                # Handle attachments
+                attachment_url = None
+                filename = None
+                
+                if self.attach:
+                    if self.attach.startswith("http"):
+                        attachment_url = self.attach
+                    else:
+                        attachment_url = f'{frappe.utils.get_url()}{self.attach}'
+                    filename = self.attach.split("/")[-1] if "/" in self.attach else self.attach
+                
+                # Determine content type and endpoint
+                if attachment_url:
+                    if filename and filename.lower().endswith('.pdf'):
+                        # Send document
+                        url = f"{evolution_settings.base_url}/message/sendMedia/{evolution_settings.instance_name}"
+                        payload = {
+                            "number": phone_number,
+                            "mediatype": "document",
+                            "mimetype": "application/pdf",
+                            "caption": message_text,
+                            "media": attachment_url,
+                            "fileName": filename
+                        }
+                        content_type = 'document'
+                    else:
+                        # Send image
+                        url = f"{evolution_settings.base_url}/message/sendMedia/{evolution_settings.instance_name}"
+                        payload = {
+                            "number": phone_number,
+                            "mediatype": "image",
+                            "caption": message_text,
+                            "media": attachment_url
+                        }
+                        content_type = 'image'
+                else:
+                    if message_text is None:
+                        message_text = 'No Text'
+                    # Send text message
+                    url = f"{evolution_settings.base_url}/message/sendText/{evolution_settings.instance_name}"
+                    payload = {
+                        "number": phone_number,
+                        "text": message_text
+                    }
+                    content_type = 'text'
+            else:
+                # Non-template message (plain text)
+                message_text = "Bulk message"  # Fallback
+                url = f"{evolution_settings.base_url}/message/sendText/{evolution_settings.instance_name}"
+                payload = {
+                    "number": phone_number,
+                    "text": message_text
+                }
+                content_type = 'text'
+            
+            # Make request to Evolution API
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            response_data = response.json()
+            
+            if response.status_code in [200, 201]:
+                success = True
+                
+                # Extract message ID from response
+                message_id = response_data.get("key", {}).get("id", "")
+                if not message_id:
+                    message_id = response_data.get("message", {}).get("key", {}).get("id", "")
+                
+                # Create WhatsApp Message record for tracking
+                new_doc = {
+                    "doctype": "WhatsApp Message",
+                    "type": "Outgoing",
+                    "message": message_text,
+                    "to": phone_number,
+                    "message_type": "Template" if self.use_template else "Text",
+                    "message_id": message_id,
+                    "content_type": content_type,
+                    "status": "Success",
+                    "bulk_message_reference": self.name
+                }
+                
+                if self.use_template:
+                    new_doc.update({
+                        "use_template": 1,
+                        "template": self.template,
+                        "template_parameters": recipient.get("recipient_data") if self.variable_type == 'Unique' else self.template_variables
+                    })
+                
+                frappe.get_doc(new_doc).insert(ignore_permissions=True)
+            else:
+                error_message = response_data.get("response", {}).get("message", "Unknown Error")
+                frappe.log_error(f"Failed to send WhatsApp message: {error_message}", "WhatsApp Bulk Messaging")
+                
+                # Create failed message record
+                frappe.get_doc({
+                    "doctype": "WhatsApp Message",
+                    "type": "Outgoing",
+                    "message": message_text,
+                    "to": phone_number,
+                    "message_type": "Template" if self.use_template else "Text",
+                    "status": "Failed",
+                    "bulk_message_reference": self.name
+                }).insert(ignore_permissions=True)
+                
+        except requests.exceptions.RequestException as e:
+            error_message = f"Connection error: {str(e)}"
+            frappe.log_error(error_message, "WhatsApp Bulk Messaging")
+        except Exception as e:
+            error_message = str(e)
+            frappe.log_error(error_message, "WhatsApp Bulk Messaging")
+        finally:
+            # Update message count
+            self.db_set("sent_count", cint(self.sent_count) + 1)
+            if self.recipient_count == self.sent_count:
+                self.db_set("status", "Completed")
+            elif error_message:
+                self.db_set("status", "Partially Failed")
+    
+    def format_number(self, number):
+        """Format phone number - remove leading + if present"""
+        if number and number.startswith("+"):
+            number = number[1:]
+        return number
 
     def retry_failed(self):
         """Retry failed messages"""
