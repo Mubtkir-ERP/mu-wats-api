@@ -9,6 +9,7 @@
         "title",
         "from_number",
         "sender_number",
+        "message_delay",
         "section_recipients",
         "recipient_type",
         "recipients",
@@ -47,6 +48,13 @@
             "label": "Sender Number",
             "options": "Evolution Phone Settings",
             "reqd": 1
+        },
+        {
+            "default": "5",
+            "description": "Delay in seconds between each message to prevent blocking",
+            "fieldname": "message_delay",
+            "fieldtype": "Int",
+            "label": "Message Delay (seconds)"
         },
         {
             "fieldname": "section_recipients",

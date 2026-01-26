@@ -4,6 +4,7 @@
 import frappe
 from frappe import _
 import json
+import time
 import requests
 from frappe.utils import cint, get_datetime, now
 from frappe.model.document import Document
@@ -74,6 +75,10 @@ class BulkWhatsAppMessage(Document):
     
     def create_single_message(self, recipient):
         """Send a single message via Evolution API"""
+        # Add delay between messages to prevent blocking
+        delay = cint(self.message_delay) or 5
+        time.sleep(delay)
+        
         self.db_set("status", "In Progress")
         
         # Get phone number
