@@ -75,6 +75,9 @@ class BulkWhatsAppMessage(Document):
     
     def create_single_message(self, recipient):
         """Send a single message via Evolution API"""
+        # Reload document to ensure all fields are available when running in background
+        self.reload()
+        
         # Add delay between messages to prevent blocking
         delay = cint(self.message_delay) or 5
         time.sleep(delay)
