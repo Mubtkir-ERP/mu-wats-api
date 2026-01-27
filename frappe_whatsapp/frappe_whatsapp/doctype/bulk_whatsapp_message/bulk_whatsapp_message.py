@@ -43,64 +43,82 @@ class BulkWhatsAppMessage(Document):
             self.recipient_count = len(self.recipients)
     
     def on_submit(self):
-        self.db_set("status", "Queued")
-        self.queue_messages()
+        self.db_set("status", "In Progress")
+        self.send_messages()
     
-    def queue_messages(self):
-        """Queue messages for sending"""
+    def send_messages(self):
+        """Send messages directly (synchronously) with progress updates"""
+        recipients_list = []
+        
         if self.recipient_type == 'Recipient List' and self.recipient_list:
             # Fetch recipients from the recipient list
-            recipients = frappe.get_all(
+            recipients_list = frappe.get_all(
                 "WhatsApp Recipient", 
                 filters={"parent": self.recipient_list},
                 fields=["mobile_number", "name", "recipient_name", "recipient_data"]
             )
-            
-            for recipient in recipients:
-                frappe.enqueue_doc(
-                    self.doctype, self.name,
-                    "create_single_message",
-                    "long", 4000,
-                    recipient=recipient
-                )
         else:
-            # Use recipients from the current document - convert to dict for enqueue
+            # Use recipients from the current document
             for recipient in self.recipients:
-                recipient_dict = {
+                recipients_list.append({
                     "mobile_number": recipient.mobile_number,
                     "recipient_name": recipient.recipient_name,
                     "recipient_data": recipient.recipient_data or "{}"
-                }
-                frappe.enqueue_doc(
-                    self.doctype, self.name,
-                    "create_single_message",
-                    "long", 4000,
-                    recipient=recipient_dict
-                )
-    
-    def create_single_message(self, recipient):
-        """Send a single message via Evolution API"""
-        # Reload document to ensure all fields are available when running in background
-        self.reload()
+                })
         
-        # Debug logging to trace values
-        frappe.log_error(
-            f"Debug: use_template={self.use_template}, template={self.template}, "
-            f"sender_number={self.sender_number}, recipient={recipient}",
-            "WhatsApp Bulk Debug"
+        total = len(recipients_list)
+        sent = 0
+        failed = 0
+        
+        for i, recipient in enumerate(recipients_list):
+            # Show progress to user
+            frappe.publish_progress(
+                percent=int((i / total) * 100),
+                title=_("Sending WhatsApp Messages"),
+                description=_("Sending message {0} of {1} to {2}").format(
+                    i + 1, total, recipient.get("recipient_name") or recipient.get("mobile_number")
+                )
+            )
+            
+            success = self.send_single_message(recipient)
+            if success:
+                sent += 1
+            else:
+                failed += 1
+        
+        # Final progress update
+        frappe.publish_progress(
+            percent=100,
+            title=_("Sending WhatsApp Messages"),
+            description=_("Completed: {0} sent, {1} failed").format(sent, failed)
         )
+        
+        # Update final status
+        if failed == 0:
+            self.db_set("status", "Completed")
+        elif sent == 0:
+            self.db_set("status", "Failed")
+        else:
+            self.db_set("status", "Partially Failed")
+        
+        frappe.msgprint(
+            _("Bulk WhatsApp Message completed: {0} sent, {1} failed").format(sent, failed),
+            indicator="green" if failed == 0 else "orange",
+            alert=True
+        )
+    
+    def send_single_message(self, recipient):
+        """Send a single message via Evolution API. Returns True on success, False on failure."""
         
         # Add delay between messages to prevent blocking
         delay = cint(self.message_delay) or 5
         time.sleep(delay)
         
-        self.db_set("status", "In Progress")
-        
         # Get phone number
         phone_number = recipient.get("mobile_number")
         if not phone_number:
             frappe.log_error("No phone number for recipient", "WhatsApp Bulk Messaging")
-            return
+            return False
         
         # Format phone number
         phone_number = self.format_number(phone_number)
@@ -154,14 +172,28 @@ class BulkWhatsAppMessage(Document):
                 # Build parameters for template
                 parameters = []
                 if recipient.get("recipient_data") and self.variable_type == 'Unique':
-                    params = list(json.loads(recipient.get("recipient_data", "{}")).values())
-                    parameters = params
+                    try:
+                        params = list(json.loads(recipient.get("recipient_data", "{}")).values())
+                        parameters = params
+                    except:
+                        pass
                 elif self.template_variables and self.variable_type == 'Common':
-                    params = list(json.loads(self.template_variables).values())
-                    parameters = params
+                    try:
+                        params = list(json.loads(self.template_variables).values())
+                        parameters = params
+                    except:
+                        pass
                 
-                # Build message text from template (for text sending)
-                message_text = template.get("message_content", "") or ""
+                # Build message text from template - 'template' is the actual field name
+                message_text = (
+                    template.get("template") or 
+                    template.get("message_content") or 
+                    template.get("body") or 
+                    template.get("message") or
+                    ""
+                )
+                
+                # Replace parameters in message text
                 for i, param in enumerate(parameters, 1):
                     message_text = message_text.replace(f"{{{{{i}}}}}", str(param))
                 
@@ -275,12 +307,10 @@ class BulkWhatsAppMessage(Document):
             error_message = str(e)
             frappe.log_error(error_message, "WhatsApp Bulk Messaging")
         finally:
-            # Update message count
+            # Update sent count
             self.db_set("sent_count", cint(self.sent_count) + 1)
-            if self.recipient_count == self.sent_count:
-                self.db_set("status", "Completed")
-            elif error_message:
-                self.db_set("status", "Partially Failed")
+        
+        return success
     
     def format_number(self, number):
         """Format phone number - remove leading + if present"""
