@@ -5,6 +5,7 @@ import frappe
 from frappe import _
 import json
 import time
+import random
 import requests
 from frappe.utils import cint, get_datetime, now
 from frappe.model.document import Document
@@ -110,8 +111,12 @@ class BulkWhatsAppMessage(Document):
     def send_single_message(self, recipient):
         """Send a single message via Evolution API. Returns True on success, False on failure."""
         
-        # Add delay between messages to prevent blocking
-        delay = cint(self.message_delay) or 5
+        # Add random delay between messages to prevent blocking
+        min_delay = cint(self.message_delay) or 20
+        max_delay = cint(self.max_delay) or 60
+        if max_delay < min_delay:
+            max_delay = min_delay
+        delay = random.randint(min_delay, max_delay)
         time.sleep(delay)
         
         # Get phone number
@@ -197,16 +202,24 @@ class BulkWhatsAppMessage(Document):
                 for i, param in enumerate(parameters, 1):
                     message_text = message_text.replace(f"{{{{{i}}}}}", str(param))
                 
-                # Handle attachments
+                # Handle attachments - must be full URL or base64
                 attachment_url = None
                 filename = None
                 
                 if self.attach:
-                    if self.attach.startswith("http"):
+                    # Get filename
+                    filename = self.attach.split("/")[-1] if "/" in self.attach else self.attach
+                    
+                    # Ensure we have a full URL
+                    if self.attach.startswith("http://") or self.attach.startswith("https://"):
                         attachment_url = self.attach
                     else:
-                        attachment_url = f'{frappe.utils.get_url()}{self.attach}'
-                    filename = self.attach.split("/")[-1] if "/" in self.attach else self.attach
+                        # Convert relative path to full URL
+                        base_url = frappe.utils.get_url()
+                        if self.attach.startswith("/"):
+                            attachment_url = f'{base_url}{self.attach}'
+                        else:
+                            attachment_url = f'{base_url}/{self.attach}'
                 
                 # Determine content type and endpoint
                 if attachment_url:

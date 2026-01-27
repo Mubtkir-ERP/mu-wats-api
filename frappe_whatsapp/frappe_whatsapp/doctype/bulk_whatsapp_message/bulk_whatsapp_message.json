@@ -10,6 +10,7 @@
         "from_number",
         "sender_number",
         "message_delay",
+        "max_delay",
         "section_recipients",
         "recipient_type",
         "recipients",
@@ -50,11 +51,18 @@
             "reqd": 1
         },
         {
-            "default": "5",
-            "description": "Delay in seconds between each message to prevent blocking",
+            "default": "20",
+            "description": "Minimum delay in seconds between messages (random delay used)",
             "fieldname": "message_delay",
             "fieldtype": "Int",
-            "label": "Message Delay (seconds)"
+            "label": "Min Delay (seconds)"
+        },
+        {
+            "default": "60",
+            "description": "Maximum delay in seconds between messages (random delay used)",
+            "fieldname": "max_delay",
+            "fieldtype": "Int",
+            "label": "Max Delay (seconds)"
         },
         {
             "fieldname": "section_recipients",
