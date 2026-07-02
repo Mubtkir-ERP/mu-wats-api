@@ -1,0 +1,146 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:instance_name",
+ "creation": "2026-07-02 00:00:00.000000",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "status_indicator",
+  "details_section",
+  "instance_name",
+  "evolution_server",
+  "column_break_details",
+  "linked_user",
+  "api_key",
+  "status_section",
+  "connection_status",
+  "phone_number",
+  "column_break_status",
+  "connected_since"
+ ],
+ "fields": [
+  {
+   "fieldname": "status_indicator",
+   "fieldtype": "HTML",
+   "label": "Status Indicator",
+   "description": "Colored circular indicator reflecting the current connection status."
+  },
+  {
+   "fieldname": "details_section",
+   "fieldtype": "Section Break",
+   "label": "Instance Details"
+  },
+  {
+   "fieldname": "instance_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Instance Name",
+   "description": "Auto-generated as the site prefix followed by 5 random digits (e.g. samad-48291).",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "evolution_server",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Evolution Server",
+   "options": "Evolution Server",
+   "description": "Evolution API server that hosts this instance.",
+   "reqd": 1
+  },
+  {
+   "fieldname": "phone_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Phone Number",
+   "description": "Auto-filled from WhatsApp after successful QR scan connection.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_details",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "linked_user",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Linked User",
+   "options": "User",
+   "description": "The user who owns this instance. A user may own at most one instance."
+  },
+  {
+   "fieldname": "api_key",
+   "fieldtype": "Password",
+   "hidden": 1,
+   "label": "Instance API Key",
+   "description": "Per-instance API key returned by the Evolution API. Visible to System Manager only.",
+   "permlevel": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "status_section",
+   "fieldtype": "Section Break",
+   "label": "Connection"
+  },
+  {
+   "default": "Disconnected",
+   "fieldname": "connection_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Connection Status",
+   "options": "Disconnected\nConnecting\nConnected",
+   "description": "Live connection state, fetched automatically from the Evolution API. Cannot be edited manually.",
+   "read_only": 1,
+   "allow_on_submit": 0,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "connected_since",
+   "fieldtype": "Datetime",
+   "label": "Connected Since",
+   "description": "Timestamp of the last successful connection.",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-02 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Frappe Whatsapp",
+ "name": "Whatsapp Instance",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "permlevel": 1,
+   "read": 1,
+   "role": "System Manager",
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

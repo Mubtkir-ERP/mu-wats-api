@@ -66,6 +66,78 @@ frappe.notification = {
                 }
             });
         });
+	},
+	setup_phone_field: function (frm) {
+		// Populate the Phone Field Select with all fields from the Reference
+		// DocType (direct fields + linked-doctype child fields), so the user
+		// picks from a dropdown instead of typing a fieldname.
+		if (!frm.doc.reference_doctype) {
+			return;
+		}
+
+		frappe.model.with_doctype(frm.doc.reference_doctype, function () {
+			let fields = frappe.get_doc("DocType", frm.doc.reference_doctype).fields;
+
+			// All direct fields as options (user can pick any)
+			let all_options = fields
+				.filter(f => !frappe.model.no_value_type.includes(f.fieldtype))
+				.map(f => ({
+					value: f.fieldname,
+					label: f.fieldname + " (" + (f.label || f.fieldname) + ")"
+				}));
+
+			// Link fields → their child doctype fields (e.g. customer.mobile_no)
+			let link_fields = fields.filter(f => f.fieldtype === "Link" && f.options);
+
+			let build_and_set = function (link_options) {
+				// Primary Contact options first, then direct, then linked.
+				let final_options = [
+					{ value: "primary_contact.mobile_no", label: "Primary Contact → mobile_no (Recommended)" },
+					{ value: "primary_contact.phone", label: "Primary Contact → phone" }
+				].concat(all_options).concat(link_options);
+
+				// De-duplicate by value while preserving order.
+				let seen = {};
+				let values = [];
+				final_options.forEach(o => {
+					if (!seen[o.value]) {
+						seen[o.value] = 1;
+						values.push(o.value);
+					}
+				});
+
+				frm.set_df_property("phone_field", "options", values.join("\n"));
+				frm.refresh_field("phone_field");
+			};
+
+			if (!link_fields.length) {
+				build_and_set([]);
+				return;
+			}
+
+			// Preload every linked doctype BEFORE building options, otherwise
+			// the linked fields would be missing on the first run (async).
+			let pending = link_fields.length;
+			let link_options = [];
+			link_fields.forEach(f => {
+				frappe.model.with_doctype(f.options, function () {
+					let linked_fields = frappe.get_doc("DocType", f.options).fields;
+					linked_fields
+						.filter(lf => !frappe.model.no_value_type.includes(lf.fieldtype))
+						.forEach(lf => {
+							link_options.push({
+								value: f.fieldname + "." + lf.fieldname,
+								label: f.fieldname + "." + lf.fieldname +
+								       " (" + (f.label || f.fieldname) + " → " + (lf.label || lf.fieldname) + ")"
+							});
+						});
+					pending -= 1;
+					if (pending === 0) {
+						build_and_set(link_options);
+					}
+				});
+			});
+		});
 	}
 };
 
@@ -75,6 +147,68 @@ frappe.ui.form.on('WhatsApp Notification', {
 		frm.trigger("load_template")
 		frappe.notification.setup_fieldname_select(frm);
 		frappe.notification.setup_alerts_button(frm);
+		frappe.notification.setup_phone_field(frm);
+
+		// Preview button
+		frm.add_custom_button(__('Preview Message'), function() {
+			if (!frm.doc.reference_doctype) {
+				frappe.msgprint(__('Please select a Reference Document Type first'));
+				return;
+			}
+
+			// Get the most recent document of this doctype
+			frappe.call({
+				method: 'frappe_whatsapp.frappe_whatsapp.doctype.whatsapp_notification.whatsapp_notification.get_preview',
+				args: {
+					notification_name: frm.doc.name,
+				},
+				callback: function(r) {
+					if (r.message) {
+						let d = new frappe.ui.Dialog({
+							title: __('Message Preview'),
+							fields: [{
+								fieldtype: 'HTML',
+								options: `
+									<div style="
+										background:#e9fbe5;
+										border-radius:12px;
+										padding:16px 20px;
+										max-width:340px;
+										margin:16px auto;
+										font-family:sans-serif;
+										font-size:14px;
+										line-height:1.6;
+										box-shadow:0 1px 3px rgba(0,0,0,.15);
+										white-space:pre-wrap;
+									">
+										${frappe.utils.escape_html(r.message.preview)}
+									</div>
+									<p style="text-align:center;color:#888;font-size:11px;margin-top:8px">
+										${__('Based on document:')} <strong>${r.message.doc_name}</strong>
+									</p>
+								`
+							}]
+						});
+						d.show();
+					}
+				}
+			});
+		});
+
+		// Add click-to-copy for condition examples in the Help section
+		setTimeout(() => {
+			$(frm.fields_dict.help_html.wrapper).find('code').each(function() {
+				$(this).css('cursor', 'pointer').attr('title', __('Click to use this condition'));
+				$(this).on('click', function() {
+					let example = $(this).text();
+					frm.set_value('condition', example);
+					frappe.show_alert({
+						message: __('Condition set. Edit as needed.'),
+						indicator: 'green'
+					}, 3);
+				});
+			});
+		}, 500);
 	},
 	template: function(frm){
 		frm.trigger("load_template")
@@ -127,7 +261,8 @@ frappe.ui.form.on('WhatsApp Notification', {
 			frm.set_value("custom_attachment", !frm.doc.attach_document_print)
 		}
 	},
-	reference_doctype: function (frm) {
+	reference_doctype: function(frm) {
 		frappe.notification.setup_fieldname_select(frm);
+		frappe.notification.setup_phone_field(frm);
 	},
 });

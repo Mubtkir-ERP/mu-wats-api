@@ -19,15 +19,8 @@ class WhatsAppNotification(Document):
 
     def validate(self):
         """Validate."""
-        if self.notification_type == "DocType Event":
-            fields = frappe.get_doc("DocType", self.reference_doctype).fields
-            fields += frappe.get_all(
-                "Custom Field",
-                filters={"dt": self.reference_doctype},
-                fields=["fieldname"]
-            )
-            if not any(field.fieldname == self.field_name for field in fields): # noqa
-                frappe.throw(_("Field name {0} does not exists").format(self.field_name))
+        # Phone resolution is now handled by phone_source / phone_field, so the
+        # old field_name existence check has been removed.
         if self.custom_attachment:
             if not self.attach and not self.attach_from_field:
                 frappe.throw(_("Either {0} a file or add a {1} to send attachemt").format(
@@ -35,7 +28,7 @@ class WhatsAppNotification(Document):
                     frappe.bold(_("Attach from field")),
                 ))
 
-        if self.set_property_after_alert:
+        if self.set_property_after_alert and self.reference_doctype:
             meta = frappe.get_meta(self.reference_doctype)
             if not meta.get_field(self.set_property_after_alert):
                 frappe.throw(_("Field {0} not found on DocType {1}").format(
@@ -88,6 +81,64 @@ class WhatsAppNotification(Document):
             self.notify(data)
 
 
+    def resolve_phone(self, doc, doc_data):
+        """Resolve phone number based on phone_source setting."""
+        phone = None
+        source = self.phone_source or "Primary Contact"
+
+        if source == "Primary Contact" or (self.phone_field and self.phone_field.startswith("primary_contact.")):
+            # Get customer/party field
+            customer = (doc_data.get('customer') or doc_data.get('party') or
+                       doc_data.get('supplier') or doc_data.get('lead'))
+            if customer:
+                # Find party doctype
+                party_doctype = None
+                if doc_data.get('customer'):
+                    party_doctype = "Customer"
+                elif doc_data.get('supplier'):
+                    party_doctype = "Supplier"
+
+                if party_doctype:
+                    # Get primary contact
+                    contact_name = frappe.db.get_value(
+                        "Dynamic Link",
+                        {"link_doctype": party_doctype, "link_name": customer,
+                         "parenttype": "Contact"},
+                        "parent"
+                    )
+                    if contact_name:
+                        contact = frappe.db.get_value(
+                            "Contact", contact_name,
+                            ["mobile_no", "phone"], as_dict=True
+                        )
+                        if contact:
+                            phone = contact.mobile_no or contact.phone
+
+            # Fallback to common fields
+            if not phone:
+                phone = (doc_data.get('contact_mobile') or
+                        doc_data.get('mobile_no') or
+                        doc_data.get('phone'))
+
+        elif source == "Field in Document":
+            if self.phone_field:
+                phone = doc_data.get(self.phone_field)
+
+        elif source == "Linked DocType":
+            if self.phone_field and '.' in self.phone_field:
+                parts = self.phone_field.split('.')
+                link_field = parts[0]
+                target_field = parts[1]
+                linked_name = doc_data.get(link_field)
+                if linked_name:
+                    meta = frappe.get_meta(doc_data.get('doctype'))
+                    df = meta.get_field(link_field)
+                    if df and df.options:
+                        phone = frappe.db.get_value(df.options, linked_name, target_field)
+
+        return phone
+
+
     def send_template_message(self, doc: Document, phone_no=None, default_template=None, ignore_condition=False):
         """Send WhatsApp message using Evolution API instead of Meta."""
         if self.disabled:
@@ -100,18 +151,6 @@ class WhatsAppNotification(Document):
                 self.condition, get_safe_globals(), dict(doc=doc_data)
             ):
                 return
-
-        # Get phone number
-        if self.field_name:
-            phone_number = phone_no or doc_data[self.field_name]
-        else:
-            phone_number = phone_no
-
-        if not phone_number:
-            frappe.throw("Phone number not found")
-
-        # Format phone number
-        phone_number = self.format_number(phone_number)
 
         # Build message text with template parameters
         template = default_template or frappe.db.get_value(
@@ -131,17 +170,55 @@ class WhatsAppNotification(Document):
         if self.fields:
             parameters = []
             for field in self.fields:
-                if isinstance(doc, Document):
-                    value = doc.get_formatted(field.field_name)
-                else:
-                    value = doc_data[field.field_name]
-                    if isinstance(doc_data[field.field_name], (datetime.date, datetime.datetime)):
-                        value = str(doc_data[field.field_name])
+                raw_value = None
+                try:
+                    if isinstance(doc, Document):
+                        raw_value = doc.get(field.field_name)
+                    else:
+                        raw_value = doc_data.get(field.field_name)
+                except Exception:
+                    raw_value = None
+
+                # Apply fallback if empty
+                if raw_value is None or raw_value == "":
+                    raw_value = field.fallback_value or ""
+
+                # Apply format
+                fmt = field.get("field_format") or "Text"
+                try:
+                    if fmt == "Currency (SAR)":
+                        value = f"{float(raw_value):,.2f} SAR" if raw_value else field.fallback_value or "0.00 SAR"
+                    elif fmt == "Date (DD/MM/YYYY)":
+                        from frappe.utils import getdate
+                        value = getdate(raw_value).strftime("%d/%m/%Y") if raw_value else field.fallback_value or ""
+                    elif fmt == "Date (YYYY-MM-DD)":
+                        from frappe.utils import getdate
+                        value = str(getdate(raw_value)) if raw_value else field.fallback_value or ""
+                    elif fmt == "Datetime":
+                        value = str(raw_value)[:19] if raw_value else field.fallback_value or ""
+                    elif fmt == "Number":
+                        value = str(int(float(raw_value))) if raw_value else field.fallback_value or "0"
+                    else:
+                        value = str(raw_value) if raw_value else field.fallback_value or ""
+                except Exception:
+                    value = field.fallback_value or str(raw_value) or ""
+
                 parameters.append(value)
 
             # Replace {{1}}, {{2}}, etc. with actual values
             for i, param in enumerate(parameters, 1):
                 message_text = message_text.replace(f"{{{{{i}}}}}", _(str(param),'ar'))
+
+        # Resolve the recipient phone number. An explicit phone_no (e.g. from a
+        # scheduled _data_list entry) is used directly; otherwise resolve from
+        # the phone_source / phone_field configuration.
+        phone_number = phone_no or self.resolve_phone(doc, doc_data)
+
+        if not phone_number:
+            frappe.throw("Phone number not found")
+
+        # Format phone number
+        phone_number = self.format_number(phone_number)
 
         # Handle attachments
         attachment_url = None
@@ -151,12 +228,10 @@ class WhatsAppNotification(Document):
             print_format = "Standard"
             doctype = frappe.get_doc("DocType", doc_data['doctype'])
 
-            if doctype.custom:
-                if doctype.default_print_format:
-                    print_format = doctype.default_print_format
-            else:
-                default_print_format = self.print_format
-                print_format = default_print_format if default_print_format else print_format
+            if doctype.custom and doctype.default_print_format:
+                print_format = doctype.default_print_format
+            elif self.print_format:
+                print_format = self.print_format
 
             # Generate PDF using attach_print (handles permissions and PDF generation properly)
             try:
@@ -166,10 +241,10 @@ class WhatsAppNotification(Document):
                     print_format=print_format,
                     doc=doc
                 )
-                
+
                 # Convert PDF to base64
                 pdf_base64 = base64.b64encode(pdf_data["fcontent"]).decode('utf-8')
-                
+
                 filename = pdf_data["fname"]
                 attachment_url = pdf_base64
             except Exception as e:
@@ -222,8 +297,20 @@ class WhatsAppNotification(Document):
         )
         if user_evolution_settings:
             evolution_settings = frappe.get_doc("Evolution Phone Settings", user_evolution_settings)
+        elif self.whatsapp_instance:
+            # Check linked Whatsapp Instance (new field) and build a compatible
+            # settings object from the instance + its Evolution Server.
+            instance = frappe.get_doc("Whatsapp Instance", self.whatsapp_instance)
+            server = frappe.get_doc("Evolution Server", instance.evolution_server)
+            evolution_settings = frappe._dict({
+                "base_url": server.get_base_url(),
+                "instance_name": instance.instance_name,
+                "global_api_key": instance.get_password("api_key", raise_exception=False)
+                or server.get_api_key(),
+            })
         else:
-            evolution_settings = frappe.get_doc("Evolution Phone Settings", self.sender_number)
+            # WhatsApp Instance is mandatory, so this should never happen.
+            frappe.throw(_("WhatsApp Instance is required to send messages."))
 
         if not evolution_settings.base_url or not evolution_settings.instance_name:
             frappe.throw("Evolution Phone Settings not configured")
@@ -504,10 +591,122 @@ def trigger_notifications(method="daily"):
         return
 
     if method == "daily":
+        # KEEP existing Days Before/After logic unchanged
         doc_list = frappe.get_all(
-            "WhatsApp Notification", filters={"doctype_event": ("in", ("Days Before", "Days After")), "disabled": 0}
+            "WhatsApp Notification",
+            filters={"doctype_event": ("in", ("Days Before", "Days After")), "disabled": 0}
         )
         for d in doc_list:
             alert = frappe.get_doc("WhatsApp Notification", d.name)
             alert.get_documents_for_today()
+
+
+def trigger_monthly_notifications():
+    """Triggered hourly — checks if today and current hour match schedule."""
+    today = frappe.utils.getdate(frappe.utils.today())
+    current_hour = frappe.utils.now_datetime().hour
+    current_weekday = today.strftime("%A")  # "Monday", "Tuesday"...
+
+    notifications = frappe.get_all(
+        "WhatsApp Notification",
+        filters={
+            "notification_type": "Scheduler Event",
+            "disabled": 0
+        },
+        fields=["name", "event_frequency", "schedule_day", "schedule_time",
+                "week_day", "repeat_every"]
+    )
+
+    for n in notifications:
+        try:
+            freq = n.event_frequency
+            repeat = n.repeat_every or 1
+            scheduled_hour = int(str(n.schedule_time or "08:00:00")[:2]) if n.schedule_time else 8
+
+            if scheduled_hour != current_hour:
+                continue
+
+            should_run = False
+
+            if freq == "Daily":
+                # Run every N days from a base date
+                # Simple approach: run if day number divisible by repeat_every
+                if today.day % repeat == 0:
+                    should_run = True
+
+            elif freq == "Weekly":
+                # Run on specific weekday every N weeks
+                if n.week_day and current_weekday == n.week_day:
+                    week_number = today.isocalendar()[1]
+                    if week_number % repeat == 0:
+                        should_run = True
+
+            elif freq == "Monthly":
+                # Run on specific day of month
+                if n.schedule_day and today.day == n.schedule_day:
+                    month_number = today.month
+                    if month_number % repeat == 0:
+                        should_run = True
+
+            if should_run:
+                alert = frappe.get_doc("WhatsApp Notification", n.name)
+                alert.send_scheduled_message()
+
+        except Exception:
+            frappe.log_error(
+                frappe.get_traceback(),
+                f"WhatsApp Scheduled Notification Failed: {n.name}"
+            )
+
+
+@frappe.whitelist()
+def get_preview(notification_name):
+    """Return preview of message with real data from latest document."""
+    notif = frappe.get_doc("WhatsApp Notification", notification_name)
+
+    if not notif.reference_doctype:
+        frappe.throw("No reference doctype selected")
+
+    # Get the most recent document
+    docs = frappe.get_all(
+        notif.reference_doctype,
+        fields=["name"],
+        order_by="modified desc",
+        limit=1
+    )
+
+    if not docs:
+        frappe.throw(f"No documents found for {notif.reference_doctype}")
+
+    doc = frappe.get_doc(notif.reference_doctype, docs[0].name)
+    doc_data = doc.as_dict()
+
+    message_text = notif.code or ""
+
+    if notif.fields:
+        for i, field in enumerate(notif.fields, 1):
+            raw_value = doc_data.get(field.field_name)
+            if raw_value is None or raw_value == "":
+                raw_value = field.fallback_value or ""
+
+            fmt = field.get("field_format") or "Text"
+            try:
+                if fmt == "Currency (SAR)":
+                    value = f"{float(raw_value):,.2f} SAR" if raw_value else "0.00 SAR"
+                elif fmt == "Date (DD/MM/YYYY)":
+                    from frappe.utils import getdate
+                    value = getdate(raw_value).strftime("%d/%m/%Y") if raw_value else ""
+                elif fmt == "Number":
+                    value = str(int(float(raw_value))) if raw_value else "0"
+                else:
+                    value = str(raw_value) if raw_value else ""
+            except Exception:
+                value = str(raw_value) if raw_value else ""
+
+            message_text = message_text.replace(f"{{{{{i}}}}}", value)
+
+    return {
+        "preview": message_text,
+        "doc_name": docs[0].name
+    }
            
