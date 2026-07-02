@@ -14,7 +14,11 @@
   "phone_id",
   "business_id",
   "app_id",
-  "webhook_verify_token"
+  "webhook_verify_token",
+  "evolution_section",
+  "default_server",
+  "max_attachment_size",
+  "retention_days"
  ],
  "fields": [
   {
@@ -64,6 +68,32 @@
    "fieldname": "allow_auto_read_receipt",
    "fieldtype": "Check",
    "label": "Allow Auto Read Receipt"
+  },
+  {
+   "fieldname": "evolution_section",
+   "fieldtype": "Section Break",
+   "label": "Evolution / Instance Settings"
+  },
+  {
+   "fieldname": "default_server",
+   "fieldtype": "Link",
+   "label": "Default Server",
+   "options": "Evolution Server",
+   "description": "Evolution server used by default when creating new WhatsApp instances."
+  },
+  {
+   "default": "16",
+   "fieldname": "max_attachment_size",
+   "fieldtype": "Int",
+   "label": "Max Attachment Size (MB)",
+   "description": "Maximum allowed size, in megabytes, for outgoing attachments."
+  },
+  {
+   "default": "90",
+   "fieldname": "retention_days",
+   "fieldtype": "Int",
+   "label": "Retention Days",
+   "description": "Number of days to keep message history before cleanup."
   }
  ],
  "grid_page_length": 50,
