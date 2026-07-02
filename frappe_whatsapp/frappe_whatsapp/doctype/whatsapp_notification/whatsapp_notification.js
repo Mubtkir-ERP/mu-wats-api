@@ -75,6 +75,52 @@ frappe.ui.form.on('WhatsApp Notification', {
 		frm.trigger("load_template")
 		frappe.notification.setup_fieldname_select(frm);
 		frappe.notification.setup_alerts_button(frm);
+
+		// Preview button
+		frm.add_custom_button(__('Preview Message'), function() {
+			if (!frm.doc.reference_doctype) {
+				frappe.msgprint(__('Please select a Reference Document Type first'));
+				return;
+			}
+
+			// Get the most recent document of this doctype
+			frappe.call({
+				method: 'frappe_whatsapp.frappe_whatsapp.doctype.whatsapp_notification.whatsapp_notification.get_preview',
+				args: {
+					notification_name: frm.doc.name,
+				},
+				callback: function(r) {
+					if (r.message) {
+						let d = new frappe.ui.Dialog({
+							title: __('Message Preview'),
+							fields: [{
+								fieldtype: 'HTML',
+								options: `
+									<div style="
+										background:#e9fbe5;
+										border-radius:12px;
+										padding:16px 20px;
+										max-width:340px;
+										margin:16px auto;
+										font-family:sans-serif;
+										font-size:14px;
+										line-height:1.6;
+										box-shadow:0 1px 3px rgba(0,0,0,.15);
+										white-space:pre-wrap;
+									">
+										${frappe.utils.escape_html(r.message.preview)}
+									</div>
+									<p style="text-align:center;color:#888;font-size:11px;margin-top:8px">
+										${__('Based on document:')} <strong>${r.message.doc_name}</strong>
+									</p>
+								`
+							}]
+						});
+						d.show();
+					}
+				}
+			});
+		});
 	},
 	template: function(frm){
 		frm.trigger("load_template")

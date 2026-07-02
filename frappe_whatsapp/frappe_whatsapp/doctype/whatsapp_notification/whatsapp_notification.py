@@ -131,12 +131,39 @@ class WhatsAppNotification(Document):
         if self.fields:
             parameters = []
             for field in self.fields:
-                if isinstance(doc, Document):
-                    value = doc.get_formatted(field.field_name)
-                else:
-                    value = doc_data[field.field_name]
-                    if isinstance(doc_data[field.field_name], (datetime.date, datetime.datetime)):
-                        value = str(doc_data[field.field_name])
+                raw_value = None
+                try:
+                    if isinstance(doc, Document):
+                        raw_value = doc.get(field.field_name)
+                    else:
+                        raw_value = doc_data.get(field.field_name)
+                except Exception:
+                    raw_value = None
+
+                # Apply fallback if empty
+                if raw_value is None or raw_value == "":
+                    raw_value = field.fallback_value or ""
+
+                # Apply format
+                fmt = field.get("field_format") or "Text"
+                try:
+                    if fmt == "Currency (SAR)":
+                        value = f"{float(raw_value):,.2f} SAR" if raw_value else field.fallback_value or "0.00 SAR"
+                    elif fmt == "Date (DD/MM/YYYY)":
+                        from frappe.utils import getdate
+                        value = getdate(raw_value).strftime("%d/%m/%Y") if raw_value else field.fallback_value or ""
+                    elif fmt == "Date (YYYY-MM-DD)":
+                        from frappe.utils import getdate
+                        value = str(getdate(raw_value)) if raw_value else field.fallback_value or ""
+                    elif fmt == "Datetime":
+                        value = str(raw_value)[:19] if raw_value else field.fallback_value or ""
+                    elif fmt == "Number":
+                        value = str(int(float(raw_value))) if raw_value else field.fallback_value or "0"
+                    else:
+                        value = str(raw_value) if raw_value else field.fallback_value or ""
+                except Exception:
+                    value = field.fallback_value or str(raw_value) or ""
+
                 parameters.append(value)
 
             # Replace {{1}}, {{2}}, etc. with actual values
@@ -155,8 +182,22 @@ class WhatsAppNotification(Document):
                 if doctype.default_print_format:
                     print_format = doctype.default_print_format
             else:
-                default_print_format = self.print_format
-                print_format = default_print_format if default_print_format else print_format
+                # default_print_format = self.print_format
+                # print_format = default_print_format if default_print_format else print_format
+
+                # First check print_format_table for this specific doctype
+                matched_format = None
+                if self.print_format_table:
+                    for row in self.print_format_table:
+                        if row.document_type == doc_data.get('doctype'):
+                            matched_format = row.print_format
+                            break
+
+                # Fall back to single print_format field if no table match
+                if not matched_format:
+                    matched_format = self.print_format
+
+                print_format = matched_format if matched_format else "Standard"
 
             # Generate PDF using attach_print (handles permissions and PDF generation properly)
             try:
@@ -222,7 +263,19 @@ class WhatsAppNotification(Document):
         )
         if user_evolution_settings:
             evolution_settings = frappe.get_doc("Evolution Phone Settings", user_evolution_settings)
+        elif self.whatsapp_instance:
+            # Check linked Whatsapp Instance (new field) and build a compatible
+            # settings object from the instance + its Evolution Server.
+            instance = frappe.get_doc("Whatsapp Instance", self.whatsapp_instance)
+            server = frappe.get_doc("Evolution Server", instance.evolution_server)
+            evolution_settings = frappe._dict({
+                "base_url": server.get_base_url(),
+                "instance_name": instance.instance_name,
+                "global_api_key": instance.get_password("api_key", raise_exception=False)
+                or server.get_api_key(),
+            })
         else:
+            # Keep existing sender_number fallback as the final fallback.
             evolution_settings = frappe.get_doc("Evolution Phone Settings", self.sender_number)
 
         if not evolution_settings.base_url or not evolution_settings.instance_name:
@@ -510,4 +563,56 @@ def trigger_notifications(method="daily"):
         for d in doc_list:
             alert = frappe.get_doc("WhatsApp Notification", d.name)
             alert.get_documents_for_today()
+
+
+@frappe.whitelist()
+def get_preview(notification_name):
+    """Return preview of message with real data from latest document."""
+    notif = frappe.get_doc("WhatsApp Notification", notification_name)
+
+    if not notif.reference_doctype:
+        frappe.throw("No reference doctype selected")
+
+    # Get the most recent document
+    docs = frappe.get_all(
+        notif.reference_doctype,
+        fields=["name"],
+        order_by="modified desc",
+        limit=1
+    )
+
+    if not docs:
+        frappe.throw(f"No documents found for {notif.reference_doctype}")
+
+    doc = frappe.get_doc(notif.reference_doctype, docs[0].name)
+    doc_data = doc.as_dict()
+
+    message_text = notif.code or ""
+
+    if notif.fields:
+        for i, field in enumerate(notif.fields, 1):
+            raw_value = doc_data.get(field.field_name)
+            if raw_value is None or raw_value == "":
+                raw_value = field.fallback_value or ""
+
+            fmt = field.get("field_format") or "Text"
+            try:
+                if fmt == "Currency (SAR)":
+                    value = f"{float(raw_value):,.2f} SAR" if raw_value else "0.00 SAR"
+                elif fmt == "Date (DD/MM/YYYY)":
+                    from frappe.utils import getdate
+                    value = getdate(raw_value).strftime("%d/%m/%Y") if raw_value else ""
+                elif fmt == "Number":
+                    value = str(int(float(raw_value))) if raw_value else "0"
+                else:
+                    value = str(raw_value) if raw_value else ""
+            except Exception:
+                value = str(raw_value) if raw_value else ""
+
+            message_text = message_text.replace(f"{{{{{i}}}}}", value)
+
+    return {
+        "preview": message_text,
+        "doc_name": docs[0].name
+    }
            

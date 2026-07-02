@@ -11,6 +11,7 @@
   "notification_type",
   "reference_doctype",
   "print_format",
+  "print_format_table",
   "field_name",
   "event_frequency",
   "doctype_event",
@@ -20,6 +21,7 @@
   "disabled",
   "template",
   "sender_number",
+  "whatsapp_instance",
   "code",
   "attach_document_print",
   "custom_attachment",
@@ -223,6 +225,20 @@
    "fieldtype": "Link",
    "label": "Print Format",
    "options": "Print Format"
+  },
+  {
+   "description": "Define which print format to use for each document type. If not found here, falls back to the default print format.",
+   "fieldname": "print_format_table",
+   "fieldtype": "Table",
+   "label": "Print Format per Document Type",
+   "options": "WhatsApp Print Format"
+  },
+  {
+   "description": "The WhatsApp instance to send from. If empty, uses the instance linked to the submitting user.",
+   "fieldname": "whatsapp_instance",
+   "fieldtype": "Link",
+   "label": "WhatsApp Instance",
+   "options": "Whatsapp Instance"
   }
  ],
  "index_web_pages_for_search": 1,
