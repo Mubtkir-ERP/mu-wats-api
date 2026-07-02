@@ -10,9 +10,13 @@
   "notification_name",
   "notification_type",
   "reference_doctype",
-  "print_format_table",
+  "print_format",
+  "phone_source",
+  "phone_field",
   "event_frequency",
+  "repeat_every",
   "schedule_day",
+  "week_day",
   "schedule_time",
   "doctype_event",
   "days_in_advance",
@@ -50,12 +54,46 @@
    "options": "DocType"
   },
   {
+   "depends_on": "eval:doc.reference_doctype",
+   "description": "Print format to attach as PDF. Leave empty to use default.",
+   "fieldname": "print_format",
+   "fieldtype": "Link",
+   "label": "Print Format",
+   "options": "Print Format"
+  },
+  {
+   "default": "Primary Contact",
+   "depends_on": "eval:doc.notification_type=='DocType Event'",
+   "description": "How to find the recipient's phone number",
+   "fieldname": "phone_source",
+   "fieldtype": "Select",
+   "label": "Phone Source",
+   "options": "Primary Contact\nField in Document\nLinked DocType",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.phone_source=='Field in Document' || doc.phone_source=='Linked DocType'",
+   "description": "Select the field that contains the phone number. For Linked DocType use format: link_field.fieldname e.g. customer.mobile_no",
+   "fieldname": "phone_field",
+   "fieldtype": "Select",
+   "label": "Phone Field",
+   "mandatory_depends_on": "eval:doc.phone_source=='Field in Document' || doc.phone_source=='Linked DocType'"
+  },
+  {
    "depends_on": "eval:doc.notification_type == \"Scheduler Event\"",
    "fieldname": "event_frequency",
    "fieldtype": "Select",
    "label": "Event Frequency",
    "mandatory_depends_on": "eval:doc.script_type == \"Scheduler Event\"",
    "options": "All\nHourly\nDaily\nWeekly\nMonthly\nYearly\nHourly Long\nDaily Long\nWeekly Long\nMonthly Long"
+  },
+  {
+   "default": "1",
+   "depends_on": "eval:doc.notification_type=='Scheduler Event'",
+   "description": "Send every N units. Example: 3 with Daily = every 3 days. 2 with Weekly = every 2 weeks.",
+   "fieldname": "repeat_every",
+   "fieldtype": "Int",
+   "label": "Repeat Every"
   },
   {
    "default": "1",
@@ -67,9 +105,18 @@
    "mandatory_depends_on": "eval:doc.notification_type=='Scheduler Event' && doc.event_frequency=='Monthly'"
   },
   {
+   "depends_on": "eval:doc.notification_type=='Scheduler Event' && doc.event_frequency=='Weekly'",
+   "description": "Which day of the week to send",
+   "fieldname": "week_day",
+   "fieldtype": "Select",
+   "label": "Day of Week",
+   "mandatory_depends_on": "eval:doc.notification_type=='Scheduler Event' && doc.event_frequency=='Weekly'",
+   "options": "\nMonday\nTuesday\nWednesday\nThursday\nFriday\nSaturday\nSunday"
+  },
+  {
    "default": "08:00:00",
-   "depends_on": "eval:doc.notification_type=='Scheduler Event' && doc.event_frequency=='Monthly'",
-   "description": "Time to send the scheduled message. Default: 08:00",
+   "depends_on": "eval:doc.notification_type=='Scheduler Event'",
+   "description": "Time to send. Used for Daily, Weekly, and Monthly schedules.",
    "fieldname": "schedule_time",
    "fieldtype": "Time",
    "label": "Send Time"
@@ -223,13 +270,6 @@
    "label": "Notification Name",
    "reqd": 1,
    "unique": 1
-  },
-  {
-   "description": "Define which print format to use for each document type. If not found here, falls back to the default print format.",
-   "fieldname": "print_format_table",
-   "fieldtype": "Table",
-   "label": "Print Format per Document Type",
-   "options": "WhatsApp Print Format"
   },
   {
    "description": "The WhatsApp instance to send from. If empty, uses the instance linked to the submitting user.",

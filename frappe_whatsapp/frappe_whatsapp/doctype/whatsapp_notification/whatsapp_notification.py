@@ -19,17 +19,8 @@ class WhatsAppNotification(Document):
 
     def validate(self):
         """Validate."""
-        # field_name has been replaced by the phone_source/phone_field columns
-        # in the Print Format table, but legacy records may still carry it.
-        if self.notification_type == "DocType Event" and self.reference_doctype and self.get("field_name"):
-            fields = frappe.get_doc("DocType", self.reference_doctype).fields
-            fields += frappe.get_all(
-                "Custom Field",
-                filters={"dt": self.reference_doctype},
-                fields=["fieldname"]
-            )
-            if not any(field.fieldname == self.get("field_name") for field in fields): # noqa
-                frappe.throw(_("Field name {0} does not exists").format(self.get("field_name")))
+        # Phone resolution is now handled by phone_source / phone_field, so the
+        # old field_name existence check has been removed.
         if self.custom_attachment:
             if not self.attach and not self.attach_from_field:
                 frappe.throw(_("Either {0} a file or add a {1} to send attachemt").format(
@@ -90,96 +81,62 @@ class WhatsAppNotification(Document):
             self.notify(data)
 
 
-    def resolve_phone_number(self, doc, doc_data):
-        """Resolve phone number(s) based on print_format_table configuration.
+    def resolve_phone(self, doc, doc_data):
+        """Resolve phone number based on phone_source setting."""
+        phone = None
+        source = self.phone_source or "Primary Contact"
 
-        Returns a list of (phone_number, row) tuples. A doctype configured on
-        multiple rows resolves to multiple recipients.
-        """
-        if not self.print_format_table:
-            frappe.throw("No document type configured in Print Format table")
+        if source == "Primary Contact" or (self.phone_field and self.phone_field.startswith("primary_contact.")):
+            # Get customer/party field
+            customer = (doc_data.get('customer') or doc_data.get('party') or
+                       doc_data.get('supplier') or doc_data.get('lead'))
+            if customer:
+                # Find party doctype
+                party_doctype = None
+                if doc_data.get('customer'):
+                    party_doctype = "Customer"
+                elif doc_data.get('supplier'):
+                    party_doctype = "Supplier"
 
-        # Find matching rows for this doctype (could be multiple = multiple recipients)
-        matched_rows = [
-            row for row in self.print_format_table
-            if row.document_type == doc_data.get('doctype')
-        ]
+                if party_doctype:
+                    # Get primary contact
+                    contact_name = frappe.db.get_value(
+                        "Dynamic Link",
+                        {"link_doctype": party_doctype, "link_name": customer,
+                         "parenttype": "Contact"},
+                        "parent"
+                    )
+                    if contact_name:
+                        contact = frappe.db.get_value(
+                            "Contact", contact_name,
+                            ["mobile_no", "phone"], as_dict=True
+                        )
+                        if contact:
+                            phone = contact.mobile_no or contact.phone
 
-        if not matched_rows:
-            frappe.throw(f"No configuration found for {doc_data.get('doctype')} in Print Format table")
+            # Fallback to common fields
+            if not phone:
+                phone = (doc_data.get('contact_mobile') or
+                        doc_data.get('mobile_no') or
+                        doc_data.get('phone'))
 
-        phone_numbers = []
+        elif source == "Field in Document":
+            if self.phone_field:
+                phone = doc_data.get(self.phone_field)
 
-        for row in matched_rows:
-            phone = None
+        elif source == "Linked DocType":
+            if self.phone_field and '.' in self.phone_field:
+                parts = self.phone_field.split('.')
+                link_field = parts[0]
+                target_field = parts[1]
+                linked_name = doc_data.get(link_field)
+                if linked_name:
+                    meta = frappe.get_meta(doc_data.get('doctype'))
+                    df = meta.get_field(link_field)
+                    if df and df.options:
+                        phone = frappe.db.get_value(df.options, linked_name, target_field)
 
-            if row.phone_source == "Primary Contact":
-                # Get customer/party from doc, then find primary contact mobile
-                phone = self._get_primary_contact_phone(doc_data)
-                if not phone:
-                    # Fallback: try mobile_no or phone directly on doc
-                    phone = doc_data.get('mobile_no') or doc_data.get('contact_mobile')
-
-            elif row.phone_source == "Field in Document":
-                # Direct field on the document
-                phone = doc_data.get(row.phone_field)
-
-            elif row.phone_source == "Linked DocType":
-                # Follow link field chain e.g. "employee.cell_number"
-                if row.phone_field and '.' in row.phone_field:
-                    link_field, target_field = row.phone_field.split('.', 1)
-                    linked_doc_name = doc_data.get(link_field)
-                    if linked_doc_name:
-                        # Get the meta to find what DocType this link points to
-                        meta = frappe.get_meta(doc_data.get('doctype'))
-                        df = meta.get_field(link_field)
-                        if df and df.options:
-                            phone = frappe.db.get_value(df.options, linked_doc_name, target_field)
-
-            if phone:
-                phone_numbers.append((phone, row))
-            else:
-                frappe.log_error(
-                    f"Could not resolve phone number for {doc_data.get('name')} "
-                    f"using source '{row.phone_source}' field '{row.phone_field}'",
-                    "WhatsApp Phone Resolution"
-                )
-
-        if not phone_numbers:
-            frappe.throw("Phone number not found")
-
-        return phone_numbers  # list of (phone_number, row) tuples
-
-    def _get_primary_contact_phone(self, doc_data):
-        """Return the primary contact's mobile/phone for the document's party."""
-        party = party_type = None
-        if doc_data.get('customer'):
-            party, party_type = doc_data.get('customer'), "Customer"
-        elif doc_data.get('supplier'):
-            party, party_type = doc_data.get('supplier'), "Supplier"
-        elif doc_data.get('party'):
-            party, party_type = doc_data.get('party'), doc_data.get('party_type')
-
-        if not party or not party_type:
-            return None
-
-        # Query the Contact linked to this party, preferring the primary one.
-        rows = frappe.db.sql(
-            """
-            SELECT c.mobile_no, c.phone
-            FROM `tabContact` c
-            INNER JOIN `tabDynamic Link` dl
-                ON dl.parent = c.name AND dl.parenttype = 'Contact'
-            WHERE dl.link_doctype = %s AND dl.link_name = %s
-            ORDER BY c.is_primary_contact DESC, c.modified DESC
-            LIMIT 1
-            """,
-            (party_type, party),
-            as_dict=True,
-        )
-        if rows:
-            return rows[0].get("mobile_no") or rows[0].get("phone")
-        return None
+        return phone
 
 
     def send_template_message(self, doc: Document, phone_no=None, default_template=None, ignore_condition=False):
@@ -252,91 +209,81 @@ class WhatsAppNotification(Document):
             for i, param in enumerate(parameters, 1):
                 message_text = message_text.replace(f"{{{{{i}}}}}", _(str(param),'ar'))
 
-        # Resolve recipients. An explicit phone_no (e.g. from a scheduled
-        # _data_list entry) is used directly; otherwise resolve from the Print
-        # Format table configuration (which may yield multiple recipients).
-        if phone_no:
-            recipients = [(phone_no, None)]
-        else:
-            recipients = self.resolve_phone_number(doc, doc_data)
+        # Resolve the recipient phone number. An explicit phone_no (e.g. from a
+        # scheduled _data_list entry) is used directly; otherwise resolve from
+        # the phone_source / phone_field configuration.
+        phone_number = phone_no or self.resolve_phone(doc, doc_data)
 
-        for raw_phone, row in recipients:
-            phone_number = self.format_number(raw_phone)
+        if not phone_number:
+            frappe.throw("Phone number not found")
 
-            # Handle attachments (per-recipient, since print format can vary by row)
-            attachment_url = None
-            filename = None
+        # Format phone number
+        phone_number = self.format_number(phone_number)
 
-            if self.attach_document_print:
-                print_format = "Standard"
-                doctype = frappe.get_doc("DocType", doc_data['doctype'])
+        # Handle attachments
+        attachment_url = None
+        filename = None
 
-                if doctype.custom and doctype.default_print_format:
-                    print_format = doctype.default_print_format
-                else:
-                    # Use the matched row's print format; if no row (explicit
-                    # phone path) look it up from the table by doctype.
-                    pf_row = row
-                    if not pf_row and self.print_format_table:
-                        pf_row = next(
-                            (r for r in self.print_format_table
-                             if r.document_type == doc_data.get('doctype')),
-                            None,
-                        )
-                    if pf_row and pf_row.print_format:
-                        print_format = pf_row.print_format
+        if self.attach_document_print:
+            print_format = "Standard"
+            doctype = frappe.get_doc("DocType", doc_data['doctype'])
 
-                # Generate PDF using attach_print (handles permissions and PDF generation properly)
-                try:
-                    pdf_data = frappe.attach_print(
-                        doc_data['doctype'],
-                        doc_data['name'],
-                        print_format=print_format,
-                        doc=doc
+            if doctype.custom and doctype.default_print_format:
+                print_format = doctype.default_print_format
+            elif self.print_format:
+                print_format = self.print_format
+
+            # Generate PDF using attach_print (handles permissions and PDF generation properly)
+            try:
+                pdf_data = frappe.attach_print(
+                    doc_data['doctype'],
+                    doc_data['name'],
+                    print_format=print_format,
+                    doc=doc
+                )
+
+                # Convert PDF to base64
+                pdf_base64 = base64.b64encode(pdf_data["fcontent"]).decode('utf-8')
+
+                filename = pdf_data["fname"]
+                attachment_url = pdf_base64
+            except Exception as e:
+                error_msg = str(e)
+                # Handle network/localhost errors with helpful message
+                if "HostNotFoundError" in error_msg or "network error" in error_msg.lower():
+                    frappe.throw(
+                        _("PDF generation failed due to network error. Please ensure your site URL is properly configured in site_config.json (set 'host_name') or use a publicly accessible URL instead of localhost."),
+                        title=_("PDF Generation Error")
                     )
+                # Re-raise other errors
+                raise
 
-                    # Convert PDF to base64
-                    pdf_base64 = base64.b64encode(pdf_data["fcontent"]).decode('utf-8')
+        elif self.custom_attachment:
+            filename = self.file_name
 
-                    filename = pdf_data["fname"]
-                    attachment_url = pdf_base64
-                except Exception as e:
-                    error_msg = str(e)
-                    # Handle network/localhost errors with helpful message
-                    if "HostNotFoundError" in error_msg or "network error" in error_msg.lower():
-                        frappe.throw(
-                            _("PDF generation failed due to network error. Please ensure your site URL is properly configured in site_config.json (set 'host_name') or use a publicly accessible URL instead of localhost."),
-                            title=_("PDF Generation Error")
-                        )
-                    # Re-raise other errors
-                    raise
+            if self.attach_from_field:
+                file_url = doc_data[self.attach_from_field]
+                if not file_url.startswith("http"):
+                    key = doc.get_document_share_key()
+                    file_url = f'{frappe.utils.get_url()}{file_url}&key={key}'
+            else:
+                file_url = self.attach
 
-            elif self.custom_attachment:
-                filename = self.file_name
+            if file_url.startswith("http"):
+                attachment_url = file_url
+            else:
+                attachment_url = f'{frappe.utils.get_url()}{file_url}'
 
-                if self.attach_from_field:
-                    file_url = doc_data[self.attach_from_field]
-                    if not file_url.startswith("http"):
-                        key = doc.get_document_share_key()
-                        file_url = f'{frappe.utils.get_url()}{file_url}&key={key}'
-                else:
-                    file_url = self.attach
-
-                if file_url.startswith("http"):
-                    attachment_url = file_url
-                else:
-                    attachment_url = f'{frappe.utils.get_url()}{file_url}'
-
-            # Send message using Evolution API
-            self.notify_evolution(
-                phone_number=phone_number,
-                message_text=message_text,
-                attachment_url=attachment_url,
-                filename=filename,
-                template=template,
-                doc_data=doc_data,
-                parameters=parameters if self.fields else None
-            )
+        # Send message using Evolution API
+        self.notify_evolution(
+            phone_number=phone_number,
+            message_text=message_text,
+            attachment_url=attachment_url,
+            filename=filename,
+            template=template,
+            doc_data=doc_data,
+            parameters=parameters if self.fields else None
+        )
 
     def notify_evolution(self, phone_number, message_text, attachment_url=None,
                          filename=None, template=None, doc_data=None, parameters=None):
@@ -649,45 +596,72 @@ def trigger_notifications(method="daily"):
         return
 
     if method == "daily":
-        # Existing Days Before/After logic - KEEP AS IS
+        # KEEP existing Days Before/After logic unchanged
         doc_list = frappe.get_all(
-            "WhatsApp Notification", filters={"doctype_event": ("in", ("Days Before", "Days After")), "disabled": 0}
+            "WhatsApp Notification",
+            filters={"doctype_event": ("in", ("Days Before", "Days After")), "disabled": 0}
         )
         for d in doc_list:
             alert = frappe.get_doc("WhatsApp Notification", d.name)
             alert.get_documents_for_today()
 
-    if method == "monthly":
-        # New monthly scheduler
-        today = frappe.utils.today()
-        current_day = frappe.utils.getdate(today).day
-        current_time = frappe.utils.now_datetime().strftime("%H:%M")
-
-        monthly_notifications = frappe.get_all(
-            "WhatsApp Notification",
-            filters={
-                "notification_type": "Scheduler Event",
-                "event_frequency": "Monthly",
-                "disabled": 0,
-                "schedule_day": current_day
-            }
-        )
-
-        for d in monthly_notifications:
-            try:
-                alert = frappe.get_doc("WhatsApp Notification", d.name)
-                # Check time window (within the scheduled hour)
-                if alert.schedule_time:
-                    scheduled = str(alert.schedule_time)[:5]  # "08:00"
-                    if current_time[:2] != scheduled[:2]:      # compare hours
-                        continue
-                alert.send_scheduled_message()
-            except Exception:
-                frappe.log_error(frappe.get_traceback(), f"Monthly WhatsApp Notification: {d.name}")
-
 
 def trigger_monthly_notifications():
-    trigger_notifications(method="monthly")
+    """Triggered hourly — checks if today and current hour match schedule."""
+    today = frappe.utils.getdate(frappe.utils.today())
+    current_hour = frappe.utils.now_datetime().hour
+    current_weekday = today.strftime("%A")  # "Monday", "Tuesday"...
+
+    notifications = frappe.get_all(
+        "WhatsApp Notification",
+        filters={
+            "notification_type": "Scheduler Event",
+            "disabled": 0
+        },
+        fields=["name", "event_frequency", "schedule_day", "schedule_time",
+                "week_day", "repeat_every"]
+    )
+
+    for n in notifications:
+        try:
+            freq = n.event_frequency
+            repeat = n.repeat_every or 1
+            scheduled_hour = int(str(n.schedule_time or "08:00:00")[:2]) if n.schedule_time else 8
+
+            if scheduled_hour != current_hour:
+                continue
+
+            should_run = False
+
+            if freq == "Daily":
+                # Run every N days from a base date
+                # Simple approach: run if day number divisible by repeat_every
+                if today.day % repeat == 0:
+                    should_run = True
+
+            elif freq == "Weekly":
+                # Run on specific weekday every N weeks
+                if n.week_day and current_weekday == n.week_day:
+                    week_number = today.isocalendar()[1]
+                    if week_number % repeat == 0:
+                        should_run = True
+
+            elif freq == "Monthly":
+                # Run on specific day of month
+                if n.schedule_day and today.day == n.schedule_day:
+                    month_number = today.month
+                    if month_number % repeat == 0:
+                        should_run = True
+
+            if should_run:
+                alert = frappe.get_doc("WhatsApp Notification", n.name)
+                alert.send_scheduled_message()
+
+        except Exception:
+            frappe.log_error(
+                frappe.get_traceback(),
+                f"WhatsApp Scheduled Notification Failed: {n.name}"
+            )
 
 
 @frappe.whitelist()
