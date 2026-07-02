@@ -12,12 +12,12 @@
   "details_section",
   "instance_name",
   "evolution_server",
-  "phone_number",
   "column_break_details",
   "linked_user",
   "api_key",
   "status_section",
   "connection_status",
+  "phone_number",
   "column_break_status",
   "connected_since"
  ],

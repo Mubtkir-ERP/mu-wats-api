@@ -12,6 +12,7 @@ frappe.ui.form.on("Whatsapp Instance", {
 	refresh(frm) {
 		render_status_indicator(frm);
 		add_action_buttons(frm);
+		maybe_autofetch_phone(frm);
 	},
 
 	connection_status(frm) {
@@ -46,6 +47,37 @@ frappe.ui.form.on("Whatsapp Instance", {
 		});
 	},
 });
+
+// If the instance is Connected but the phone number is still empty, fetch it
+// once from the Evolution API and fill it in. Guarded so it runs at most once
+// per form load (avoids a refresh loop when ownerJid is unavailable).
+function maybe_autofetch_phone(frm) {
+	if (frm.is_new()) {
+		return;
+	}
+	if (frm.doc.connection_status !== "Connected" || frm.doc.phone_number) {
+		return;
+	}
+	if (frm.__phone_autofetch_done) {
+		return;
+	}
+	frm.__phone_autofetch_done = true;
+
+	frappe.call({
+		method: "frappe_whatsapp.api.get_instance_status",
+		args: { instance_name: frm.doc.name },
+		callback: function (r) {
+			const msg = r.message || {};
+			if (msg.phone_number) {
+				// Set directly (not via set_value) so the form is not marked
+				// dirty — the value is already persisted server-side.
+				frm.doc.phone_number = msg.phone_number;
+				frm.refresh_field("phone_number");
+			}
+			render_status_indicator(frm, msg.status);
+		},
+	});
+}
 
 // Render the colored circular status indicator. Accepts an optional status
 // override so it can be refreshed live during polling without a full reload.
