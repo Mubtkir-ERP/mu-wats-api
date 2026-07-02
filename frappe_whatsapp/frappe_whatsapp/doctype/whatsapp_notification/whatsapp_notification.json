@@ -272,11 +272,11 @@
    "unique": 1
   },
   {
-   "description": "The WhatsApp instance to send from. If empty, uses the instance linked to the submitting user.",
    "fieldname": "whatsapp_instance",
    "fieldtype": "Link",
    "label": "WhatsApp Instance",
-   "options": "Whatsapp Instance"
+   "options": "Whatsapp Instance",
+   "reqd": 1
   }
  ],
  "index_web_pages_for_search": 1,

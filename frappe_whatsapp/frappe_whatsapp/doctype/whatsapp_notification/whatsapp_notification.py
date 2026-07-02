@@ -309,13 +309,8 @@ class WhatsAppNotification(Document):
                 or server.get_api_key(),
             })
         else:
-            # Keep existing sender_number fallback as the final fallback (for
-            # legacy records that still carry a sender_number value).
-            sender = self.get("sender_number")
-            if sender:
-                evolution_settings = frappe.get_doc("Evolution Phone Settings", sender)
-            else:
-                frappe.throw(_("No WhatsApp Instance configured for this notification."))
+            # WhatsApp Instance is mandatory, so this should never happen.
+            frappe.throw(_("WhatsApp Instance is required to send messages."))
 
         if not evolution_settings.base_url or not evolution_settings.instance_name:
             frappe.throw("Evolution Phone Settings not configured")

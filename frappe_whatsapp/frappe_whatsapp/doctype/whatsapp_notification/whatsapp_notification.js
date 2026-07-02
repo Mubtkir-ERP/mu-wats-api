@@ -66,6 +66,78 @@ frappe.notification = {
                 }
             });
         });
+	},
+	setup_phone_field: function (frm) {
+		// Populate the Phone Field Select with all fields from the Reference
+		// DocType (direct fields + linked-doctype child fields), so the user
+		// picks from a dropdown instead of typing a fieldname.
+		if (!frm.doc.reference_doctype) {
+			return;
+		}
+
+		frappe.model.with_doctype(frm.doc.reference_doctype, function () {
+			let fields = frappe.get_doc("DocType", frm.doc.reference_doctype).fields;
+
+			// All direct fields as options (user can pick any)
+			let all_options = fields
+				.filter(f => !frappe.model.no_value_type.includes(f.fieldtype))
+				.map(f => ({
+					value: f.fieldname,
+					label: f.fieldname + " (" + (f.label || f.fieldname) + ")"
+				}));
+
+			// Link fields → their child doctype fields (e.g. customer.mobile_no)
+			let link_fields = fields.filter(f => f.fieldtype === "Link" && f.options);
+
+			let build_and_set = function (link_options) {
+				// Primary Contact options first, then direct, then linked.
+				let final_options = [
+					{ value: "primary_contact.mobile_no", label: "Primary Contact → mobile_no (Recommended)" },
+					{ value: "primary_contact.phone", label: "Primary Contact → phone" }
+				].concat(all_options).concat(link_options);
+
+				// De-duplicate by value while preserving order.
+				let seen = {};
+				let values = [];
+				final_options.forEach(o => {
+					if (!seen[o.value]) {
+						seen[o.value] = 1;
+						values.push(o.value);
+					}
+				});
+
+				frm.set_df_property("phone_field", "options", values.join("\n"));
+				frm.refresh_field("phone_field");
+			};
+
+			if (!link_fields.length) {
+				build_and_set([]);
+				return;
+			}
+
+			// Preload every linked doctype BEFORE building options, otherwise
+			// the linked fields would be missing on the first run (async).
+			let pending = link_fields.length;
+			let link_options = [];
+			link_fields.forEach(f => {
+				frappe.model.with_doctype(f.options, function () {
+					let linked_fields = frappe.get_doc("DocType", f.options).fields;
+					linked_fields
+						.filter(lf => !frappe.model.no_value_type.includes(lf.fieldtype))
+						.forEach(lf => {
+							link_options.push({
+								value: f.fieldname + "." + lf.fieldname,
+								label: f.fieldname + "." + lf.fieldname +
+								       " (" + (f.label || f.fieldname) + " → " + (lf.label || lf.fieldname) + ")"
+							});
+						});
+					pending -= 1;
+					if (pending === 0) {
+						build_and_set(link_options);
+					}
+				});
+			});
+		});
 	}
 };
 
@@ -75,6 +147,7 @@ frappe.ui.form.on('WhatsApp Notification', {
 		frm.trigger("load_template")
 		frappe.notification.setup_fieldname_select(frm);
 		frappe.notification.setup_alerts_button(frm);
+		frappe.notification.setup_phone_field(frm);
 
 		// Preview button
 		frm.add_custom_button(__('Preview Message'), function() {
@@ -190,49 +263,6 @@ frappe.ui.form.on('WhatsApp Notification', {
 	},
 	reference_doctype: function(frm) {
 		frappe.notification.setup_fieldname_select(frm);
-
-		if (!frm.doc.reference_doctype) return;
-
-		frappe.model.with_doctype(frm.doc.reference_doctype, function() {
-			let fields = frappe.get_doc("DocType", frm.doc.reference_doctype).fields;
-
-			// All fields as options (user can pick any)
-			let all_options = fields
-				.filter(f => !frappe.model.no_value_type.includes(f.fieldtype))
-				.map(f => ({
-					value: f.fieldname,
-					label: f.fieldname + " (" + (f.label || f.fieldname) + ")"
-				}));
-
-			// Also add linked doctype fields (Link fields → their children)
-			let link_options = [];
-			fields
-				.filter(f => f.fieldtype === "Link" && f.options)
-				.forEach(f => {
-					frappe.model.with_doctype(f.options, function() {
-						let linked_fields = frappe.get_doc("DocType", f.options).fields;
-						linked_fields
-							.filter(lf => !frappe.model.no_value_type.includes(lf.fieldtype))
-							.forEach(lf => {
-								link_options.push({
-									value: f.fieldname + "." + lf.fieldname,
-									label: f.fieldname + "." + lf.fieldname +
-									       " (" + (f.label||f.fieldname) + " → " + (lf.label||lf.fieldname) + ")"
-								});
-							});
-					});
-				});
-
-			// Add "Primary Contact mobile_no" as first option
-			let final_options = [
-				{ value: "primary_contact.mobile_no", label: "Primary Contact → mobile_no (Recommended)" },
-				{ value: "primary_contact.phone", label: "Primary Contact → phone" }
-			].concat(all_options).concat(link_options);
-
-			frm.set_df_property("phone_field", "options",
-				final_options.map(o => o.value).join("\n")
-			);
-			frm.refresh_field("phone_field");
-		});
+		frappe.notification.setup_phone_field(frm);
 	},
 });
