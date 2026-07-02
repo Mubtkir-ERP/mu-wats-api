@@ -7,7 +7,9 @@
  "engine": "InnoDB",
  "field_order": [
   "document_type",
-  "print_format"
+  "print_format",
+  "phone_source",
+  "phone_field"
  ],
  "fields": [
   {
@@ -27,6 +29,25 @@
    "options": "Print Format",
    "description": "Print format to use when attaching PDF for this document type",
    "reqd": 1
+  },
+  {
+   "default": "Primary Contact",
+   "description": "How to find the recipient's phone number",
+   "fieldname": "phone_source",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Phone Source",
+   "options": "Primary Contact\nField in Document\nLinked DocType",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.phone_source=='Field in Document' || doc.phone_source=='Linked DocType'",
+   "description": "For 'Field in Document': enter fieldname e.g. custom_mobile. For 'Linked DocType': enter link_field.fieldname e.g. employee.cell_number or customer.mobile_no",
+   "fieldname": "phone_field",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Phone Field",
+   "mandatory_depends_on": "eval:doc.phone_source=='Field in Document' || doc.phone_source=='Linked DocType'"
   }
  ],
  "index_web_pages_for_search": 1,

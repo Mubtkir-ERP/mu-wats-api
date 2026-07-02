@@ -10,17 +10,16 @@
   "notification_name",
   "notification_type",
   "reference_doctype",
-  "print_format",
   "print_format_table",
-  "field_name",
   "event_frequency",
+  "schedule_day",
+  "schedule_time",
   "doctype_event",
   "days_in_advance",
   "date_changed",
   "column_break_3",
   "disabled",
   "template",
-  "sender_number",
   "whatsapp_instance",
   "code",
   "attach_document_print",
@@ -41,13 +40,14 @@
  ],
  "fields": [
   {
+   "depends_on": "eval:doc.notification_type=='DocType Event' || doc.notification_type=='Scheduler Event'",
+   "description": "Required only for DocType Event and Days Before/After",
    "fieldname": "reference_doctype",
    "fieldtype": "Link",
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Reference Document Type",
-   "options": "DocType",
-   "reqd": 1
+   "options": "DocType"
   },
   {
    "depends_on": "eval:doc.notification_type == \"Scheduler Event\"",
@@ -56,6 +56,23 @@
    "label": "Event Frequency",
    "mandatory_depends_on": "eval:doc.script_type == \"Scheduler Event\"",
    "options": "All\nHourly\nDaily\nWeekly\nMonthly\nYearly\nHourly Long\nDaily Long\nWeekly Long\nMonthly Long"
+  },
+  {
+   "default": "1",
+   "depends_on": "eval:doc.notification_type=='Scheduler Event' && doc.event_frequency=='Monthly'",
+   "description": "Day of the month to send (1-28). Example: 1 = first day of month",
+   "fieldname": "schedule_day",
+   "fieldtype": "Int",
+   "label": "Day of Month",
+   "mandatory_depends_on": "eval:doc.notification_type=='Scheduler Event' && doc.event_frequency=='Monthly'"
+  },
+  {
+   "default": "08:00:00",
+   "depends_on": "eval:doc.notification_type=='Scheduler Event' && doc.event_frequency=='Monthly'",
+   "description": "Time to send the scheduled message. Default: 08:00",
+   "fieldname": "schedule_time",
+   "fieldtype": "Time",
+   "label": "Send Time"
   },
   {
    "depends_on": "eval:doc.notification_type==='DocType Event'",
@@ -82,7 +99,7 @@
   {
    "fieldname": "help_html",
    "fieldtype": "HTML",
-   "options": "<pre><code>doc.grand_total &gt; 0</code></pre>\n\n<p>Conditions should be written in simple Python. Please use properties available in the form only.</p>\n\n<p>Example: </p><pre><code>doc.status=='Enabled' </code></pre><p></p>\n\n<p> For scheduler events you can use follwing methods</p>\n<p>Allowed functions: </p><ul>\n<li>frappe.db.get_value</li>\n<li>frappe.db.get_list</li>\n<li>frappe.session</li>\n<li>frappe.utils.now_datetime</li>\n<li>frappe.utils.get_datetime</li>\n<li>frappe.utils.add_to_date</li>\n<li>frappe.utils.now</li>\n</ul>\n<p>Example: </p><pre><code>doc.creation &gt; frappe.utils.add_to_date(frappe.utils.now_datetime(\n), days=-5, as_string=True, as_datetime=True) </code></pre><p></p>\n\n<p>\n\t<strong>For scheduled events, use </strong>\n<br>\n1. Simple template sending, without parameters, just send a template\n</p><pre><code class=\"language-python\">\ndoc.set(\"_contact_list\", [\"919123456789\"])\n</code>\n</pre>\n\n2. Message based on doctype with parameters\n<pre><code class=\"language-python\">\nquotation_list = frappe.get_list(\"Quotation\", {\"name\": \"VEN-COT-24-29806\", \"custom_whatsapp_notify\": 0})\nfor qo in quotation_list:\n\tdata_list.append({\n\t\t\"name\": qo.name,\n\t\t\"phone_no\": \"5548996436821\",\n\t})\ndoc.set(\"_data_list\", data_list)\n</code>\n</pre>\n\n<p></p> "
+   "options": "<pre><code>doc.grand_total &gt; 0</code></pre>\n\n<p>Conditions should be written in simple Python. Please use properties available in the form only.</p>\n\n<p>Example: </p><pre><code>doc.status=='Enabled' </code></pre><p></p>\n\n<p> For scheduler events you can use follwing methods</p>\n<p>Allowed functions: </p><ul>\n<li>frappe.db.get_value</li>\n<li>frappe.db.get_list</li>\n<li>frappe.session</li>\n<li>frappe.utils.now_datetime</li>\n<li>frappe.utils.get_datetime</li>\n<li>frappe.utils.add_to_date</li>\n<li>frappe.utils.now</li>\n</ul>\n<p>Example: </p><pre><code>doc.creation &gt; frappe.utils.add_to_date(frappe.utils.now_datetime(\n), days=-5, as_string=True, as_datetime=True) </code></pre><p></p>\n\n<p>\n\t<strong>For scheduled events, use </strong>\n<br>\n1. Simple template sending, without parameters, just send a template\n</p><pre><code class=\"language-python\">\ndoc.set(\"_contact_list\", [\"919123456789\"])\n</code>\n</pre>\n\n2. Message based on doctype with parameters\n<pre><code class=\"language-python\">\nquotation_list = frappe.get_list(\"Quotation\", {\"name\": \"VEN-COT-24-29806\", \"custom_whatsapp_notify\": 0})\nfor qo in quotation_list:\n\tdata_list.append({\n\t\t\"name\": qo.name,\n\t\t\"phone_no\": \"5548996436821\",\n\t})\ndoc.set(\"_data_list\", data_list)\n</code>\n</pre>\n\n<div style=\"margin-top:8px\">\n  <p><strong>Condition Examples — click to copy:</strong></p>\n  <ul style=\"font-size:12px;line-height:2\">\n    <li><code>doc.outstanding_amount > 0</code> — Only if amount is due</li>\n    <li><code>doc.custom_whatsapp_sent == 0</code> — Prevent duplicate sends</li>\n    <li><code>doc.status == \"Submitted\"</code> — Only submitted documents</li>\n    <li><code>doc.customer_group == \"Retail\"</code> — Specific customer group</li>\n    <li><code>doc.grand_total > 1000</code> — Only if total exceeds 1000</li>\n    <li><code>doc.docstatus == 1</code> — Only submitted (docstatus check)</li>\n  </ul>\n</div>\n\n<p></p> "
   },
   {
    "fieldname": "notification_type",
@@ -101,17 +118,11 @@
    "reqd": 1
   },
   {
+   "description": "Python expression that must be true to send. See the Help section below for ready-to-use examples (click an example to insert it).",
    "fieldname": "condition",
    "fieldtype": "Code",
    "label": "Condition",
    "options": "Python Expression"
-  },
-  {
-   "description": "Mobile number field",
-   "fieldname": "field_name",
-   "fieldtype": "Data",
-   "label": "Field Name",
-   "mandatory_depends_on": "eval:['DocType Event'].includes(doc.notification_type)"
   },
   {
    "fieldname": "column_break_12",
@@ -212,19 +223,6 @@
    "label": "Notification Name",
    "reqd": 1,
    "unique": 1
-  },
-  {
-   "fieldname": "sender_number",
-   "fieldtype": "Link",
-   "label": "Sender Number",
-   "options": "Evolution Phone Settings",
-   "reqd": 1
-  },
-  {
-   "fieldname": "print_format",
-   "fieldtype": "Link",
-   "label": "Print Format",
-   "options": "Print Format"
   },
   {
    "description": "Define which print format to use for each document type. If not found here, falls back to the default print format.",

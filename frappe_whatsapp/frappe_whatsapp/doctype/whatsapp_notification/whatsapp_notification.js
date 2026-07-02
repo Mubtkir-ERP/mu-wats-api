@@ -121,6 +121,21 @@ frappe.ui.form.on('WhatsApp Notification', {
 				}
 			});
 		});
+
+		// Add click-to-copy for condition examples in the Help section
+		setTimeout(() => {
+			$(frm.fields_dict.help_html.wrapper).find('code').each(function() {
+				$(this).css('cursor', 'pointer').attr('title', __('Click to use this condition'));
+				$(this).on('click', function() {
+					let example = $(this).text();
+					frm.set_value('condition', example);
+					frappe.show_alert({
+						message: __('Condition set. Edit as needed.'),
+						indicator: 'green'
+					}, 3);
+				});
+			});
+		}, 500);
 	},
 	template: function(frm){
 		frm.trigger("load_template")
