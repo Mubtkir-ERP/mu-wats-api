@@ -6,6 +6,8 @@ The Evolution API base URL and API key are always resolved from the
 ``Evolution Server`` doctype and are never hardcoded here.
 """
 
+import traceback
+
 import requests
 
 import frappe
@@ -38,8 +40,16 @@ def _server_credentials(server_name):
 		frappe.throw(_("No Evolution Server is configured for this instance."))
 
 	server = frappe.get_doc("Evolution Server", server_name)
-	base_url = server.get_base_url()
-	api_key = server.get_api_key()
+	# Normalise the base URL: strip any trailing slash so paths join cleanly.
+	base_url = (server.base_url or "").rstrip("/")
+	api_key = server.api_key or ""
+
+	# Log which server / base_url is actually being used. Only the first 20
+	# characters of the URL are logged, for security.
+	frappe.logger().error(
+		f"Evolution Server in use: {server_name} | base_url={base_url[:20]!r} | "
+		f"api_key_set={bool(api_key)}"
+	)
 
 	if not base_url or not api_key:
 		frappe.throw(
@@ -59,9 +69,13 @@ def _headers(api_key):
 def _request(method, base_url, path, api_key, payload=None):
 	"""Perform an Evolution API request and return the parsed JSON body.
 
-	Raises a translated, user-facing error on failure.
+	Logs the full request/response (or the traceback on a transport error) and
+	surfaces the *actual* error to the user instead of a generic message, so
+	failures (401/404/timeouts/DNS) can be diagnosed.
 	"""
 	url = f"{base_url}{path}"
+
+	# --- Transport layer: connection refused, DNS failure, timeout, TLS ... ---
 	try:
 		response = requests.request(
 			method,
@@ -70,19 +84,39 @@ def _request(method, base_url, path, api_key, payload=None):
 			json=payload,
 			timeout=REQUEST_TIMEOUT,
 		)
-		response.raise_for_status()
-		if response.content:
-			return response.json()
-		return {}
-	except requests.exceptions.RequestException as exc:
-		frappe.log_error(
-			message=f"{method} {url}\n{exc}",
-			title="Evolution API Request Failed",
-		)
+	except Exception as exc:
+		tb = traceback.format_exc()
+		frappe.logger().error(f"Evolution API connection error [{method} {url}]:\n{tb}")
+		frappe.log_error(message=f"{method} {url}\n{tb}", title="Evolution API Connection Error")
 		frappe.throw(
-			_("Could not reach the Evolution API server. Please try again later."),
+			_("Evolution API error: {0}").format(str(exc)),
 			title=_("Connection Error"),
 		)
+
+	# --- Always log the raw response so we can see exactly what came back. ---
+	frappe.logger().error(
+		f"Evolution API response [{method} {url}]: {response.status_code} — {response.text}"
+	)
+
+	# --- HTTP layer: 4xx / 5xx. Surface the status + body, don't hide it. ---
+	if response.status_code >= 400:
+		frappe.log_error(
+			message=f"{method} {url}\n{response.status_code} {response.text}",
+			title="Evolution API HTTP Error",
+		)
+		frappe.throw(
+			_("Evolution API error: {0} — {1}").format(
+				response.status_code, (response.text or "")[:500]
+			),
+			title=_("Evolution API Error"),
+		)
+
+	if response.content:
+		try:
+			return response.json()
+		except ValueError:
+			return {}
+	return {}
 
 
 def _extract_api_key(data):
@@ -156,6 +190,9 @@ def provision_instance(doc):
 		"instanceName": doc.instance_name,
 		"integration": "WHATSAPP-BAILEYS",
 	}
+	frappe.logger().error(
+		f"Provisioning Evolution instance '{doc.instance_name}' on {base_url[:20]!r}"
+	)
 	data = _request("POST", base_url, "/instance/create", api_key, payload=payload)
 
 	instance_key = _extract_api_key(data)
@@ -193,6 +230,7 @@ def get_qr_code(instance_name):
 	doc = _get_instance(instance_name)
 	base_url, api_key = _server_credentials(doc.evolution_server)
 
+	frappe.logger().error(f"Fetching QR for instance '{instance_name}' on {base_url[:20]!r}")
 	data = _request("GET", base_url, f"/instance/connect/{instance_name}", api_key)
 
 	# When already connected the API returns the state instead of a QR payload.
