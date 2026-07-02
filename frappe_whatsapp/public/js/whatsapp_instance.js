@@ -47,8 +47,10 @@ frappe.ui.form.on("Whatsapp Instance", {
 	},
 });
 
-function render_status_indicator(frm) {
-	const status = frm.doc.connection_status || "Disconnected";
+// Render the colored circular status indicator. Accepts an optional status
+// override so it can be refreshed live during polling without a full reload.
+function render_status_indicator(frm, status) {
+	status = status || frm.doc.connection_status || "Disconnected";
 	const color = WA_STATUS_COLORS[status] || "red";
 
 	// Colored dot in the form header.
@@ -68,7 +70,10 @@ function render_status_indicator(frm) {
 			</span>
 			<span style="font-weight:600;">${__(status)}</span>
 		</div>`;
-	frm.get_field("status_indicator").$wrapper.html(dot);
+	const field = frm.get_field("status_indicator");
+	if (field) {
+		field.$wrapper.html(dot);
+	}
 }
 
 function add_action_buttons(frm) {
@@ -198,6 +203,8 @@ function show_qr_dialog(frm) {
 
 	const on_connected = () => {
 		stop_polling();
+		// Keep the header indicator in sync immediately.
+		render_status_indicator(frm, "Connected");
 		set_message(`
 			<i class="fa fa-check-circle" style="font-size:60px; color:green;"></i>
 			<h3 style="color:green; margin-top:15px;">${__("Connected successfully")}</h3>
@@ -226,7 +233,10 @@ function show_qr_dialog(frm) {
 			method: "frappe_whatsapp.api.get_instance_status",
 			args: { instance_name: frm.doc.name },
 			callback: function (r) {
-				if (r.message === "Connected") {
+				const status = r.message || "Disconnected";
+				// Update the status dot after every poll.
+				render_status_indicator(frm, status);
+				if (status === "Connected") {
 					on_connected();
 				}
 			},

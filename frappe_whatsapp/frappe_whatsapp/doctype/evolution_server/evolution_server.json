@@ -49,7 +49,7 @@
   },
   {
    "fieldname": "base_url",
-   "fieldtype": "Password",
+   "fieldtype": "Data",
    "label": "Base URL",
    "description": "Evolution API base URL, e.g. https://evo.example.com. Visible to System Manager only.",
    "permlevel": 1,
@@ -57,7 +57,7 @@
   },
   {
    "fieldname": "api_key",
-   "fieldtype": "Password",
+   "fieldtype": "Data",
    "label": "API Key",
    "description": "Global API key (apikey header) for the Evolution API server. Visible to System Manager only.",
    "permlevel": 1,

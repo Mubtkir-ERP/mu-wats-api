@@ -16,7 +16,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Instance Management",
-   "link_count": 2,
+   "link_count": 1,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -29,17 +29,6 @@
    "link_to": "Whatsapp Instance",
    "link_type": "DocType",
    "onboard": 1,
-   "type": "Link"
-  },
-  {
-   "dependencies": "",
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Whatsapp User Binding",
-   "link_count": 0,
-   "link_to": "Whatsapp User Binding",
-   "link_type": "DocType",
-   "onboard": 0,
    "type": "Link"
   },
   {

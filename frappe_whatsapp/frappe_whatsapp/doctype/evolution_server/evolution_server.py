@@ -10,17 +10,13 @@ class EvolutionServer(Document):
 
 	def validate(self):
 		"""Normalise the base URL by stripping any trailing slash."""
-		base_url = self.get_password("base_url", raise_exception=False)
-		if base_url:
-			normalised = base_url.rstrip("/")
-			if normalised != base_url:
-				self.base_url = normalised
+		if self.base_url:
+			self.base_url = self.base_url.rstrip("/")
 
 	def get_base_url(self):
-		"""Return the decrypted base URL without a trailing slash."""
-		base_url = self.get_password("base_url", raise_exception=False)
-		return (base_url or "").rstrip("/")
+		"""Return the base URL without a trailing slash."""
+		return (self.base_url or "").rstrip("/")
 
 	def get_api_key(self):
-		"""Return the decrypted global API key."""
-		return self.get_password("api_key", raise_exception=False)
+		"""Return the global API key."""
+		return self.api_key or ""

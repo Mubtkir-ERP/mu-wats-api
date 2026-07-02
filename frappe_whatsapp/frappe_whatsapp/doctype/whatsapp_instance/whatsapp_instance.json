@@ -57,7 +57,10 @@
    "in_list_view": 1,
    "label": "Connection Status",
    "options": "Disconnected\nConnecting\nConnected",
-   "description": "Live connection state of this WhatsApp instance."
+   "description": "Live connection state, fetched automatically from the Evolution API. Cannot be edited manually.",
+   "read_only": 1,
+   "allow_on_submit": 0,
+   "no_copy": 1
   },
   {
    "fieldname": "connected_since",

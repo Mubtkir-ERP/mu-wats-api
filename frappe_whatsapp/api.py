@@ -23,12 +23,17 @@ STATE_MAP = {
 }
 
 
-def _server_credentials(server_name):
-	"""Return ``(base_url, api_key)`` for the given Evolution Server.
+def map_state(state):
+	"""Map an Evolution API state to our status.
 
-	Credentials are decrypted from the Evolution Server doctype so they are
-	never exposed in code or to the client.
+	``open`` -> Connected, ``connecting`` -> Connecting, anything else ->
+	Disconnected.
 	"""
+	return STATE_MAP.get((state or "").lower(), "Disconnected")
+
+
+def _server_credentials(server_name):
+	"""Return ``(base_url, api_key)`` for the given Evolution Server."""
 	if not server_name:
 		frappe.throw(_("No Evolution Server is configured for this instance."))
 
@@ -80,6 +85,36 @@ def _request(method, base_url, path, api_key, payload=None):
 		)
 
 
+def _extract_api_key(data):
+	"""Extract the per-instance API key from a create response.
+
+	The Evolution API returns the key under ``hash`` (v2, a string) or under
+	``hash.apikey`` (v1, an object).
+	"""
+	hash_value = data.get("hash")
+	if isinstance(hash_value, dict):
+		return hash_value.get("apikey")
+	if isinstance(hash_value, str):
+		return hash_value
+	return None
+
+
+def _extract_qr(data):
+	"""Extract a base64 QR image from a connect response.
+
+	Handles both the flat form (``base64``) and the nested form
+	(``qrcode.base64`` / ``qrcode`` as a string).
+	"""
+	base64 = data.get("base64")
+	if not base64:
+		qrcode = data.get("qrcode")
+		if isinstance(qrcode, dict):
+			base64 = qrcode.get("base64")
+		elif isinstance(qrcode, str):
+			base64 = qrcode
+	return base64
+
+
 def _get_instance(instance_name):
 	"""Load a Whatsapp Instance document with a read permission check."""
 	if not frappe.db.exists("Whatsapp Instance", instance_name):
@@ -90,22 +125,52 @@ def _get_instance(instance_name):
 	return doc
 
 
-def _apply_status(doc, state):
-	"""Translate an Evolution state into our status and persist any change."""
-	status = STATE_MAP.get((state or "").lower(), "Disconnected")
+def _store_status(instance_name, status, doc=None):
+	"""Persist ``connection_status`` (and connected_since) via db.set_value."""
+	values = {"connection_status": status}
 
-	updates = {}
-	if doc.connection_status != status:
-		updates["connection_status"] = status
+	current_connected_since = doc.connected_since if doc else frappe.db.get_value(
+		"Whatsapp Instance", instance_name, "connected_since"
+	)
 
-	if status == "Connected" and not doc.connected_since:
-		updates["connected_since"] = frappe.utils.now_datetime()
-	elif status == "Disconnected" and doc.connected_since:
-		updates["connected_since"] = None
+	if status == "Connected" and not current_connected_since:
+		values["connected_since"] = frappe.utils.now_datetime()
+	elif status == "Disconnected" and current_connected_since:
+		values["connected_since"] = None
 
-	if updates:
-		doc.db_set(updates, notify=True, commit=True)
+	frappe.db.set_value("Whatsapp Instance", instance_name, values)
+	frappe.db.commit()
+	return status
 
+
+def provision_instance(doc):
+	"""Create the instance on the Evolution API and store its key + status.
+
+	Called from ``Whatsapp Instance.after_insert``. Sends
+	``POST /instance/create`` with the WHATSAPP-BAILEYS integration, then
+	persists the returned per-instance API key and connection status.
+	"""
+	base_url, api_key = _server_credentials(doc.evolution_server)
+
+	payload = {
+		"instanceName": doc.instance_name,
+		"integration": "WHATSAPP-BAILEYS",
+	}
+	data = _request("POST", base_url, "/instance/create", api_key, payload=payload)
+
+	instance_key = _extract_api_key(data)
+	if instance_key:
+		doc.db_set("api_key", instance_key)
+
+	# A freshly created instance is awaiting a QR scan; default to Connecting
+	# when the API does not report a recognised state.
+	instance = data.get("instance") or {}
+	raw_state = instance.get("state") or instance.get("status") or data.get("status")
+	status = map_state(raw_state) if raw_state else "Connecting"
+	if status == "Disconnected":
+		status = "Connecting"
+
+	doc.db_set("connection_status", status)
 	return status
 
 
@@ -120,7 +185,7 @@ def check_user_instance(user):
 
 @frappe.whitelist()
 def get_qr_code(instance_name):
-	"""Fetch a QR code / pairing payload from ``GET /instance/connect/{name}``.
+	"""Fetch a QR code from ``GET /instance/connect/{name}``.
 
 	Returns a dict containing (when available) ``base64``, ``code`` and the
 	current ``status``.
@@ -130,16 +195,15 @@ def get_qr_code(instance_name):
 
 	data = _request("GET", base_url, f"/instance/connect/{instance_name}", api_key)
 
-	# When the instance is already connected the API returns the state instead
-	# of a QR payload.
+	# When already connected the API returns the state instead of a QR payload.
 	state = (data.get("instance") or {}).get("state")
 	if state:
-		status = _apply_status(doc, state)
+		status = _store_status(instance_name, map_state(state), doc)
 	else:
-		status = _apply_status(doc, "connecting")
+		status = _store_status(instance_name, "Connecting", doc)
 
 	return {
-		"base64": data.get("base64"),
+		"base64": _extract_qr(data),
 		"code": data.get("code") or data.get("pairingCode"),
 		"status": status,
 	}
@@ -149,8 +213,9 @@ def get_qr_code(instance_name):
 def get_instance_status(instance_name):
 	"""Fetch state from ``GET /instance/connectionState/{name}``.
 
-	Updates ``connection_status`` in the database and returns the resulting
-	status string (Connected / Connecting / Disconnected).
+	Maps the state, updates ``connection_status`` in the DB via
+	``frappe.db.set_value`` and returns the mapped status string
+	(Connected / Connecting / Disconnected).
 	"""
 	doc = _get_instance(instance_name)
 	base_url, api_key = _server_credentials(doc.evolution_server)
@@ -158,7 +223,7 @@ def get_instance_status(instance_name):
 	data = _request("GET", base_url, f"/instance/connectionState/{instance_name}", api_key)
 	state = (data.get("instance") or {}).get("state") or data.get("state")
 
-	return _apply_status(doc, state)
+	return _store_status(instance_name, map_state(state), doc)
 
 
 @frappe.whitelist()
@@ -170,22 +235,16 @@ def disconnect_instance(instance_name):
 
 	_request("DELETE", base_url, f"/instance/logout/{instance_name}", api_key)
 
-	_apply_status(doc, "close")
-	return "Disconnected"
+	return _store_status(instance_name, "Disconnected", doc)
 
 
 @frappe.whitelist()
-def create_instance(evolution_server, linked_user, phone_number=None):
-	"""Create a new WhatsApp instance on the Evolution API and store it.
+def create_instance(evolution_server, linked_user=None, phone_number=None):
+	"""Create a Whatsapp Instance document.
 
-	Steps:
-	  1. Create the Whatsapp Instance doc so the instance name is generated
-	     (site prefix + 5 random digits) and the one-instance-per-user rule is
-	     enforced.
-	  2. Call ``POST /instance/create`` on the Evolution API using that name.
-	  3. Persist the per-instance API key returned by the Evolution API.
-
-	Returns the saved Whatsapp Instance document.
+	The Evolution API instance itself is provisioned automatically by the
+	doctype's ``after_insert`` hook (see ``provision_instance``), which also
+	stores the per-instance API key and status. Returns the saved document.
 	"""
 	if not frappe.has_permission("Whatsapp Instance", "create"):
 		frappe.throw(_("You are not permitted to create WhatsApp instances."))
@@ -196,33 +255,8 @@ def create_instance(evolution_server, linked_user, phone_number=None):
 			"evolution_server": evolution_server,
 			"linked_user": linked_user,
 			"phone_number": phone_number,
-			"connection_status": "Connecting",
 		}
 	)
 	doc.insert()
-
-	base_url, api_key = _server_credentials(evolution_server)
-	payload = {
-		"instanceName": doc.instance_name,
-		"integration": "WHATSAPP-BAILEYS",
-		"qrcode": True,
-	}
-	if phone_number:
-		payload["number"] = phone_number
-
-	data = _request("POST", base_url, "/instance/create", api_key, payload=payload)
-
-	# The Evolution API returns the per-instance key under "hash" (v2) or
-	# nested under "hash.apikey" (v1).
-	instance_key = None
-	hash_value = data.get("hash")
-	if isinstance(hash_value, dict):
-		instance_key = hash_value.get("apikey")
-	elif isinstance(hash_value, str):
-		instance_key = hash_value
-
-	if instance_key:
-		doc.db_set("api_key", instance_key)
-
 	doc.reload()
 	return doc

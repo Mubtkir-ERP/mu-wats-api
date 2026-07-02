@@ -1,9 +1,0 @@
-# Copyright (c) 2026, Shridhar Patil and Contributors
-# See license.txt
-
-# import frappe
-from frappe.tests.utils import FrappeTestCase
-
-
-class TestWhatsappUserBinding(FrappeTestCase):
-	pass
