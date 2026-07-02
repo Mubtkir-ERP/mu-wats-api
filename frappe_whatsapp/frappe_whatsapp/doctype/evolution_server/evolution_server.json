@@ -13,6 +13,7 @@
   "connection_status",
   "credentials_section",
   "base_url",
+  "column_break_creds",
   "api_key"
  ],
  "fields": [
@@ -40,7 +41,8 @@
    "in_list_view": 1,
    "label": "Connection Status",
    "options": "Online\nOffline",
-   "description": "Current reachability of the Evolution API server."
+   "description": "Current reachability of the Evolution API server. Updated automatically by the Test Connection button.",
+   "read_only": 1
   },
   {
    "fieldname": "credentials_section",
@@ -54,6 +56,10 @@
    "description": "Evolution API base URL, e.g. https://evo.example.com. Visible to System Manager only.",
    "permlevel": 1,
    "reqd": 1
+  },
+  {
+   "fieldname": "column_break_creds",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "api_key",

@@ -161,7 +161,8 @@ function check_status(frm) {
 		freeze: true,
 		freeze_message: __("Checking connection status..."),
 		callback: function (r) {
-			const status = r.message || "Disconnected";
+			const msg = r.message || {};
+			const status = msg.status || "Disconnected";
 			frappe.show_alert({
 				message: __("Connection status: {0}", [status]),
 				indicator: WA_STATUS_COLORS[status] || "red",
@@ -246,10 +247,18 @@ function show_qr_dialog(frm) {
 		}
 	};
 
-	const on_connected = () => {
+	const on_connected = (phone_number) => {
 		stop_polling();
 		// Keep the header indicator in sync immediately.
 		render_status_indicator(frm, "Connected");
+		// Reflect the auto-fetched phone number in the form right away.
+		if (phone_number) {
+			frm.set_value("phone_number", phone_number);
+		}
+		frappe.show_alert(
+			{ message: __("WhatsApp connected successfully!"), indicator: "green" },
+			5
+		);
 		set_message(`
 			<i class="fa fa-check-circle" style="font-size:60px; color:green;"></i>
 			<h3 style="color:green; margin-top:15px;">${__("Connected successfully")}</h3>
@@ -278,11 +287,12 @@ function show_qr_dialog(frm) {
 			method: "frappe_whatsapp.api.get_instance_status",
 			args: { instance_name: frm.doc.name },
 			callback: function (r) {
-				const status = r.message || "Disconnected";
+				const msg = r.message || {};
+				const status = msg.status || "Disconnected";
 				// Update the status dot after every poll.
 				render_status_indicator(frm, status);
 				if (status === "Connected") {
-					on_connected();
+					on_connected(msg.phone_number);
 				}
 			},
 		});

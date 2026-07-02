@@ -33,13 +33,19 @@ class EvolutionServer(Document):
 		"""
 		return self.get_password("api_key", raise_exception=False) or ""
 
+	def _set_connection_status(self, status):
+		"""Persist the reachability status (Online/Offline) on this record."""
+		frappe.db.set_value("Evolution Server", self.name, "connection_status", status)
+		frappe.db.commit()
+
 	@frappe.whitelist()
 	def test_connection(self):
-		"""Ping GET {base_url}/instance/fetchInstances and return the raw result.
+		"""Ping GET {base_url}/instance/fetchInstances and report reachability.
 
-		This intentionally does NOT raise on HTTP errors: it returns the raw
-		status code and body so the exact server response can be inspected in
-		the dialog. Credentials are read straight from this record.
+		On success (HTTP 200) sets connection_status = "Online" and returns
+		``{"ok": True}`` with no raw details. On failure sets "Offline" and
+		returns the URL, HTTP status and raw body for debugging. Credentials are
+		read straight from this record.
 		"""
 		base_url = self.get_base_url()
 		api_key = self.get_api_key()
@@ -51,6 +57,7 @@ class EvolutionServer(Document):
 		)
 
 		if not base_url or not api_key:
+			self._set_connection_status("Offline")
 			return {
 				"ok": False,
 				"url": base_url,
@@ -66,6 +73,7 @@ class EvolutionServer(Document):
 		except Exception as exc:
 			tb = traceback.format_exc()
 			frappe.logger().error(f"Evolution API connection error [GET {url}]:\n{tb}")
+			self._set_connection_status("Offline")
 			return {
 				"ok": False,
 				"url": url,
@@ -77,8 +85,15 @@ class EvolutionServer(Document):
 			f"Evolution API response [GET {url}]: {response.status_code} — {response.text}"
 		)
 
+		ok = response.status_code == 200
+		self._set_connection_status("Online" if ok else "Offline")
+
+		if ok:
+			# Clean success: no raw response, URL or status exposed.
+			return {"ok": True}
+
 		return {
-			"ok": response.status_code < 400,
+			"ok": False,
 			"url": url,
 			"status_code": response.status_code,
 			"body": response.text,

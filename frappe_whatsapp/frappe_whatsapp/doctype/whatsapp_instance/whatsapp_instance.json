@@ -9,14 +9,17 @@
  "engine": "InnoDB",
  "field_order": [
   "status_indicator",
+  "details_section",
   "instance_name",
   "evolution_server",
   "phone_number",
-  "connection_status",
-  "connected_since",
-  "column_break_binding",
+  "column_break_details",
   "linked_user",
-  "api_key"
+  "api_key",
+  "status_section",
+  "connection_status",
+  "column_break_status",
+  "connected_since"
  ],
  "fields": [
   {
@@ -24,6 +27,11 @@
    "fieldtype": "HTML",
    "label": "Status Indicator",
    "description": "Colored circular indicator reflecting the current connection status."
+  },
+  {
+   "fieldname": "details_section",
+   "fieldtype": "Section Break",
+   "label": "Instance Details"
   },
   {
    "fieldname": "instance_name",
@@ -48,29 +56,11 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Phone Number",
-   "description": "WhatsApp phone number in international format, e.g. 9665XXXXXXXX."
-  },
-  {
-   "default": "Disconnected",
-   "fieldname": "connection_status",
-   "fieldtype": "Select",
-   "in_list_view": 1,
-   "label": "Connection Status",
-   "options": "Disconnected\nConnecting\nConnected",
-   "description": "Live connection state, fetched automatically from the Evolution API. Cannot be edited manually.",
-   "read_only": 1,
-   "allow_on_submit": 0,
-   "no_copy": 1
-  },
-  {
-   "fieldname": "connected_since",
-   "fieldtype": "Datetime",
-   "label": "Connected Since",
-   "description": "Timestamp of the last successful connection.",
+   "description": "Auto-filled from WhatsApp after successful QR scan connection.",
    "read_only": 1
   },
   {
-   "fieldname": "column_break_binding",
+   "fieldname": "column_break_details",
    "fieldtype": "Column Break"
   },
   {
@@ -88,6 +78,34 @@
    "label": "Instance API Key",
    "description": "Per-instance API key returned by the Evolution API. Visible to System Manager only.",
    "permlevel": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "status_section",
+   "fieldtype": "Section Break",
+   "label": "Connection"
+  },
+  {
+   "default": "Disconnected",
+   "fieldname": "connection_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Connection Status",
+   "options": "Disconnected\nConnecting\nConnected",
+   "description": "Live connection state, fetched automatically from the Evolution API. Cannot be edited manually.",
+   "read_only": 1,
+   "allow_on_submit": 0,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "connected_since",
+   "fieldtype": "Datetime",
+   "label": "Connected Since",
+   "description": "Timestamp of the last successful connection.",
    "read_only": 1
   }
  ],

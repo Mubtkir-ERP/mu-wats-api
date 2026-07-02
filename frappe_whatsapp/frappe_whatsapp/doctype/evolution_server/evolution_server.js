@@ -19,13 +19,29 @@ function test_connection(frm) {
 		freeze_message: __("Contacting Evolution API..."),
 		callback: function (r) {
 			const res = r.message || {};
-			const ok = res.ok;
-			const indicator = ok ? "green" : "red";
-			const title = ok
-				? __("Connection Successful")
-				: __("Connection Failed");
 
-			// Show the raw response exactly as returned by the server.
+			// Refresh so the read-only connection_status field reflects the
+			// value the server just saved (Online / Offline).
+			frm.reload_doc();
+
+			if (res.ok) {
+				// Clean success: no URL, status or raw response.
+				const dialog = new frappe.ui.Dialog({
+					title: __("Connection Successful"),
+					fields: [{ fieldtype: "HTML", fieldname: "result" }],
+				});
+				dialog.get_field("result").$wrapper.html(`
+					<div style="text-align:center; padding:16px;">
+						<i class="fa fa-check-circle" style="font-size:56px; color:green;"></i>
+						<h3 style="color:green; margin-top:14px;">
+							${__("Evolution API server is reachable and responding correctly.")}
+						</h3>
+					</div>`);
+				dialog.show();
+				return;
+			}
+
+			// Failure: show full details for debugging.
 			const body_text = typeof res.body === "string"
 				? res.body
 				: JSON.stringify(res.body, null, 2);
@@ -39,7 +55,7 @@ function test_connection(frm) {
 				</div>`;
 
 			const dialog = new frappe.ui.Dialog({
-				title: title,
+				title: __("Connection Failed"),
 				size: "large",
 				fields: [{ fieldtype: "HTML", fieldname: "result" }],
 			});
@@ -47,10 +63,8 @@ function test_connection(frm) {
 			dialog.show();
 
 			frappe.show_alert({
-				message: ok
-					? __("Reached the Evolution API (HTTP {0}).", [res.status_code])
-					: __("Could not reach the Evolution API. See the dialog for details."),
-				indicator: indicator,
+				message: __("Could not reach the Evolution API. See the dialog for details."),
+				indicator: "red",
 			});
 		},
 	});

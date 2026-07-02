@@ -7,18 +7,20 @@
  "engine": "InnoDB",
  "field_order": [
   "enabled",
-  "allow_auto_read_receipt",
   "token",
   "url",
-  "version",
   "phone_id",
-  "business_id",
   "app_id",
+  "column_break_main",
+  "allow_auto_read_receipt",
   "webhook_verify_token",
+  "version",
+  "business_id",
   "evolution_section",
   "default_server",
-  "max_attachment_size",
-  "retention_days"
+  "retention_days",
+  "column_break_evolution",
+  "max_attachment_size"
  ],
  "fields": [
   {
@@ -70,9 +72,17 @@
    "label": "Allow Auto Read Receipt"
   },
   {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
    "fieldname": "evolution_section",
    "fieldtype": "Section Break",
    "label": "Evolution / Instance Settings"
+  },
+  {
+   "fieldname": "column_break_evolution",
+   "fieldtype": "Column Break"
   },
   {
    "fieldname": "default_server",

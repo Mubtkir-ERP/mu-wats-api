@@ -10,7 +10,7 @@
  "icon": "message",
  "idx": 0,
  "is_hidden": 0,
- "label": "Whatsapp Workspace",
+ "label": "Whatsapp",
  "links": [
   {
    "hidden": 0,
@@ -65,7 +65,7 @@
  "modified": "2026-07-02 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Frappe Whatsapp",
- "name": "Whatsapp Workspace",
+ "name": "Whatsapp",
  "number_cards": [],
  "owner": "Administrator",
  "parent_page": "",
@@ -89,5 +89,5 @@
    "type": "DocType"
   }
  ],
- "title": "Whatsapp Workspace"
+ "title": "Whatsapp"
 }

@@ -6,6 +6,7 @@ The Evolution API base URL and API key are always resolved from the
 ``Evolution Server`` doctype and are never hardcoded here.
 """
 
+import re
 import traceback
 
 import requests
@@ -148,6 +149,37 @@ def _extract_qr(data):
 		elif isinstance(qrcode, str):
 			base64 = qrcode
 	return base64
+
+
+def _extract_phone_from_jid(owner_jid):
+	"""Return the digits before ``@`` in an ownerJid (e.g. 9665...@s.whatsapp.net)."""
+	if not owner_jid or "@" not in owner_jid:
+		return ""
+	number = owner_jid.split("@")[0]
+	return re.sub(r"\D", "", number)
+
+
+def _fetch_owner_jid(base_url, api_key, instance_name):
+	"""Best-effort lookup of an instance's ownerJid via /instance/fetchInstances.
+
+	The Evolution API response shape varies between versions, so this tolerates
+	both a bare list and a ``{"data": [...]}`` wrapper, and both flat and
+	``{"instance": {...}}`` records. Returns "" if nothing matches.
+	"""
+	try:
+		data = _request("GET", base_url, "/instance/fetchInstances", api_key)
+	except Exception:
+		return ""
+
+	records = data if isinstance(data, list) else (data.get("data") or data.get("instances") or [])
+	for rec in records:
+		if not isinstance(rec, dict):
+			continue
+		info = rec.get("instance") if isinstance(rec.get("instance"), dict) else rec
+		name = info.get("instanceName") or info.get("name")
+		if name == instance_name:
+			return info.get("ownerJid") or info.get("owner") or ""
+	return ""
 
 
 def _get_instance(instance_name):
@@ -341,17 +373,39 @@ def get_qr_code(instance_name):
 def get_instance_status(instance_name):
 	"""Fetch state from ``GET /instance/connectionState/{name}``.
 
-	Maps the state, updates ``connection_status`` in the DB via
-	``frappe.db.set_value`` and returns the mapped status string
-	(Connected / Connecting / Disconnected).
+	Maps the state and updates ``connection_status`` in the DB. When the
+	instance becomes Connected, the WhatsApp phone number is extracted from the
+	``ownerJid`` (falling back to /instance/fetchInstances) and stored.
+
+	Returns ``{"status": <status>, "phone_number": <digits>}``.
 	"""
 	doc = _get_instance(instance_name)
 	base_url, api_key = _server_credentials(doc.evolution_server)
 
 	data = _request("GET", base_url, f"/instance/connectionState/{instance_name}", api_key)
 	state = (data.get("instance") or {}).get("state") or data.get("state")
+	status = map_state(state)
 
-	return _store_status(instance_name, map_state(state), doc)
+	phone_number = doc.phone_number or ""
+
+	if status == "Connected":
+		owner_jid = (data.get("instance") or {}).get("ownerJid") or data.get("ownerJid") or ""
+		if not owner_jid:
+			owner_jid = _fetch_owner_jid(base_url, api_key, instance_name)
+		extracted = _extract_phone_from_jid(owner_jid)
+		if extracted:
+			phone_number = extracted
+
+		values = {"connection_status": "Connected", "phone_number": phone_number}
+		# Preserve the original connection time; only set it the first time.
+		if not doc.connected_since:
+			values["connected_since"] = frappe.utils.now()
+		frappe.db.set_value("Whatsapp Instance", instance_name, values)
+		frappe.db.commit()
+	else:
+		_store_status(instance_name, status, doc)
+
+	return {"status": status, "phone_number": phone_number}
 
 
 @frappe.whitelist()
