@@ -81,32 +81,77 @@ function add_action_buttons(frm) {
 		return;
 	}
 
-	const status = frm.doc.connection_status;
+	// Whether the instance is already registered on the Evolution API decides
+	// whether we show "Create Instance" or "Show QR Code". Resolve it on the
+	// server, then (re)build the buttons in the required order.
+	frappe.call({
+		method: "frappe_whatsapp.api.is_registered",
+		args: { instance_name: frm.doc.name },
+		callback: function (r) {
+			build_action_buttons(frm, !!(r && r.message));
+		},
+	});
+}
 
-	// Show QR Code — only useful while the instance is not connected.
-	if (status !== "Connected") {
-		frm.add_custom_button(
-			__("Show QR Code"),
-			() => show_qr_dialog(frm),
-			__("WhatsApp")
-		);
+function build_action_buttons(frm, registered) {
+	// Rebuild from scratch so order and visibility are always correct.
+	frm.clear_custom_buttons();
+
+	const status = frm.doc.connection_status || "";
+
+	// 1. Create Instance (primary, blue) — only before it exists in Evolution,
+	//    and only while Disconnected/empty.
+	if (!registered && (status === "" || status === "Disconnected")) {
+		const btn = frm.add_custom_button(__("Create Instance"), () => create_instance(frm));
+		btn.removeClass("btn-default").addClass("btn-primary");
 	}
 
-	// Check Status — always available.
-	frm.add_custom_button(
-		__("Check Status"),
-		() => check_status(frm),
-		__("WhatsApp")
-	);
+	// 2. Show QR Code (default) — after the instance has been created and while
+	//    it is not yet connected.
+	if (registered && status !== "Connected") {
+		frm.add_custom_button(__("Show QR Code"), () => show_qr_dialog(frm));
+	}
 
-	// Disconnect — only when currently connected.
+	// 3. Check Status (default) — always available.
+	frm.add_custom_button(__("Check Status"), () => check_status(frm));
+
+	// 4. Disconnect (danger, red) — only when currently connected.
 	if (status === "Connected") {
-		frm.add_custom_button(
-			__("Disconnect"),
-			() => confirm_disconnect(frm),
-			__("WhatsApp")
-		);
+		const btn = frm.add_custom_button(__("Disconnect"), () => confirm_disconnect(frm));
+		btn.removeClass("btn-default").addClass("btn-danger");
 	}
+}
+
+function create_instance(frm) {
+	frappe.confirm(
+		__(
+			"Create this instance in Evolution API? This will register the instance name and prepare it for QR scanning."
+		),
+		function () {
+			frappe.call({
+				method: "frappe_whatsapp.api.create_whatsapp_instance",
+				args: { instance_name: frm.doc.name },
+				freeze: true,
+				freeze_message: __("Creating instance in Evolution API..."),
+				callback: function (r) {
+					// On error, Frappe already shows the exact server message;
+					// do not repeat it here.
+					if (r.exc) {
+						return;
+					}
+					frappe.msgprint({
+						title: __("Success"),
+						indicator: "green",
+						message: __(
+							"Instance created successfully. You can now scan the QR code."
+						),
+					});
+					// Reload so the buttons rebuild and "Show QR Code" appears.
+					frm.reload_doc();
+				},
+			});
+		}
+	);
 }
 
 function check_status(frm) {

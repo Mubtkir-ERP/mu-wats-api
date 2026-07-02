@@ -186,54 +186,48 @@ def _normalise_base_url(raw):
 	return base_url
 
 
-def _generate_instance_name():
-	"""Return a unique ``<site prefix (<=10)>-<5 digits>`` instance name."""
-	import string
+@frappe.whitelist()
+def is_registered(instance_name):
+	"""Return True if the instance has been registered on the Evolution API.
 
-	site = getattr(frappe.local, "site", "") or ""
-	site_prefix = (site.split(".")[0] or "wa")[:10]
-
-	for _attempt in range(20):
-		suffix = "".join(random.choices(string.digits, k=5))
-		candidate = f"{site_prefix}-{suffix}"
-		if not frappe.db.exists("Whatsapp Instance", candidate):
-			return candidate
-
-	frappe.throw(
-		_("Could not generate a unique instance name. Please try again."),
-		title=_("Instance Name Error"),
-	)
+	Registration stores a per-instance ``api_key``, so a non-empty key is the
+	marker for "already created in Evolution". Used by the form to decide
+	whether to show the "Create Instance" button or the "Show QR Code" button.
+	"""
+	if not frappe.db.exists("Whatsapp Instance", instance_name):
+		return False
+	doc = frappe.get_doc("Whatsapp Instance", instance_name)
+	return bool(doc.get_password("api_key", raise_exception=False))
 
 
 @frappe.whitelist()
-def create_whatsapp_instance(evolution_server, linked_user, phone_number=None):
-	"""Create a WhatsApp instance on the Evolution API, then store it locally.
+def create_whatsapp_instance(instance_name):
+	"""Register an existing Whatsapp Instance record on the Evolution API.
 
-	The record is only inserted into ERPNext after the Evolution API confirms
-	creation. Returns ``{"instance_name", "api_key"}`` on success.
+	The local record already exists (its name was auto-generated on save); this
+	registers that same name on the Evolution API, stores the returned
+	per-instance API key and sets the status to Disconnected (ready for QR).
+	Returns ``{"success": True, "api_key": ...}``.
 	"""
-	if not frappe.has_permission("Whatsapp Instance", "create"):
-		frappe.throw(_("You are not permitted to create WhatsApp instances."))
-
-	# 1. Block a second instance for the same user.
-	existing = frappe.db.get_value("Whatsapp Instance", {"linked_user": linked_user}, "name")
-	if existing:
+	if not frappe.db.exists("Whatsapp Instance", instance_name):
 		frappe.throw(
-			_("User already has an instance: {0}").format(existing),
-			title=_("Duplicate Instance"),
+			_("WhatsApp instance {0} was not found.").format(frappe.bold(instance_name))
 		)
 
-	# 2. Generate the instance name (site prefix + 5 random digits).
-	server = frappe.get_doc("Evolution Server", evolution_server)
-	instance_name = _generate_instance_name()
+	doc = frappe.get_doc("Whatsapp Instance", instance_name)
+	doc.check_permission("write")
 
-	# 3. Call the Evolution API to create the instance.
+	if not doc.evolution_server:
+		frappe.throw(_("Please set an Evolution Server on this instance first."))
+
+	server = frappe.get_doc("Evolution Server", doc.evolution_server)
+
 	base_url = _normalise_base_url(server.base_url)
 	server_api_key = server.get_password("api_key", raise_exception=False)
 	url = f"{base_url}/instance/create"
 
 	frappe.logger().error(
-		f"Creating Evolution instance '{instance_name}' on {base_url[:20]!r}"
+		f"Registering Evolution instance '{instance_name}' on {base_url[:20]!r}"
 	)
 	try:
 		response = requests.post(
@@ -263,26 +257,16 @@ def create_whatsapp_instance(evolution_server, linked_user, phone_number=None):
 		)
 
 	data = response.json() if response.content else {}
-	instance_key = (
-		_extract_api_key(data) or data.get("apikey") or ""
-	)
+	instance_key = _extract_api_key(data) or data.get("apikey") or ""
 
-	# 4. Persist the confirmed instance in ERPNext.
-	doc = frappe.get_doc(
-		{
-			"doctype": "Whatsapp Instance",
-			"instance_name": instance_name,
-			"evolution_server": evolution_server,
-			"linked_user": linked_user,
-			"phone_number": phone_number,
-			"api_key": instance_key,
-			"connection_status": "Disconnected",
-		}
+	frappe.db.set_value(
+		"Whatsapp Instance",
+		instance_name,
+		{"api_key": instance_key, "connection_status": "Disconnected"},
 	)
-	doc.insert(ignore_permissions=True)
 	frappe.db.commit()
 
-	return {"instance_name": instance_name, "api_key": instance_key}
+	return {"success": True, "api_key": instance_key}
 
 
 @frappe.whitelist()
