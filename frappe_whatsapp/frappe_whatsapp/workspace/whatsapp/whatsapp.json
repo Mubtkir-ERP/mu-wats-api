@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"wa_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">WhatsApp Management</span>\",\"col\":12}},{\"id\":\"wa_card_instance\",\"type\":\"card\",\"data\":{\"card_name\":\"Instance Management\",\"col\":4}},{\"id\":\"wa_card_notifications\",\"type\":\"card\",\"data\":{\"card_name\":\"Notifications\",\"col\":4}},{\"id\":\"wa_card_settings\",\"type\":\"card\",\"data\":{\"card_name\":\"Settings\",\"col\":4}}]",
+ "content": "[{\"id\":\"wa_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">WhatsApp Management</span>\",\"col\":12}},{\"id\":\"wa_card_instance\",\"type\":\"card\",\"data\":{\"card_name\":\"Instance Management\",\"col\":3}},{\"id\":\"wa_card_notifications\",\"type\":\"card\",\"data\":{\"card_name\":\"Notifications\",\"col\":3}},{\"id\":\"wa_card_messages\",\"type\":\"card\",\"data\":{\"card_name\":\"Messages\",\"col\":3}},{\"id\":\"wa_card_settings\",\"type\":\"card\",\"data\":{\"card_name\":\"Settings\",\"col\":3}}]",
  "creation": "2026-07-02 00:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
@@ -46,7 +46,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Notifications",
-   "link_count": 4,
+   "link_count": 3,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -76,6 +76,25 @@
    "dependencies": "",
    "hidden": 0,
    "is_query_report": 0,
+   "label": "WhatsApp Notification Log",
+   "link_count": 0,
+   "link_to": "WhatsApp Notification Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Messages",
+   "link_count": 4,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "WhatsApp Message",
    "link_count": 0,
    "link_to": "WhatsApp Message",
@@ -87,9 +106,31 @@
    "dependencies": "",
    "hidden": 0,
    "is_query_report": 0,
-   "label": "WhatsApp Notification Log",
+   "label": "Bulk WhatsApp Message",
    "link_count": 0,
-   "link_to": "WhatsApp Notification Log",
+   "link_to": "Bulk WhatsApp Message",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "WhatsApp Recipient",
+   "link_count": 0,
+   "link_to": "WhatsApp Recipient",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "WhatsApp Recipient List",
+   "link_count": 0,
+   "link_to": "WhatsApp Recipient List",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
