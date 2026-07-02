@@ -26,8 +26,12 @@ class EvolutionServer(Document):
 		return (self.base_url or "").rstrip("/")
 
 	def get_api_key(self):
-		"""Return the global API key."""
-		return self.api_key or ""
+		"""Return the decrypted global API key.
+
+		``api_key`` is a Password field, so it must be read via get_password
+		rather than accessing the attribute (which returns a masked value).
+		"""
+		return self.get_password("api_key", raise_exception=False) or ""
 
 	@frappe.whitelist()
 	def test_connection(self):

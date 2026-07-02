@@ -38,33 +38,6 @@ class WhatsappInstance(Document):
 			title=_("Instance Name Error"),
 		)
 
-	def after_insert(self):
-		"""Provision the instance on the Evolution API right after creation.
-
-		Calls POST /instance/create, then stores the returned per-instance API
-		key and connection status. A failure here must not roll back the
-		created document, so the error is logged and surfaced as a warning and
-		the user can retry from the form.
-		"""
-		from frappe_whatsapp.api import provision_instance
-
-		try:
-			provision_instance(self)
-		except Exception:
-			frappe.log_error(
-				message=frappe.get_traceback(),
-				title=f"Evolution provisioning failed for {self.name}",
-			)
-			frappe.msgprint(
-				_(
-					"The instance was created but could not be provisioned on the "
-					"Evolution API. Please verify the Evolution Server settings and "
-					"try 'Check Status' or 'Show QR Code' again."
-				),
-				title=_("Provisioning Warning"),
-				indicator="orange",
-			)
-
 	def validate(self):
 		"""Run all validations."""
 		self.validate_single_instance_per_user()

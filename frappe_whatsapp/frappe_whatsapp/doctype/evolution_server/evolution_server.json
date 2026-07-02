@@ -57,7 +57,7 @@
   },
   {
    "fieldname": "api_key",
-   "fieldtype": "Data",
+   "fieldtype": "Password",
    "label": "API Key",
    "description": "Global API key (apikey header) for the Evolution API server. Visible to System Manager only.",
    "permlevel": 1,

@@ -87,7 +87,8 @@
    "hidden": 1,
    "label": "Instance API Key",
    "description": "Per-instance API key returned by the Evolution API. Visible to System Manager only.",
-   "permlevel": 1
+   "permlevel": 1,
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,

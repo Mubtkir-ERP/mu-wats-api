@@ -41,8 +41,9 @@ def _server_credentials(server_name):
 
 	server = frappe.get_doc("Evolution Server", server_name)
 	# Normalise the base URL: strip any trailing slash so paths join cleanly.
-	base_url = (server.base_url or "").rstrip("/")
-	api_key = server.api_key or ""
+	# api_key is a Password field, so read it via get_password (not the attribute).
+	base_url = server.get_base_url()
+	api_key = server.get_api_key()
 
 	# Log which server / base_url is actually being used. Only the first 20
 	# characters of the URL are logged, for security.
@@ -177,38 +178,143 @@ def _store_status(instance_name, status, doc=None):
 	return status
 
 
-def provision_instance(doc):
-	"""Create the instance on the Evolution API and store its key + status.
+def _normalise_base_url(raw):
+	"""Strip whitespace / trailing slash and ensure an http(s) scheme."""
+	base_url = (raw or "").strip().rstrip("/")
+	if base_url and not base_url.startswith(("http://", "https://")):
+		base_url = "https://" + base_url
+	return base_url
 
-	Called from ``Whatsapp Instance.after_insert``. Sends
-	``POST /instance/create`` with the WHATSAPP-BAILEYS integration, then
-	persists the returned per-instance API key and connection status.
-	"""
-	base_url, api_key = _server_credentials(doc.evolution_server)
 
-	payload = {
-		"instanceName": doc.instance_name,
-		"integration": "WHATSAPP-BAILEYS",
-	}
-	frappe.logger().error(
-		f"Provisioning Evolution instance '{doc.instance_name}' on {base_url[:20]!r}"
+def _generate_instance_name():
+	"""Return a unique ``<site prefix (<=10)>-<5 digits>`` instance name."""
+	import string
+
+	site = getattr(frappe.local, "site", "") or ""
+	site_prefix = (site.split(".")[0] or "wa")[:10]
+
+	for _attempt in range(20):
+		suffix = "".join(random.choices(string.digits, k=5))
+		candidate = f"{site_prefix}-{suffix}"
+		if not frappe.db.exists("Whatsapp Instance", candidate):
+			return candidate
+
+	frappe.throw(
+		_("Could not generate a unique instance name. Please try again."),
+		title=_("Instance Name Error"),
 	)
-	data = _request("POST", base_url, "/instance/create", api_key, payload=payload)
 
-	instance_key = _extract_api_key(data)
-	if instance_key:
-		doc.db_set("api_key", instance_key)
 
-	# A freshly created instance is awaiting a QR scan; default to Connecting
-	# when the API does not report a recognised state.
-	instance = data.get("instance") or {}
-	raw_state = instance.get("state") or instance.get("status") or data.get("status")
-	status = map_state(raw_state) if raw_state else "Connecting"
-	if status == "Disconnected":
-		status = "Connecting"
+@frappe.whitelist()
+def create_whatsapp_instance(evolution_server, linked_user, phone_number=None):
+	"""Create a WhatsApp instance on the Evolution API, then store it locally.
 
-	doc.db_set("connection_status", status)
-	return status
+	The record is only inserted into ERPNext after the Evolution API confirms
+	creation. Returns ``{"instance_name", "api_key"}`` on success.
+	"""
+	if not frappe.has_permission("Whatsapp Instance", "create"):
+		frappe.throw(_("You are not permitted to create WhatsApp instances."))
+
+	# 1. Block a second instance for the same user.
+	existing = frappe.db.get_value("Whatsapp Instance", {"linked_user": linked_user}, "name")
+	if existing:
+		frappe.throw(
+			_("User already has an instance: {0}").format(existing),
+			title=_("Duplicate Instance"),
+		)
+
+	# 2. Generate the instance name (site prefix + 5 random digits).
+	server = frappe.get_doc("Evolution Server", evolution_server)
+	instance_name = _generate_instance_name()
+
+	# 3. Call the Evolution API to create the instance.
+	base_url = _normalise_base_url(server.base_url)
+	server_api_key = server.get_password("api_key", raise_exception=False)
+	url = f"{base_url}/instance/create"
+
+	frappe.logger().error(
+		f"Creating Evolution instance '{instance_name}' on {base_url[:20]!r}"
+	)
+	try:
+		response = requests.post(
+			url,
+			headers={"apikey": server_api_key, "Content-Type": "application/json"},
+			json={"instanceName": instance_name, "integration": "WHATSAPP-BAILEYS"},
+			timeout=REQUEST_TIMEOUT,
+		)
+	except Exception as exc:
+		frappe.logger().error(
+			f"Evolution API connection error [POST {url}]:\n{traceback.format_exc()}"
+		)
+		frappe.throw(
+			_("Evolution API error: {0}").format(str(exc)),
+			title=_("Connection Error"),
+		)
+
+	frappe.logger().error(
+		f"Evolution API response [POST {url}]: {response.status_code} — {response.text}"
+	)
+	if response.status_code not in (200, 201):
+		frappe.throw(
+			_("Evolution API error: {0} — {1}").format(
+				response.status_code, (response.text or "")[:500]
+			),
+			title=_("Evolution API Error"),
+		)
+
+	data = response.json() if response.content else {}
+	instance_key = (
+		_extract_api_key(data) or data.get("apikey") or ""
+	)
+
+	# 4. Persist the confirmed instance in ERPNext.
+	doc = frappe.get_doc(
+		{
+			"doctype": "Whatsapp Instance",
+			"instance_name": instance_name,
+			"evolution_server": evolution_server,
+			"linked_user": linked_user,
+			"phone_number": phone_number,
+			"api_key": instance_key,
+			"connection_status": "Disconnected",
+		}
+	)
+	doc.insert(ignore_permissions=True)
+	frappe.db.commit()
+
+	return {"instance_name": instance_name, "api_key": instance_key}
+
+
+@frappe.whitelist()
+def delete_whatsapp_instance(instance_name, delete_remote=False):
+	"""Cleanup helper: remove a WhatsApp instance record (and optionally remote).
+
+	Useful for removing stale/half-created instances (e.g. ``develop2-37757``).
+	When ``delete_remote`` is truthy, also calls ``DELETE /instance/delete/{name}``
+	on the Evolution API first. Missing local records are treated as already
+	cleaned up.
+	"""
+	if not frappe.has_permission("Whatsapp Instance", "delete"):
+		frappe.throw(_("You are not permitted to delete WhatsApp instances."))
+
+	if not frappe.db.exists("Whatsapp Instance", instance_name):
+		return {"deleted": False, "message": f"No local record named {instance_name}."}
+
+	if frappe.utils.cint(delete_remote):
+		doc = frappe.get_doc("Whatsapp Instance", instance_name)
+		try:
+			base_url, api_key = _server_credentials(doc.evolution_server)
+			_request("DELETE", base_url, f"/instance/delete/{instance_name}", api_key)
+		except Exception:
+			# Remote may already be gone; log but still remove the local record.
+			frappe.log_error(
+				message=frappe.get_traceback(),
+				title=f"Remote delete failed for {instance_name}",
+			)
+
+	frappe.delete_doc("Whatsapp Instance", instance_name, ignore_permissions=True)
+	frappe.db.commit()
+	return {"deleted": True, "message": f"Deleted {instance_name}."}
 
 
 @frappe.whitelist()
@@ -276,25 +382,3 @@ def disconnect_instance(instance_name):
 	return _store_status(instance_name, "Disconnected", doc)
 
 
-@frappe.whitelist()
-def create_instance(evolution_server, linked_user=None, phone_number=None):
-	"""Create a Whatsapp Instance document.
-
-	The Evolution API instance itself is provisioned automatically by the
-	doctype's ``after_insert`` hook (see ``provision_instance``), which also
-	stores the per-instance API key and status. Returns the saved document.
-	"""
-	if not frappe.has_permission("Whatsapp Instance", "create"):
-		frappe.throw(_("You are not permitted to create WhatsApp instances."))
-
-	doc = frappe.get_doc(
-		{
-			"doctype": "Whatsapp Instance",
-			"evolution_server": evolution_server,
-			"linked_user": linked_user,
-			"phone_number": phone_number,
-		}
-	)
-	doc.insert()
-	doc.reload()
-	return doc
