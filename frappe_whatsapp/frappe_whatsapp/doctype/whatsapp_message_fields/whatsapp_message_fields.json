@@ -7,8 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "field_name",
-  "field_format",
-  "fallback_value"
+  "field_format"
  ],
  "fields": [
   {
@@ -24,13 +23,6 @@
    "label": "Format",
    "options": "\nText\nCurrency (SAR)\nDate (DD/MM/YYYY)\nDate (YYYY-MM-DD)\nDatetime\nNumber",
    "description": "How to format this field value in the message"
-  },
-  {
-   "fieldname": "fallback_value",
-   "fieldtype": "Data",
-   "in_list_view": 1,
-   "label": "Fallback",
-   "description": "Value to use if the field is empty or None"
   }
  ],
  "index_web_pages_for_search": 1,
