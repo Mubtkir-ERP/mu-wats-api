@@ -45,6 +45,17 @@ frappe.notification = {
 			// set value changed options
 			frm.set_df_property("value_changed", "options", [""].concat(options));
 			frm.set_df_property("set_property_after_alert", "options", [""].concat(options));
+
+			// Populate field_name column inside "fields" child table as Select dropdown
+			if (frm.fields_dict.fields && frm.fields_dict.fields.grid) {
+				frm.fields_dict.fields.grid.update_docfield_property(
+					'field_name', 'fieldtype', 'Select'
+				);
+				frm.fields_dict.fields.grid.update_docfield_property(
+					'field_name', 'options', [""].concat(options.map(function(o) { return o.value; })).join("\n")
+				);
+				frm.fields_dict.fields.grid.refresh();
+			}
 		});
 	},
 	setup_alerts_button: function (frm) {
