@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\":\"wa_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">WhatsApp Management</span>\",\"col\":12}},{\"id\":\"wa_card_instance\",\"type\":\"card\",\"data\":{\"card_name\":\"Instance Management\",\"col\":3}},{\"id\":\"wa_card_notifications\",\"type\":\"card\",\"data\":{\"card_name\":\"Notifications\",\"col\":3}},{\"id\":\"wa_card_messages\",\"type\":\"card\",\"data\":{\"card_name\":\"Messages\",\"col\":3}},{\"id\":\"wa_card_settings\",\"type\":\"card\",\"data\":{\"card_name\":\"Settings\",\"col\":3}}]",
+ "content": "[{\"id\":\"wa_header\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">WhatsApp Management</span>\",\"col\":12}},{\"id\":\"nc_sent\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Sent Messages\",\"col\":2}},{\"id\":\"nc_delivered\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Delivered Messages\",\"col\":2}},{\"id\":\"nc_read\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Read Messages\",\"col\":2}},{\"id\":\"nc_pending\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Pending Messages\",\"col\":2}},{\"id\":\"nc_failed\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Failed Messages\",\"col\":2}},{\"id\":\"nc_received\",\"type\":\"number_card\",\"data\":{\"number_card_name\":\"Received Messages\",\"col\":2}},{\"id\":\"wa_card_instance\",\"type\":\"card\",\"data\":{\"card_name\":\"Instance Management\",\"col\":3}},{\"id\":\"wa_card_notifications\",\"type\":\"card\",\"data\":{\"card_name\":\"Notifications\",\"col\":3}},{\"id\":\"wa_card_messages\",\"type\":\"card\",\"data\":{\"card_name\":\"Messages\",\"col\":3}},{\"id\":\"wa_card_settings\",\"type\":\"card\",\"data\":{\"card_name\":\"Settings\",\"col\":3}}]",
  "creation": "2026-07-02 00:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
@@ -155,11 +155,66 @@
    "type": "Link"
   }
  ],
- "modified": "2026-07-02 00:00:00.000000",
+ "modified": "2026-07-03 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Frappe Whatsapp",
  "name": "Whatsapp",
- "number_cards": [],
+ "number_cards": [
+  {
+   "color": "Green",
+   "document_type": "WhatsApp Message",
+   "filters_json": "{\"status\":\"Sent\"}",
+   "function": "Count",
+   "label": "Sent Messages",
+   "show_percentage_stats": 0,
+   "stats_time_interval": "Monthly"
+  },
+  {
+   "color": "Blue",
+   "document_type": "WhatsApp Message",
+   "filters_json": "{\"status\":\"Delivered\"}",
+   "function": "Count",
+   "label": "Delivered Messages",
+   "show_percentage_stats": 0,
+   "stats_time_interval": "Monthly"
+  },
+  {
+   "color": "Cyan",
+   "document_type": "WhatsApp Message",
+   "filters_json": "{\"status\":\"Read\"}",
+   "function": "Count",
+   "label": "Read Messages",
+   "show_percentage_stats": 0,
+   "stats_time_interval": "Monthly"
+  },
+  {
+   "color": "Orange",
+   "document_type": "WhatsApp Message",
+   "filters_json": "{\"status\":\"Pending\"}",
+   "function": "Count",
+   "label": "Pending Messages",
+   "show_percentage_stats": 0,
+   "stats_time_interval": "Monthly"
+  },
+  {
+   "color": "Red",
+   "document_type": "WhatsApp Message",
+   "filters_json": "{\"status\":\"Failed\"}",
+   "function": "Count",
+   "label": "Failed Messages",
+   "show_percentage_stats": 0,
+   "stats_time_interval": "Monthly"
+  },
+  {
+   "color": "Grey",
+   "document_type": "WhatsApp Message",
+   "filters_json": "{\"status\":\"Received\"}",
+   "function": "Count",
+   "label": "Received Messages",
+   "show_percentage_stats": 0,
+   "stats_time_interval": "Monthly"
+  }
+ ],
  "owner": "Administrator",
  "parent_page": "",
  "public": 1,
