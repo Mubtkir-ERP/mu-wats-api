@@ -419,4 +419,22 @@ def disconnect_instance(instance_name):
 
 	return _store_status(instance_name, "Disconnected", doc)
 
+@frappe.whitelist()
+def get_user_instance_status():
+    """Return WhatsApp instance status for the current logged-in user."""
+    instance = frappe.db.get_value(
+        "Whatsapp Instance",
+        {"linked_user": frappe.session.user},
+        ["name", "instance_name", "connection_status"],
+        as_dict=True
+    )
+    
+    if not instance:
+        return None
+    
+    return {
+        "instance_name": instance.instance_name or instance.name,
+        "status": instance.connection_status or "Disconnected"
+    }
+
 
