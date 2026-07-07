@@ -162,8 +162,6 @@ class WhatsAppNotification(Document):
             frappe.throw(f"Template {self.template} not found")
 
         # Get template message content
-        # message_text = template.get("message_content", "")
-
         message_text = self.code
 
         # Replace parameters in template
@@ -179,29 +177,28 @@ class WhatsAppNotification(Document):
                 except Exception:
                     raw_value = None
 
-                # Apply fallback if empty
-                if raw_value is None or raw_value == "":
-                    raw_value = field.fallback_value or ""
+                if raw_value is None:
+                    raw_value = ""
 
                 # Apply format
                 fmt = field.get("field_format") or "Text"
                 try:
                     if fmt == "Currency (SAR)":
-                        value = f"{float(raw_value):,.2f} SAR" if raw_value else field.fallback_value or "0.00 SAR"
+                        value = f"{float(raw_value):,.2f} SAR" if raw_value else ""
                     elif fmt == "Date (DD/MM/YYYY)":
                         from frappe.utils import getdate
-                        value = getdate(raw_value).strftime("%d/%m/%Y") if raw_value else field.fallback_value or ""
+                        value = getdate(raw_value).strftime("%d/%m/%Y") if raw_value else ""
                     elif fmt == "Date (YYYY-MM-DD)":
                         from frappe.utils import getdate
-                        value = str(getdate(raw_value)) if raw_value else field.fallback_value or ""
+                        value = str(getdate(raw_value)) if raw_value else ""
                     elif fmt == "Datetime":
-                        value = str(raw_value)[:19] if raw_value else field.fallback_value or ""
+                        value = str(raw_value)[:19] if raw_value else ""
                     elif fmt == "Number":
-                        value = str(int(float(raw_value))) if raw_value else field.fallback_value or "0"
+                        value = str(int(float(raw_value))) if raw_value else "0"
                     else:
-                        value = str(raw_value) if raw_value else field.fallback_value or ""
+                        value = str(raw_value) if raw_value else ""
                 except Exception:
-                    value = field.fallback_value or str(raw_value) or ""
+                    value = str(raw_value) or ""
 
                 parameters.append(value)
 
@@ -377,6 +374,7 @@ class WhatsAppNotification(Document):
                 new_doc = {
                     "doctype": "WhatsApp Message",
                     "type": "Outgoing",
+                    "status": "Sent",
                     "message": message_text,
                     "to": phone_number,
                     "message_type": "Template",
@@ -414,7 +412,28 @@ class WhatsAppNotification(Document):
 
                 frappe.msgprint("WhatsApp Message Sent Successfully", indicator="green", alert=True)
             else:
+                success = False
                 error_message = response_data.get("response", {}).get("message", "Unknown Error")
+
+                # Create failed message record
+                failed_doc = {
+                    "doctype": "WhatsApp Message",
+                    "type": "Outgoing",
+                    "status": "Failed",
+                    "message": message_text,
+                    "to": phone_number,
+                    "message_type": "Template",
+                    "content_type": content_type,
+                    "use_template": 1,
+                    "template": self.template,
+                }
+                if doc_data:
+                    failed_doc.update({
+                        "reference_doctype": doc_data.get("doctype"),
+                        "reference_name": doc_data.get("name"),
+                    })
+                frappe.get_doc(failed_doc).save(ignore_permissions=True)
+
                 frappe.msgprint(
                     f"Failed to send WhatsApp message: {error_message}",
                     indicator="red",
@@ -423,6 +442,26 @@ class WhatsAppNotification(Document):
 
         except requests.exceptions.RequestException as e:
             error_message = f"Connection error: {str(e)}"
+
+            # Create failed message record
+            failed_doc = {
+                "doctype": "WhatsApp Message",
+                "type": "Outgoing",
+                "status": "Failed",
+                "message": message_text,
+                "to": phone_number,
+                "message_type": "Template",
+                "content_type": "text",
+                "use_template": 1,
+                "template": self.template,
+            }
+            if doc_data:
+                failed_doc.update({
+                    "reference_doctype": doc_data.get("doctype"),
+                    "reference_name": doc_data.get("name"),
+                })
+            frappe.get_doc(failed_doc).save(ignore_permissions=True)
+
             frappe.msgprint(
                 f"Failed to trigger WhatsApp message: {error_message}",
                 indicator="red",
@@ -430,6 +469,29 @@ class WhatsAppNotification(Document):
             )
         except Exception as e:
             error_message = str(e)
+
+            # Create failed message record
+            failed_doc = {
+                "doctype": "WhatsApp Message",
+                "type": "Outgoing",
+                "status": "Failed",
+                "message": message_text if message_text else "",
+                "to": phone_number if phone_number else "",
+                "message_type": "Template",
+                "content_type": "text",
+                "use_template": 1,
+                "template": self.template,
+            }
+            if doc_data:
+                failed_doc.update({
+                    "reference_doctype": doc_data.get("doctype"),
+                    "reference_name": doc_data.get("name"),
+                })
+            try:
+                frappe.get_doc(failed_doc).save(ignore_permissions=True)
+            except Exception:
+                pass
+
             frappe.msgprint(
                 f"Failed to trigger WhatsApp message: {error_message}",
                 indicator="red",
@@ -478,6 +540,7 @@ class WhatsAppNotification(Document):
             new_doc = {
                 "doctype": "WhatsApp Message",
                 "type": "Outgoing",
+                "status": "Sent",
                 "message": str(data['template']),
                 "to": data['to'],
                 "message_type": "Template",
@@ -629,20 +692,16 @@ def trigger_monthly_notifications():
             should_run = False
 
             if freq == "Daily":
-                # Run every N days from a base date
-                # Simple approach: run if day number divisible by repeat_every
                 if today.day % repeat == 0:
                     should_run = True
 
             elif freq == "Weekly":
-                # Run on specific weekday every N weeks
                 if n.week_day and current_weekday == n.week_day:
                     week_number = today.isocalendar()[1]
                     if week_number % repeat == 0:
                         should_run = True
 
             elif freq == "Monthly":
-                # Run on specific day of month
                 if n.schedule_day and today.day == n.schedule_day:
                     month_number = today.month
                     if month_number % repeat == 0:
@@ -686,13 +745,13 @@ def get_preview(notification_name):
     if notif.fields:
         for i, field in enumerate(notif.fields, 1):
             raw_value = doc_data.get(field.field_name)
-            if raw_value is None or raw_value == "":
-                raw_value = field.fallback_value or ""
+            if raw_value is None:
+                raw_value = ""
 
             fmt = field.get("field_format") or "Text"
             try:
                 if fmt == "Currency (SAR)":
-                    value = f"{float(raw_value):,.2f} SAR" if raw_value else "0.00 SAR"
+                    value = f"{float(raw_value):,.2f} SAR" if raw_value else ""
                 elif fmt == "Date (DD/MM/YYYY)":
                     from frappe.utils import getdate
                     value = getdate(raw_value).strftime("%d/%m/%Y") if raw_value else ""
@@ -709,4 +768,3 @@ def get_preview(notification_name):
         "preview": message_text,
         "doc_name": docs[0].name
     }
-           
