@@ -111,6 +111,10 @@ doctype_js = {"Whatsapp Instance": "public/js/whatsapp_instance.js"}
 #   }
 # }
 
+fixtures = [
+    {"dt": "Number Card", "filters": [["document_type", "=", "WhatsApp Message"]]}
+]
+--------------------
 # Scheduled Tasks
 # ---------------
 
