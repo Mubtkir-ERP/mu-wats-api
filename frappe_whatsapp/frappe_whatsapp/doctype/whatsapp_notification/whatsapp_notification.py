@@ -588,10 +588,11 @@ evolution_settings = frappe._dict({
                 alert=True
             )
         finally:
-            if not success:
-                meta = {"error": error_message}
-            else:
-                meta = frappe.flags.integration_request.json()
+            finally:
+    if not success:
+        meta = {"error": error_message}
+    else:
+        meta = {"success": True}
             frappe.get_doc({
                 "doctype": "WhatsApp Notification Log",
                 "template": self.template,
