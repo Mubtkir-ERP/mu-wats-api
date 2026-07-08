@@ -393,7 +393,9 @@ class WhatsAppNotification(Document):
                         "reference_name": doc_data.get("name"),
                     })
 
-                frappe.get_doc(new_doc).save(ignore_permissions=True)
+                _msg = frappe.get_doc(new_doc)
+                _msg.flags.skip_meta_send = True
+                _msg.save(ignore_permissions=True)
 
                 # Update property after alert if configured
                 if doc_data and self.set_property_after_alert and self.property_value:
@@ -434,7 +436,9 @@ class WhatsAppNotification(Document):
                         "reference_doctype": doc_data.get("doctype"),
                         "reference_name": doc_data.get("name"),
                     })
-                frappe.get_doc(failed_doc).save(ignore_permissions=True)
+                _fmsg = frappe.get_doc(failed_doc)
+                _fmsg.flags.skip_meta_send = True
+                _fmsg.save(ignore_permissions=True)
 
                 frappe.msgprint(
                     f"Failed to send WhatsApp message: {error_message}",
@@ -462,7 +466,9 @@ class WhatsAppNotification(Document):
                     "reference_doctype": doc_data.get("doctype"),
                     "reference_name": doc_data.get("name"),
                 })
-            frappe.get_doc(failed_doc).save(ignore_permissions=True)
+            _fmsg = frappe.get_doc(failed_doc)
+            _fmsg.flags.skip_meta_send = True
+            _fmsg.save(ignore_permissions=True)
 
             frappe.msgprint(
                 f"Failed to trigger WhatsApp message: {error_message}",
@@ -490,7 +496,9 @@ class WhatsAppNotification(Document):
                     "reference_name": doc_data.get("name"),
                 })
             try:
-                frappe.get_doc(failed_doc).save(ignore_permissions=True)
+                _fmsg = frappe.get_doc(failed_doc)
+                _fmsg.flags.skip_meta_send = True
+                _fmsg.save(ignore_permissions=True)
             except Exception:
                 pass
 
