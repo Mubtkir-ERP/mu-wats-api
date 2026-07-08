@@ -297,16 +297,16 @@ class WhatsAppNotification(Document):
         elif self.whatsapp_instance:
             # Check linked Whatsapp Instance (new field) and build a compatible
             # settings object from the instance + its Evolution Server.
-           instance = frappe.get_doc("Whatsapp Instance", self.whatsapp_instance)
-server = frappe.get_doc("Evolution Server", instance.evolution_server)
-base_url = server.base_url.strip().rstrip('/')
-if not base_url.startswith(('http://', 'https://')):
-    base_url = 'https://' + base_url
-evolution_settings = frappe._dict({
-    "base_url": base_url,
-    "instance_name": instance.instance_name,
-    "global_api_key": server.get_password("api_key", raise_exception=False) or server.api_key,
-})
+            instance = frappe.get_doc("Whatsapp Instance", self.whatsapp_instance)
+            server = frappe.get_doc("Evolution Server", instance.evolution_server)
+            base_url = server.base_url.strip().rstrip('/')
+            if not base_url.startswith(('http://', 'https://')):
+                base_url = 'https://' + base_url
+            evolution_settings = frappe._dict({
+                "base_url": base_url,
+                "instance_name": instance.instance_name,
+                "global_api_key": server.get_password("api_key", raise_exception=False) or server.api_key,
+            })
         else:
             # WhatsApp Instance is mandatory, so this should never happen.
             frappe.throw(_("WhatsApp Instance is required to send messages."))
@@ -588,11 +588,10 @@ evolution_settings = frappe._dict({
                 alert=True
             )
         finally:
-            finally:
-    if not success:
-        meta = {"error": error_message}
-    else:
-        meta = {"success": True}
+            if not success:
+                meta = {"error": error_message}
+            else:
+                meta = {"success": True}
             frappe.get_doc({
                 "doctype": "WhatsApp Notification Log",
                 "template": self.template,
