@@ -159,62 +159,7 @@
  "modified_by": "Administrator",
  "module": "Frappe Whatsapp",
  "name": "Whatsapp",
- "number_cards": [
-  {
-   "color": "Green",
-   "document_type": "WhatsApp Message",
-   "filters_json": "{\"status\":\"Sent\"}",
-   "function": "Count",
-   "label": "Sent Messages",
-   "show_percentage_stats": 0,
-   "stats_time_interval": "Monthly"
-  },
-  {
-   "color": "Blue",
-   "document_type": "WhatsApp Message",
-   "filters_json": "{\"status\":\"Delivered\"}",
-   "function": "Count",
-   "label": "Delivered Messages",
-   "show_percentage_stats": 0,
-   "stats_time_interval": "Monthly"
-  },
-  {
-   "color": "Cyan",
-   "document_type": "WhatsApp Message",
-   "filters_json": "{\"status\":\"Read\"}",
-   "function": "Count",
-   "label": "Read Messages",
-   "show_percentage_stats": 0,
-   "stats_time_interval": "Monthly"
-  },
-  {
-   "color": "Orange",
-   "document_type": "WhatsApp Message",
-   "filters_json": "{\"status\":\"Pending\"}",
-   "function": "Count",
-   "label": "Pending Messages",
-   "show_percentage_stats": 0,
-   "stats_time_interval": "Monthly"
-  },
-  {
-   "color": "Red",
-   "document_type": "WhatsApp Message",
-   "filters_json": "{\"status\":\"Failed\"}",
-   "function": "Count",
-   "label": "Failed Messages",
-   "show_percentage_stats": 0,
-   "stats_time_interval": "Monthly"
-  },
-  {
-   "color": "Grey",
-   "document_type": "WhatsApp Message",
-   "filters_json": "{\"status\":\"Received\"}",
-   "function": "Count",
-   "label": "Received Messages",
-   "show_percentage_stats": 0,
-   "stats_time_interval": "Monthly"
-  }
- ],
+ "number_cards": [],
  "owner": "Administrator",
  "parent_page": "",
  "public": 1,
