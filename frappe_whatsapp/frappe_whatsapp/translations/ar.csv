@@ -1,0 +1,243 @@
+Sent Messages,الرسائل المرسلة
+Delivered Messages,الرسائل المُوصّلة
+Read Messages,الرسائل المقروءة
+Pending Messages,الرسائل المعلّقة
+Failed Messages,الرسائل الفاشلة
+Received Messages,الرسائل الواردة
+WhatsApp Management,إدارة واتساب
+Instance Management,إدارة النسخ
+Notifications,الإشعارات
+Messages,الرسائل
+Settings,الإعدادات
+Whatsapp Instance,نسخة واتساب
+Evolution Server,خادم Evolution
+WhatsApp Notification,إشعار واتساب
+WhatsApp Templates,قوالب واتساب
+WhatsApp Notification Log,سجل إشعارات واتساب
+WhatsApp Message,رسالة واتساب
+Bulk WhatsApp Message,رسائل واتساب جماعية
+WhatsApp Recipient,مستلم واتساب
+WhatsApp Recipient List,قائمة مستلمي واتساب
+WhatsApp Settings,إعدادات واتساب
+You haven't created a Whatsapp Instance yet,لم تنشئ نسخة واتساب بعد
+Create your first Whatsapp Instance,أنشئ أول نسخة واتساب
+Add Whatsapp Instance,إضافة نسخة واتساب
+New Whatsapp Instance,نسخة واتساب جديدة
+Instance Details,تفاصيل النسخة
+Evolution API server that hosts this instance.,خادم Evolution API الذي يستضيف هذه النسخة.
+Linked User,المستخدم المرتبط
+The user who owns this instance. A user may own at most one instance.,المستخدم المالك لهذه النسخة. يمكن للمستخدم امتلاك نسخة واحدة كحد أقصى.
+Connection,الاتصال
+Connection Status,حالة الاتصال
+Disconnected,غير متصل
+Connecting,جاري الاتصال
+Connected,متصل
+"Live connection state, fetched automatically from the Evolution API. Cannot be edited manually.",حالة الاتصال المباشرة، تُجلب تلقائياً من Evolution API. لا يمكن تعديلها يدوياً.
+Create Instance,إنشاء النسخة
+Check Status,فحص الحالة
+Create this instance in Evolution API? This will register the instance name and prepare it for QR scanning.,إنشاء هذه النسخة في Evolution API؟ سيسجّل هذا اسم النسخة ويجهّزها لمسح رمز QR.
+Instance created successfully. You can now scan the QR code.,تم إنشاء النسخة بنجاح. يمكنك الآن مسح رمز QR.
+Show QR Code,عرض رمز QR
+Scan the QR Code with WhatsApp,امسح رمز QR بواسطة واتساب
+Loading QR code...,جاري تحميل رمز QR...
+"Open WhatsApp on your phone, go to Settings → Linked Devices → Link a Device.",افتح واتساب على جوالك، اذهب إلى الإعدادات ← الأجهزة المرتبطة ← ربط جهاز.
+Waiting for the connection... this dialog will refresh automatically.,في انتظار الاتصال... ستُحدَّث هذه النافذة تلقائياً.
+Test Connection,اختبار الاتصال
+Is Active,نشط
+Only active servers are used to create new instances.,تُستخدم الخوادم النشطة فقط لإنشاء نسخ جديدة.
+Current reachability of the Evolution API server. Updated automatically by the Test Connection button.,إمكانية الوصول الحالية لخادم Evolution API. تُحدَّث تلقائياً بواسطة زر اختبار الاتصال.
+Offline,غير متصل
+Online,متصل
+Credentials (System Manager only),بيانات الاعتماد (لمدير النظام فقط)
+Base URL,الرابط الأساسي
+API Key,مفتاح API
+"Evolution API base URL, e.g. https://evo.example.com. Visible to System Manager only.",الرابط الأساسي لـ Evolution API، مثال: https://evo.example.com. مرئي لمدير النظام فقط.
+Global API key (apikey header) for the Evolution API server. Visible to System Manager only.,مفتاح API العام (ترويسة apikey) لخادم Evolution API. مرئي لمدير النظام فقط.
+Connection Successful,تم الاتصال بنجاح
+Evolution API server is reachable and responding correctly.,خادم Evolution API متاح ويستجيب بشكل صحيح.
+No WhatsApp instance linked,لا توجد نسخة واتساب مرتبطة
+WhatsApp status unavailable,حالة واتساب غير متاحة
+⚠ WhatsApp disconnected! Click the status dot to reconnect.,⚠ واتساب غير متصل! اضغط على نقطة الحالة لإعادة الاتصال.
+Send To Whatsapp,إرسال إلى واتساب
+Send WhatsApp Message,إرسال رسالة واتساب
+Select Template,اختر قالباً
+Send to,إرسال إلى
+Mobile no,رقم الجوال
+Mobile number not found for the selected contact.,لم يُعثر على رقم جوال لجهة الاتصال المختارة.
+Preview Message,معاينة الرسالة
+Please select a Reference Document Type first,يرجى اختيار نوع المستند المرجعي أولاً
+Message Preview,معاينة الرسالة
+Based on document:,بناءً على المستند:
+Condition set. Edit as needed.,تم ضبط الشرط. عدّله حسب الحاجة.
+Click to use this condition,اضغط لاستخدام هذا الشرط
+WhatsApp Message Sent Successfully,تم إرسال رسالة واتساب بنجاح
+Phone number not found,لم يُعثر على رقم الجوال
+Failed to send WhatsApp message,فشل إرسال رسالة واتساب
+Notification Name,اسم الإشعار
+Notification Type,نوع الإشعار
+Reference Document Type,نوع المستند المرجعي
+DocType Event,حدث المستند
+Scheduler Event,حدث مجدول
+Print Format,تنسيق الطباعة
+Phone Source,مصدر رقم الجوال
+Phone Field,حقل رقم الجوال
+WhatsApp Instance,نسخة واتساب
+Primary Contact,جهة الاتصال الرئيسية
+Field in Document,حقل في المستند
+Linked DocType,مستند مرتبط
+Disabled,معطّل
+Template,القالب
+Fields,الحقول
+Format,التنسيق
+Field name,اسم الحقل
+Condition,الشرط
+Send Time,وقت الإرسال
+Day of Month,يوم من الشهر
+Day of Week,يوم من الأسبوع
+Repeat Every,التكرار كل
+Auto-filled from WhatsApp after successful QR scan connection.,يُملأ تلقائياً من واتساب بعد نجاح الاتصال بمسح رمز QR.
+Get Alerts for Today,جلب التنبيهات لهذا اليوم
+Required only for DocType Event and Days Before/After,مطلوب فقط لحدث المستند وأيام قبل/بعد
+How to find the recipient's phone number,طريقة العثور على رقم جوال المستلم
+Before Insert,قبل الإنشاء
+After Insert,بعد الإنشاء
+Before Save,قبل الحفظ
+After Save,بعد الحفظ
+Before Submit,قبل الترحيل
+After Submit,بعد الترحيل
+Before Cancel,قبل الإلغاء
+After Cancel,بعد الإلغاء
+Before Delete,قبل الحذف
+After Delete,بعد الحذف
+Days Before,أيام قبل
+Days After,أيام بعد
+Attach Document Print,إرفاق طباعة المستند
+WhatsApp Template requires a document.,قالب واتساب يتطلب مستنداً.
+Custom attachment,مرفق مخصص
+WhatsApp Template requires document,قالب واتساب يتطلب مستنداً
+Enter fields in the right sequence as per the template parameters.,أدخل الحقول بالترتيب الصحيح حسب متغيرات القالب.
+No Data,لا توجد بيانات
+Add Row,إضافة صف
+Python expression that must be true to send. See the Help section below for ready-to-use examples (click an example to insert it).,تعبير Python يجب أن يكون صحيحاً للإرسال. راجع قسم المساعدة أدناه لأمثلة جاهزة (اضغط على مثال لإدراجه).
+Expand,توسيع
+Set Property After Alert,تعيين خاصية بعد التنبيه
+Value To Be Set,القيمة المراد تعيينها
+Help,المساعدة
+Conditions should be written in simple Python. Please use properties available in the form only.,تُكتب الشروط بلغة Python بسيطة. استخدم فقط الحقول المتوفرة في المستند.
+Example:,مثال:
+For scheduler events you can use follwing methods,للأحداث المجدولة يمكنك استخدام الدوال التالية
+Allowed functions:,الدوال المسموح بها:
+"For scheduled events, use",للأحداث المجدولة، استخدم
+"1. Simple template sending, without parameters, just send a template",١. إرسال قالب بسيط بدون متغيرات — يُرسل القالب كما هو
+2. Message based on doctype with parameters,٢. رسالة مبنية على مستند مع متغيرات تُجلب من بياناته
+Condition Examples — click to copy:,أمثلة الشروط — اضغط للنسخ:
+Only if amount is due,فقط إذا كان هناك مبلغ مستحق
+Prevent duplicate sends,منع الإرسال المكرر
+Only submitted documents,المستندات المرحّلة فقط
+Specific customer group,مجموعة عملاء محددة
+Only if total exceeds 1000,فقط إذا تجاوز الإجمالي ١٠٠٠
+Only submitted (docstatus check),المرحّلة فقط (فحص حالة المستند)
+New WhatsApp Templates,قالب واتساب جديد
+Template Label,اسم القالب
+Pending,قيد الانتظار
+Category,الفئة
+For V16 use UTILITY and AUTHENTICATION in place of TRANSACTIONAL and OTP,للإصدار 16 استخدم UTILITY و AUTHENTICATION بدلاً من TRANSACTIONAL و OTP
+Language,اللغة
+Sample Values,قيم تجريبية
+For DocType,لنوع المستند
+Field names,أسماء الحقول
+Field names to replace the value in templates,أسماء الحقول لاستبدال قيمها في القوالب
+Header Type,نوع الترويسة
+Footer,التذييل
+TRANSACTIONAL,معاملات
+MARKETING,تسويق
+OTP,رمز تحقق
+UTILITY,خدمي
+AUTHENTICATION,مصادقة
+TEXT,نص
+DOCUMENT,مستند
+IMAGE,صورة
+New WhatsApp Message,رسالة واتساب جديدة
+Label,التسمية
+Type,النوع
+Outgoing,صادرة
+Incoming,واردة
+Status,الحالة
+TO,إلى
+Mobile number with country code,رقم الجوال مع رمز الدولة
+Use Template,استخدام قالب
+Message,الرسالة
+Preview,معاينة
+Message Type,نوع الرسالة
+Manual,يدوي
+Content Type,نوع المحتوى
+Body Param,متغيرات النص
+Is Reply,رد
+Reply To Message ID,رد على معرّف الرسالة
+Reference DocType,المستند المرجعي
+Reference name,اسم المرجع
+text,نص
+document,مستند
+image,صورة
+video,فيديو
+audio,صوت
+flow,تدفق
+reaction,تفاعل
+location,موقع
+contact,جهة اتصال
+button,زر
+New Bulk WhatsApp Message,رسالة واتساب جماعية جديدة
+Title,العنوان
+Sender Number,رقم المُرسِل
+Min Delay (seconds),أقل تأخير (ثوانٍ)
+Max Delay (seconds),أقصى تأخير (ثوانٍ)
+Minimum delay in seconds between messages (random delay used),أقل تأخير بالثواني بين الرسائل (يُستخدم تأخير عشوائي)
+Maximum delay in seconds between messages (random delay used),أقصى تأخير بالثواني بين الرسائل (يُستخدم تأخير عشوائي)
+Recipients,المستلمون
+Recipient Type,نوع المستلم
+Individual,فردي
+Recipient List,قائمة مستلمين
+Mobile Number,رقم الجوال
+Recipient Name,اسم المستلم
+Make sure that Template variables are same as Recipient data fields,تأكد أن متغيرات القالب مطابقة لحقول بيانات المستلم
+Variable Type,نوع المتغير
+Common,مشترك
+Unique,فريد
+Template Variables,متغيرات القالب
+Attach,إرفاق
+Draft,مسودة
+Sent Count,عدد المُرسَل
+Scheduled Time,الوقت المجدول
+Leave empty to send immediately after submission,اتركه فارغاً للإرسال فوراً بعد الترحيل
+New WhatsApp Recipient List,قائمة مستلمي واتساب جديدة
+Add Test Recipient,إضافة مستلم تجريبي
+Validate Recipients,التحقق من المستلمين
+List Name,اسم القائمة
+Description,الوصف
+Import Recipients,استيراد المستلمين
+Import From DocType,استيراد من مستند
+DocType to Import,المستند المراد الاستيراد منه
+Mobile Number Field,حقل رقم الجوال
+Field name containing the mobile number,اسم الحقل الذي يحتوي على رقم الجوال
+Name Field,حقل الاسم
+Field name containing the recipient name (optional),اسم الحقل الذي يحتوي على اسم المستلم (اختياري)
+Filters,المرشّحات
+Recipient Data,بيانات المستلم
+Enabled,مُفعّل
+Allow Auto Read Receipt,السماح بإيصال القراءة التلقائي
+Token,الرمز
+Webhook Verify Token,رمز التحقق للويب هوك
+URL,الرابط
+Version,الإصدار
+Phone ID,معرّف الهاتف
+Business ID,معرّف الأعمال
+App ID,معرّف التطبيق
+Evolution / Instance Settings,إعدادات Evolution / النسخ
+Default Server,الخادم الافتراضي
+Evolution server used by default when creating new WhatsApp instances.,الخادم المستخدم افتراضياً عند إنشاء نسخ واتساب جديدة.
+Max Attachment Size (MB),أقصى حجم للمرفق (ميجابايت)
+"Maximum allowed size, in megabytes, for outgoing attachments.",أقصى حجم مسموح به بالميجابايت للمرفقات الصادرة.
+Retention Days,أيام الاحتفاظ
+Number of days to keep message history before cleanup.,عدد الأيام للاحتفاظ بسجل الرسائل قبل التنظيف.
+Asia/Riyadh,آسيا/الرياض
+Successfully Sent to,تم الإرسال بنجاح إلى
