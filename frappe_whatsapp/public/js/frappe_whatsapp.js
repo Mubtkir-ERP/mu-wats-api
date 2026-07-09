@@ -3,31 +3,43 @@ $(document).on('app_ready', function () {
         // WhatsApp Connection Status Indicator in Navbar
         // ═══════════════════════════════════════════════
         (function() {
-                var $navbar = $('.navbar .navbar-right, .navbar .navbar-end');
-                if (!$navbar.length) {
-                        $navbar = $('.navbar-nav:last');
+                var $indicator = null;
+
+                function inject_indicator() {
+                        // Already injected? stop retrying.
+                        if (document.getElementById('wa-status-indicator')) {
+                                return true;
+                        }
+
+                        // Try several selectors for the navbar's right-hand list,
+                        // which differ across Frappe versions.
+                        var $navbar = $('header.navbar .navbar-nav.ml-auto, '
+                                + 'header.navbar ul.navbar-nav:last, '
+                                + '.navbar .navbar-right, '
+                                + '.navbar .navbar-end, '
+                                + '.navbar-nav:last');
+
+                        if (!$navbar.length) {
+                                return false;  // navbar not ready yet
+                        }
+
+                        $indicator = $(
+                                '<li class="nav-item" title="WhatsApp Status" id="wa-status-indicator">'
+                                + '<a class="nav-link" href="#" style="padding:10px 8px;display:flex;align-items:center;">'
+                                + '<span id="wa-status-dot" style="width:12px;height:12px;border-radius:50%;'
+                                + 'background:#ccc;display:inline-block;box-shadow:0 0 0 2px rgba(0,0,0,0.1);'
+                                + 'transition:background 0.3s, box-shadow 0.3s;"></span>'
+                                + '</a></li>'
+                        );
+
+                        $($navbar[0]).prepend($indicator);
+                        bind_click();
+                        update_status();
+                        return true;
                 }
-                if (!$navbar.length) return;
 
-                var $indicator = $(`
-                        <li class="nav-item" title="WhatsApp Status" id="wa-status-indicator">
-                                <a class="nav-link" href="#" style="padding:10px 8px;display:flex;align-items:center;">
-                                        <span id="wa-status-dot" style="
-                                                width:12px;
-                                                height:12px;
-                                                border-radius:50%;
-                                                background:#ccc;
-                                                display:inline-block;
-                                                box-shadow:0 0 0 2px rgba(0,0,0,0.1);
-                                                transition:background 0.3s, box-shadow 0.3s;
-                                        "></span>
-                                </a>
-                        </li>
-                `);
-
-                $navbar.prepend($indicator);
-
-                $indicator.find('a').on('click', function(e) {
+                function bind_click() {
+                        $indicator.find('a').on('click', function(e) {
                         e.preventDefault();
                         var instance_name = $indicator.data('instance');
                         if (instance_name) {
@@ -35,7 +47,8 @@ $(document).on('app_ready', function () {
                         } else {
                                 frappe.set_route('List', 'Whatsapp Instance');
                         }
-                });
+                        });
+                }
 
                 var previous_status = null;
 
@@ -83,11 +96,30 @@ $(document).on('app_ready', function () {
                                 'background': color,
                                 'box-shadow': '0 0 0 3px ' + color + '33'
                         });
-                        $indicator.attr('title', tooltip);
+                        if ($indicator) {
+                                $indicator.attr('title', tooltip);
+                        }
                 }
 
-                update_status();
-                setInterval(update_status, 30000);
+                // The navbar may not exist yet when app_ready fires. Retry every
+                // 500ms (up to ~15s) until the indicator is injected, then poll
+                // the status every 30s.
+                var tries = 0;
+                var injectTimer = setInterval(function() {
+                        tries += 1;
+                        if (inject_indicator() || tries > 30) {
+                                clearInterval(injectTimer);
+                        }
+                }, 500);
+
+                // Also try immediately.
+                inject_indicator();
+
+                setInterval(function() {
+                        if (document.getElementById('wa-status-dot')) {
+                                update_status();
+                        }
+                }, 30000);
         })();
 
         // ═══════════════════════════════════════════════
