@@ -49,7 +49,7 @@ frappe.ui.form.on("Whatsapp Instance", {
 });
 
 // If the instance is Connected but the phone number is still empty, fetch it
-// once from the Evolution API and fill it in. Guarded so it runs at most once
+// once from the Mubtkir API and fill it in. Guarded so it runs at most once
 // per form load (avoids a refresh loop when ownerJid is unavailable).
 function maybe_autofetch_phone(frm) {
 	if (frm.is_new()) {
@@ -113,7 +113,7 @@ function add_action_buttons(frm) {
 		return;
 	}
 
-	// Whether the instance is already registered on the Evolution API decides
+	// Whether the instance is already registered on the Mubtkir API decides
 	// whether we show "Create Instance" or "Show QR Code". Resolve it on the
 	// server, then (re)build the buttons in the required order.
 	frappe.call({
@@ -131,7 +131,7 @@ function build_action_buttons(frm, registered) {
 
 	const status = frm.doc.connection_status || "";
 
-	// 1. Create Instance (primary, blue) — only before it exists in Evolution,
+	// 1. Create Instance (primary, blue) — only before it exists in Mubtkir API,
 	//    and only while Disconnected/empty.
 	if (!registered && (status === "" || status === "Disconnected")) {
 		const btn = frm.add_custom_button(__("Create Instance"), () => create_instance(frm));
@@ -147,10 +147,10 @@ function build_action_buttons(frm, registered) {
 	// 3. Check Status (default) — always available.
 	frm.add_custom_button(__("Check Status"), () => check_status(frm));
 
-	// 4. Sync with Evolution (default) — reconcile this record against the
-	//    Evolution server. If the instance was deleted there, the registration
+	// 4. Sync with Mubtkir API (default) — reconcile this record against the
+	//    Mubtkir API server. If the instance was deleted there, the registration
 	//    is cleared so the "Create Instance" button reappears for re-creation.
-	frm.add_custom_button(__("Sync with Evolution"), () => sync_with_evolution(frm));
+	frm.add_custom_button(__("Sync with Mubtkir API"), () => sync_with_evolution(frm));
 
 	// 5. Disconnect (danger, red) — only when currently connected.
 	if (status === "Connected") {
@@ -164,19 +164,19 @@ function sync_with_evolution(frm) {
 		method: "frappe_whatsapp.api.sync_instance_with_evolution",
 		args: { instance_name: frm.doc.name },
 		freeze: true,
-		freeze_message: __("Syncing with Evolution API..."),
+		freeze_message: __("Syncing with Mubtkir API..."),
 		callback: function (r) {
 			if (r.exc) {
 				return;
 			}
 			const msg = r.message || {};
 			if (msg.exists === false) {
-				// Removed on Evolution — registration was cleared locally.
+				// Removed on the server — registration was cleared locally.
 				frappe.msgprint({
-					title: __("Instance Not Found on Evolution"),
+					title: __("Instance Not Found on Mubtkir API"),
 					indicator: "orange",
 					message: __(
-						"This instance no longer exists on the Evolution server. The record has been kept and reset — use \"Create Instance\" to re-create it under the same name."
+						"This instance no longer exists on the Mubtkir API server. The record has been kept and reset — use \"Create Instance\" to re-create it under the same name."
 					),
 				});
 			} else {
@@ -194,14 +194,14 @@ function sync_with_evolution(frm) {
 function create_instance(frm) {
 	frappe.confirm(
 		__(
-			"Create this instance in Evolution API? This will register the instance name and prepare it for QR scanning."
+			"Create this instance in Mubtkir API? This will register the instance name and prepare it for QR scanning."
 		),
 		function () {
 			frappe.call({
 				method: "frappe_whatsapp.api.create_whatsapp_instance",
 				args: { instance_name: frm.doc.name },
 				freeze: true,
-				freeze_message: __("Creating instance in Evolution API..."),
+				freeze_message: __("Creating instance in Mubtkir API..."),
 				callback: function (r) {
 					// On error, Frappe already shows the exact server message;
 					// do not repeat it here.
@@ -310,7 +310,7 @@ function show_qr_dialog(frm) {
 		} else {
 			set_message(
 				`<p style="color:#d9534f;">${__(
-					"Could not fetch a QR code. Please verify the Evolution Server settings and try again."
+					"Could not fetch a QR code. Please verify the Mubtkir API Server settings and try again."
 				)}</p>`
 			);
 		}

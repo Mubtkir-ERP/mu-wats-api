@@ -13,26 +13,26 @@ frappe.provide("frappe_whatsapp");
 frappe_whatsapp.DOCTYPE_HELP = {
 	"Whatsapp Instance": {
 		en: [
-			"This screen represents a single WhatsApp connection (one phone number) hosted on an Evolution server. Each user may own one instance.",
-			"How to use it: 1) Pick the Evolution Server, then save — the instance name is generated automatically. 2) Click \"Create Instance\" to register it on Evolution. 3) Click \"Show QR Code\" and scan it from WhatsApp on the phone (Settings → Linked Devices → Link a Device). The dialog closes automatically once connected.",
-			"The coloured status dot shows the live state (green = connected, orange = connecting, red = disconnected). Use \"Check Status\" to refresh it, \"Disconnect\" to log the phone out, and \"Sync with Evolution\" to reconcile with the server — if the instance was deleted on Evolution, the record is kept and reset so you can re-create it.",
+			"This screen represents a single WhatsApp connection (one phone number) hosted on an Mubtkir API server. Each user may own one instance.",
+			"How to use it: 1) Pick the Mubtkir API Server, then save — the instance name is generated automatically. 2) Click \"Create Instance\" to register it on Mubtkir API. 3) Click \"Show QR Code\" and scan it from WhatsApp on the phone (Settings → Linked Devices → Link a Device). The dialog closes automatically once connected.",
+			"The coloured status dot shows the live state (green = connected, orange = connecting, red = disconnected). Use \"Check Status\" to refresh it, \"Disconnect\" to log the phone out, and \"Sync with Mubtkir API\" to reconcile with the server — if the instance was deleted on Mubtkir API, the record is kept and reset so you can re-create it.",
 		],
 		ar: [
-			"هذه الشاشة تمثّل اتصال واتساب واحد (رقم هاتف واحد) مُستضاف على خادم Evolution. لكل مستخدم نسخة واحدة فقط.",
-			"طريقة الاستخدام: ١) اختر خادم Evolution ثم احفظ — يُولَّد اسم النسخة تلقائياً. ٢) اضغط «Create Instance» لتسجيلها على Evolution. ٣) اضغط «Show QR Code» وامسح الرمز من واتساب في الجوال (الإعدادات ← الأجهزة المرتبطة ← ربط جهاز). تُغلق النافذة تلقائياً عند نجاح الاتصال.",
-			"نقطة الحالة الملوّنة توضّح الوضع المباشر (أخضر = متصل، برتقالي = يتصل، أحمر = منقطع). استخدم «Check Status» لتحديثها، و«Disconnect» لتسجيل خروج الجوال، و«Sync with Evolution» لمطابقة الحالة مع الخادم — وإذا حُذفت النسخة من Evolution يُحتفَظ بالسجل ويُعاد تعيينه لتتمكن من إعادة إنشائه.",
+			"هذه الشاشة تمثّل اتصال واتساب واحد (رقم هاتف واحد) مُستضاف على خادم Mubtkir API. لكل مستخدم نسخة واحدة فقط.",
+			"طريقة الاستخدام: ١) اختر خادم Mubtkir API ثم احفظ — يُولَّد اسم النسخة تلقائياً. ٢) اضغط «Create Instance» لتسجيلها على Mubtkir API. ٣) اضغط «Show QR Code» وامسح الرمز من واتساب في الجوال (الإعدادات ← الأجهزة المرتبطة ← ربط جهاز). تُغلق النافذة تلقائياً عند نجاح الاتصال.",
+			"نقطة الحالة الملوّنة توضّح الوضع المباشر (أخضر = متصل، برتقالي = يتصل، أحمر = منقطع). استخدم «Check Status» لتحديثها، و«Disconnect» لتسجيل خروج الجوال، و«Sync with Mubtkir API» لمطابقة الحالة مع الخادم — وإذا حُذفت النسخة من Mubtkir API يُحتفَظ بالسجل ويُعاد تعيينه لتتمكن من إعادة إنشائه.",
 		],
 	},
 	"Evolution Server": {
 		en: [
-			"This screen defines an Evolution API server — the engine that actually hosts and runs your WhatsApp instances. You can add more than one server.",
+			"This screen defines an Mubtkir API server — the engine that actually hosts and runs your WhatsApp instances. You can add more than one server.",
 			"How to use it: enter the server's Base URL (e.g. https://evo.example.com) and its global API Key, then save. These credentials are visible to System Managers only.",
-			"Use \"Test Connection\" to confirm the server is reachable (the status field updates to Online/Offline). Use \"Sync Instances\" to reconcile every local instance on this server against Evolution — any instance deleted on the server is reset locally so it can be re-created.",
+			"Use \"Test Connection\" to confirm the server is reachable (the status field updates to Online/Offline). Use \"Sync Instances\" to reconcile every local instance on this server against Mubtkir API — any instance deleted on the server is reset locally so it can be re-created.",
 		],
 		ar: [
-			"هذه الشاشة تُعرّف خادم Evolution API — وهو المحرّك الذي يستضيف ويشغّل نسخ الواتساب فعلياً. يمكنك إضافة أكثر من خادم.",
+			"هذه الشاشة تُعرّف خادم Mubtkir API — وهو المحرّك الذي يستضيف ويشغّل نسخ الواتساب فعلياً. يمكنك إضافة أكثر من خادم.",
 			"طريقة الاستخدام: أدخل الرابط الأساسي للخادم (مثال: https://evo.example.com) ومفتاح الـ API العام، ثم احفظ. بيانات الاعتماد هذه مرئية لمديري النظام فقط.",
-			"استخدم «Test Connection» للتأكد من إمكانية الوصول للخادم (يتحدّث حقل الحالة إلى Online/Offline). واستخدم «Sync Instances» لمطابقة كل النسخ المحلية على هذا الخادم مع Evolution — وأي نسخة حُذفت من الخادم يُعاد تعيينها محلياً لتتمكن من إعادة إنشائها.",
+			"استخدم «Test Connection» للتأكد من إمكانية الوصول للخادم (يتحدّث حقل الحالة إلى Online/Offline). واستخدم «Sync Instances» لمطابقة كل النسخ المحلية على هذا الخادم مع Mubtkir API — وأي نسخة حُذفت من الخادم يُعاد تعيينها محلياً لتتمكن من إعادة إنشائها.",
 		],
 	},
 	"Evolution Phone Settings": {
@@ -104,11 +104,11 @@ frappe_whatsapp.DOCTYPE_HELP = {
 	"WhatsApp Settings": {
 		en: [
 			"This is the central configuration for the whole WhatsApp app; the settings apply account-wide.",
-			"How to use it: set the default Evolution server used when creating new instances, the default Print Format per document type (for attachments), the maximum attachment size, and how many days message history is kept before cleanup. Adjust these once to match your policy.",
+			"How to use it: set the default Mubtkir API server used when creating new instances, the default Print Format per document type (for attachments), the maximum attachment size, and how many days message history is kept before cleanup. Adjust these once to match your policy.",
 		],
 		ar: [
 			"هذه هي الإعدادات المركزية لتطبيق الواتساب بالكامل؛ وتنطبق على الحساب كله.",
-			"طريقة الاستخدام: اضبط خادم Evolution الافتراضي المستخدم عند إنشاء نسخ جديدة، ونموذج الطباعة الافتراضي لكل نوع مستند (للمرفقات)، وأقصى حجم للمرفق، وعدد الأيام للاحتفاظ بسجل الرسائل قبل التنظيف. اضبطها مرة واحدة لتطابق سياستك.",
+			"طريقة الاستخدام: اضبط خادم Mubtkir API الافتراضي المستخدم عند إنشاء نسخ جديدة، ونموذج الطباعة الافتراضي لكل نوع مستند (للمرفقات)، وأقصى حجم للمرفق، وعدد الأيام للاحتفاظ بسجل الرسائل قبل التنظيف. اضبطها مرة واحدة لتطابق سياستك.",
 		],
 	},
 	"WhatsApp Notification Log": {

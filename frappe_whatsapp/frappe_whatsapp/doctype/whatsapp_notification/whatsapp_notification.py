@@ -140,7 +140,7 @@ class WhatsAppNotification(Document):
 
 
     def send_template_message(self, doc: Document, phone_no=None, default_template=None, ignore_condition=False):
-        """Send WhatsApp message using Evolution API instead of Meta."""
+        """Send WhatsApp message using Mubtkir API instead of Meta."""
         if self.disabled:
             return
 
@@ -271,7 +271,7 @@ class WhatsAppNotification(Document):
             else:
                 attachment_url = f'{frappe.utils.get_url()}{file_url}'
 
-        # Send message using Evolution API
+        # Send message using Mubtkir API
         self.notify_evolution(
             phone_number=phone_number,
             message_text=message_text,
@@ -284,11 +284,11 @@ class WhatsAppNotification(Document):
 
     def notify_evolution(self, phone_number, message_text, attachment_url=None,
                          filename=None, template=None, doc_data=None, parameters=None):
-        """Send message via Evolution API."""
+        """Send message via Mubtkir API."""
 
-        # Check if logged-in user has a linked Evolution Phone Settings
+        # Check if logged-in user has a linked Mubtkir API Phone Settings
         user_evolution_settings = frappe.db.get_value(
-            "Evolution Phone Settings",
+            "Mubtkir API Phone Settings",
             {"user": frappe.session.user},
             "name"
         )
@@ -296,7 +296,7 @@ class WhatsAppNotification(Document):
             evolution_settings = frappe.get_doc("Evolution Phone Settings", user_evolution_settings)
         elif self.whatsapp_instance:
             # Check linked Whatsapp Instance (new field) and build a compatible
-            # settings object from the instance + its Evolution Server.
+            # settings object from the instance + its Mubtkir API Server.
             instance = frappe.get_doc("Whatsapp Instance", self.whatsapp_instance)
             server = frappe.get_doc("Evolution Server", instance.evolution_server)
             base_url = server.base_url.strip().rstrip('/')
@@ -312,7 +312,7 @@ class WhatsAppNotification(Document):
             frappe.throw(_("WhatsApp Instance is required to send messages."))
 
         if not evolution_settings.base_url or not evolution_settings.instance_name:
-            frappe.throw("Evolution Phone Settings not configured")
+            frappe.throw("Mubtkir API Phone Settings not configured")
 
         headers = {
             "Content-Type": "application/json",
@@ -360,7 +360,7 @@ class WhatsAppNotification(Document):
                 }
                 content_type = 'text'
 
-            # Make request to Evolution API
+            # Make request to Mubtkir API
             response = requests.post(url, headers=headers, json=payload, timeout=30)
             response_data = response.json()
 

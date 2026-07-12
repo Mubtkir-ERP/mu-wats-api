@@ -17,7 +17,7 @@ function sync_instances(frm) {
 		method: "frappe_whatsapp.api.sync_server_instances",
 		args: { server_name: frm.doc.name },
 		freeze: true,
-		freeze_message: __("Reconciling instances with Evolution..."),
+		freeze_message: __("Reconciling instances with Mubtkir API..."),
 		callback: function (r) {
 			if (r.exc) {
 				return;
@@ -48,7 +48,7 @@ function test_connection(frm) {
 		doc: frm.doc,
 		method: "test_connection",
 		freeze: true,
-		freeze_message: __("Contacting Evolution API..."),
+		freeze_message: __("Contacting Mubtkir API..."),
 		callback: function (r) {
 			const res = r.message || {};
 
@@ -66,7 +66,7 @@ function test_connection(frm) {
 					<div style="text-align:center; padding:16px;">
 						<i class="fa fa-check-circle" style="font-size:56px; color:green;"></i>
 						<h3 style="color:green; margin-top:14px;">
-							${__("Evolution API server is reachable and responding correctly.")}
+							${__("Mubtkir API server is reachable and responding correctly.")}
 						</h3>
 					</div>`);
 				dialog.show();
@@ -95,7 +95,7 @@ function test_connection(frm) {
 			dialog.show();
 
 			frappe.show_alert({
-				message: __("Could not reach the Evolution API. See the dialog for details."),
+				message: __("Could not reach the Mubtkir API. See the dialog for details."),
 				indicator: "red",
 			});
 		},

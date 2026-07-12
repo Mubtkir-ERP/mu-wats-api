@@ -1,9 +1,9 @@
 # Copyright (c) 2026, Shridhar Patil and contributors
 # For license information, please see license.txt
-"""Whitelisted API for WhatsApp instance management via the Evolution API.
+"""Whitelisted API for WhatsApp instance management via the Mubtkir API.
 
-The Evolution API base URL and API key are always resolved from the
-``Evolution Server`` doctype and are never hardcoded here.
+The Mubtkir API base URL and API key are always resolved from the
+``Mubtkir API Server`` doctype and are never hardcoded here.
 """
 
 import re
@@ -14,10 +14,10 @@ import requests
 import frappe
 from frappe import _
 
-# Timeout (in seconds) for every outbound Evolution API request.
+# Timeout (in seconds) for every outbound Mubtkir API request.
 REQUEST_TIMEOUT = 30
 
-# Mapping of Evolution API connection states to our stored status values.
+# Mapping of Mubtkir API connection states to our stored status values.
 STATE_MAP = {
 	"open": "Connected",
 	"connecting": "Connecting",
@@ -27,7 +27,7 @@ STATE_MAP = {
 
 
 def map_state(state):
-	"""Map an Evolution API state to our status.
+	"""Map an Mubtkir API state to our status.
 
 	``open`` -> Connected, ``connecting`` -> Connecting, anything else ->
 	Disconnected.
@@ -36,9 +36,9 @@ def map_state(state):
 
 
 def _server_credentials(server_name):
-	"""Return ``(base_url, api_key)`` for the given Evolution Server."""
+	"""Return ``(base_url, api_key)`` for the given Mubtkir API Server."""
 	if not server_name:
-		frappe.throw(_("No Evolution Server is configured for this instance."))
+		frappe.throw(_("No Mubtkir API Server is configured for this instance."))
 
 	server = frappe.get_doc("Evolution Server", server_name)
 	# Normalise the base URL: strip any trailing slash so paths join cleanly.
@@ -49,13 +49,13 @@ def _server_credentials(server_name):
 	# Log which server / base_url is actually being used. Only the first 20
 	# characters of the URL are logged, for security.
 	frappe.logger().error(
-		f"Evolution Server in use: {server_name} | base_url={base_url[:20]!r} | "
+		f"Mubtkir API Server in use: {server_name} | base_url={base_url[:20]!r} | "
 		f"api_key_set={bool(api_key)}"
 	)
 
 	if not base_url or not api_key:
 		frappe.throw(
-			_("Evolution Server {0} is missing its Base URL or API Key.").format(
+			_("Mubtkir API Server {0} is missing its Base URL or API Key.").format(
 				frappe.bold(server_name)
 			)
 		)
@@ -64,12 +64,12 @@ def _server_credentials(server_name):
 
 
 def _headers(api_key):
-	"""Build the standard Evolution API request headers."""
+	"""Build the standard Mubtkir API request headers."""
 	return {"apikey": api_key, "Content-Type": "application/json"}
 
 
 def _request(method, base_url, path, api_key, payload=None):
-	"""Perform an Evolution API request and return the parsed JSON body.
+	"""Perform an Mubtkir API request and return the parsed JSON body.
 
 	Logs the full request/response (or the traceback on a transport error) and
 	surfaces the *actual* error to the user instead of a generic message, so
@@ -88,29 +88,29 @@ def _request(method, base_url, path, api_key, payload=None):
 		)
 	except Exception as exc:
 		tb = traceback.format_exc()
-		frappe.logger().error(f"Evolution API connection error [{method} {url}]:\n{tb}")
-		frappe.log_error(message=f"{method} {url}\n{tb}", title="Evolution API Connection Error")
+		frappe.logger().error(f"Mubtkir API connection error [{method} {url}]:\n{tb}")
+		frappe.log_error(message=f"{method} {url}\n{tb}", title="Mubtkir API Connection Error")
 		frappe.throw(
-			_("Evolution API error: {0}").format(str(exc)),
+			_("Mubtkir API error: {0}").format(str(exc)),
 			title=_("Connection Error"),
 		)
 
 	# --- Always log the raw response so we can see exactly what came back. ---
 	frappe.logger().error(
-		f"Evolution API response [{method} {url}]: {response.status_code} — {response.text}"
+		f"Mubtkir API response [{method} {url}]: {response.status_code} — {response.text}"
 	)
 
 	# --- HTTP layer: 4xx / 5xx. Surface the status + body, don't hide it. ---
 	if response.status_code >= 400:
 		frappe.log_error(
 			message=f"{method} {url}\n{response.status_code} {response.text}",
-			title="Evolution API HTTP Error",
+			title="Mubtkir API HTTP Error",
 		)
 		frappe.throw(
-			_("Evolution API error: {0} — {1}").format(
+			_("Mubtkir API error: {0} — {1}").format(
 				response.status_code, (response.text or "")[:500]
 			),
-			title=_("Evolution API Error"),
+			title=_("Mubtkir API Error"),
 		)
 
 	if response.content:
@@ -124,7 +124,7 @@ def _request(method, base_url, path, api_key, payload=None):
 def _extract_api_key(data):
 	"""Extract the per-instance API key from a create response.
 
-	The Evolution API returns the key under ``hash`` (v2, a string) or under
+	The Mubtkir API returns the key under ``hash`` (v2, a string) or under
 	``hash.apikey`` (v1, an object).
 	"""
 	hash_value = data.get("hash")
@@ -162,7 +162,7 @@ def _extract_phone_from_jid(owner_jid):
 def _fetch_owner_jid(base_url, api_key, instance_name):
 	"""Best-effort lookup of an instance's ownerJid via /instance/fetchInstances.
 
-	The Evolution API response shape varies between versions, so this tolerates
+	The Mubtkir API response shape varies between versions, so this tolerates
 	both a bare list and a ``{"data": [...]}`` wrapper, and both flat and
 	``{"instance": {...}}`` records. Returns "" if nothing matches.
 	"""
@@ -220,10 +220,10 @@ def _normalise_base_url(raw):
 
 @frappe.whitelist()
 def is_registered(instance_name):
-	"""Return True if the instance has been registered on the Evolution API.
+	"""Return True if the instance has been registered on the Mubtkir API.
 
 	Registration stores a per-instance ``api_key``, so a non-empty key is the
-	marker for "already created in Evolution". Used by the form to decide
+	marker for "already created in Mubtkir API". Used by the form to decide
 	whether to show the "Create Instance" button or the "Show QR Code" button.
 	"""
 	if not frappe.db.exists("Whatsapp Instance", instance_name):
@@ -234,10 +234,10 @@ def is_registered(instance_name):
 
 @frappe.whitelist()
 def create_whatsapp_instance(instance_name):
-	"""Register an existing Whatsapp Instance record on the Evolution API.
+	"""Register an existing Whatsapp Instance record on the Mubtkir API.
 
 	The local record already exists (its name was auto-generated on save); this
-	registers that same name on the Evolution API, stores the returned
+	registers that same name on the Mubtkir API, stores the returned
 	per-instance API key and sets the status to Disconnected (ready for QR).
 	Returns ``{"success": True, "api_key": ...}``.
 	"""
@@ -250,7 +250,7 @@ def create_whatsapp_instance(instance_name):
 	doc.check_permission("write")
 
 	if not doc.evolution_server:
-		frappe.throw(_("Please set an Evolution Server on this instance first."))
+		frappe.throw(_("Please set an Mubtkir API Server on this instance first."))
 
 	server = frappe.get_doc("Evolution Server", doc.evolution_server)
 
@@ -259,7 +259,7 @@ def create_whatsapp_instance(instance_name):
 	url = f"{base_url}/instance/create"
 
 	frappe.logger().error(
-		f"Registering Evolution instance '{instance_name}' on {base_url[:20]!r}"
+		f"Registering Mubtkir API instance '{instance_name}' on {base_url[:20]!r}"
 	)
 	try:
 		response = requests.post(
@@ -270,22 +270,22 @@ def create_whatsapp_instance(instance_name):
 		)
 	except Exception as exc:
 		frappe.logger().error(
-			f"Evolution API connection error [POST {url}]:\n{traceback.format_exc()}"
+			f"Mubtkir API connection error [POST {url}]:\n{traceback.format_exc()}"
 		)
 		frappe.throw(
-			_("Evolution API error: {0}").format(str(exc)),
+			_("Mubtkir API error: {0}").format(str(exc)),
 			title=_("Connection Error"),
 		)
 
 	frappe.logger().error(
-		f"Evolution API response [POST {url}]: {response.status_code} — {response.text}"
+		f"Mubtkir API response [POST {url}]: {response.status_code} — {response.text}"
 	)
 	if response.status_code not in (200, 201):
 		frappe.throw(
-			_("Evolution API error: {0} — {1}").format(
+			_("Mubtkir API error: {0} — {1}").format(
 				response.status_code, (response.text or "")[:500]
 			),
-			title=_("Evolution API Error"),
+			title=_("Mubtkir API Error"),
 		)
 
 	data = response.json() if response.content else {}
@@ -302,11 +302,11 @@ def create_whatsapp_instance(instance_name):
 
 
 def delete_remote_instance(doc):
-	"""Best-effort removal of an instance from its Evolution server.
+	"""Best-effort removal of an instance from its Mubtkir API server.
 
 	Calls ``DELETE /instance/delete/{name}``. Any failure (the remote may
 	already be gone, or the server unreachable) is logged and swallowed so it
-	never blocks removal of the local record. Does nothing when no Evolution
+	never blocks removal of the local record. Does nothing when no Mubtkir API
 	server is set.
 	"""
 	if not getattr(doc, "evolution_server", None):
@@ -317,7 +317,7 @@ def delete_remote_instance(doc):
 	except Exception:
 		frappe.log_error(
 			message=frappe.get_traceback(),
-			title=f"Evolution remote delete failed for {doc.name}",
+			title=f"Mubtkir API remote delete failed for {doc.name}",
 		)
 
 
@@ -327,7 +327,7 @@ def delete_whatsapp_instance(instance_name, delete_remote=False):
 
 	Useful for removing stale/half-created instances (e.g. ``develop2-37757``).
 	When ``delete_remote`` is truthy, also calls ``DELETE /instance/delete/{name}``
-	on the Evolution API first. Missing local records are treated as already
+	on the Mubtkir API first. Missing local records are treated as already
 	cleaned up.
 
 	Deleting the local document normally triggers ``on_trash`` which removes the
@@ -356,9 +356,9 @@ def delete_whatsapp_instance(instance_name, delete_remote=False):
 
 
 def _fetch_remote_instance_names(base_url, api_key):
-	"""Return the set of instance names currently present on an Evolution server.
+	"""Return the set of instance names currently present on an Mubtkir API server.
 
-	Tolerates the response-shape differences between Evolution API versions
+	Tolerates the response-shape differences between Mubtkir API versions
 	(bare list vs ``{"data": [...]}``; flat record vs ``{"instance": {...}}``).
 	Raises to the caller if the server cannot be reached, so a transient outage
 	is never mistaken for "all instances were deleted".
@@ -397,9 +397,9 @@ def _clear_registration(instance_name):
 
 @frappe.whitelist()
 def sync_instance_with_evolution(instance_name):
-	"""Reconcile a single local instance against its Evolution server.
+	"""Reconcile a single local instance against its Mubtkir API server.
 
-	If the instance no longer exists on Evolution (it was deleted there), the
+	If the instance no longer exists on Mubtkir API (it was deleted there), the
 	local record is kept but its registration is cleared so the user can
 	re-create it under the same name. If it still exists, its live connection
 	status is refreshed. Returns ``{"exists": bool, "status": <status>}``.
@@ -408,16 +408,16 @@ def sync_instance_with_evolution(instance_name):
 	doc.check_permission("write")
 
 	if not doc.evolution_server:
-		frappe.throw(_("Please set an Evolution Server on this instance first."))
+		frappe.throw(_("Please set an Mubtkir API Server on this instance first."))
 
 	base_url, api_key = _server_credentials(doc.evolution_server)
 
 	try:
 		remote_names = _fetch_remote_instance_names(base_url, api_key)
 	except Exception:
-		# Could not reach Evolution — do NOT clear the record on a transient error.
+		# Could not reach Mubtkir API — do NOT clear the record on a transient error.
 		frappe.throw(
-			_("Could not reach the Evolution server to sync. Please try again."),
+			_("Could not reach the Mubtkir API server to sync. Please try again."),
 			title=_("Sync Failed"),
 		)
 
@@ -432,20 +432,20 @@ def sync_instance_with_evolution(instance_name):
 
 @frappe.whitelist()
 def sync_server_instances(server_name):
-	"""Reconcile every local instance hosted on ``server_name`` against Evolution.
+	"""Reconcile every local instance hosted on ``server_name`` against Mubtkir API.
 
 	Any local instance missing from the server has its registration cleared (see
 	``_clear_registration``). Returns ``{"checked": n, "missing": [...]}``.
 	"""
 	if not frappe.has_permission("Evolution Server", "write"):
-		frappe.throw(_("You are not permitted to sync Evolution servers."))
+		frappe.throw(_("You are not permitted to sync Mubtkir API servers."))
 
 	server = frappe.get_doc("Evolution Server", server_name)
 	base_url = server.get_base_url()
 	api_key = server.get_api_key()
 	if not base_url or not api_key:
 		frappe.throw(
-			_("Evolution Server {0} is missing its Base URL or API Key.").format(
+			_("Mubtkir API Server {0} is missing its Base URL or API Key.").format(
 				frappe.bold(server_name)
 			)
 		)
@@ -454,7 +454,7 @@ def sync_server_instances(server_name):
 		remote_names = _fetch_remote_instance_names(base_url, api_key)
 	except Exception:
 		frappe.throw(
-			_("Could not reach the Evolution server to sync. Please try again."),
+			_("Could not reach the Mubtkir API server to sync. Please try again."),
 			title=_("Sync Failed"),
 		)
 

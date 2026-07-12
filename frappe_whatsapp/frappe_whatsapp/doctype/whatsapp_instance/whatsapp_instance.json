@@ -46,9 +46,9 @@
    "fieldname": "evolution_server",
    "fieldtype": "Link",
    "in_list_view": 1,
-   "label": "Evolution Server",
+   "label": "Mubtkir API Server",
    "options": "Evolution Server",
-   "description": "Evolution API server that hosts this instance.",
+   "description": "Mubtkir API server that hosts this instance.",
    "reqd": 1
   },
   {
@@ -76,7 +76,7 @@
    "fieldtype": "Password",
    "hidden": 1,
    "label": "Instance API Key",
-   "description": "Per-instance API key returned by the Evolution API. Visible to System Manager only.",
+   "description": "Per-instance API key returned by the Mubtkir API. Visible to System Manager only.",
    "permlevel": 1,
    "read_only": 1
   },
@@ -92,7 +92,7 @@
    "in_list_view": 1,
    "label": "Connection Status",
    "options": "Disconnected\nConnecting\nConnected",
-   "description": "Live connection state, fetched automatically from the Evolution API. Cannot be edited manually.",
+   "description": "Live connection state, fetched automatically from the Mubtkir API. Cannot be edited manually.",
    "read_only": 1,
    "allow_on_submit": 0,
    "no_copy": 1

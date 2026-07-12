@@ -78,7 +78,7 @@
   {
    "fieldname": "evolution_section",
    "fieldtype": "Section Break",
-   "label": "Evolution / Instance Settings"
+   "label": "Mubtkir API / Instance Settings"
   },
   {
    "fieldname": "column_break_evolution",
@@ -89,7 +89,7 @@
    "fieldtype": "Link",
    "label": "Default Server",
    "options": "Evolution Server",
-   "description": "Evolution server used by default when creating new WhatsApp instances."
+   "description": "Mubtkir API server used by default when creating new WhatsApp instances."
   },
   {
    "default": "16",

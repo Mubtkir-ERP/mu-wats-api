@@ -10,7 +10,7 @@ Notifications,الإشعارات
 Messages,الرسائل
 Settings,الإعدادات
 Whatsapp Instance,نسخة واتساب
-Evolution Server,خادم Evolution
+Evolution Server,خادم Mubtkir API
 WhatsApp Notification,إشعار واتساب
 WhatsApp Templates,قوالب واتساب
 WhatsApp Notification Log,سجل إشعارات واتساب
@@ -24,7 +24,7 @@ Create your first Whatsapp Instance,أنشئ أول نسخة واتساب
 Add Whatsapp Instance,إضافة نسخة واتساب
 New Whatsapp Instance,نسخة واتساب جديدة
 Instance Details,تفاصيل النسخة
-Evolution API server that hosts this instance.,خادم Evolution API الذي يستضيف هذه النسخة.
+Mubtkir API server that hosts this instance.,خادم Mubtkir API الذي يستضيف هذه النسخة.
 Linked User,المستخدم المرتبط
 The user who owns this instance. A user may own at most one instance.,المستخدم المالك لهذه النسخة. يمكن للمستخدم امتلاك نسخة واحدة كحد أقصى.
 Connection,الاتصال
@@ -32,10 +32,10 @@ Connection Status,حالة الاتصال
 Disconnected,غير متصل
 Connecting,جاري الاتصال
 Connected,متصل
-"Live connection state, fetched automatically from the Evolution API. Cannot be edited manually.",حالة الاتصال المباشرة، تُجلب تلقائياً من Evolution API. لا يمكن تعديلها يدوياً.
+"Live connection state, fetched automatically from the Mubtkir API. Cannot be edited manually.",حالة الاتصال المباشرة، تُجلب تلقائياً من Mubtkir API. لا يمكن تعديلها يدوياً.
 Create Instance,إنشاء النسخة
 Check Status,فحص الحالة
-Create this instance in Evolution API? This will register the instance name and prepare it for QR scanning.,إنشاء هذه النسخة في Evolution API؟ سيسجّل هذا اسم النسخة ويجهّزها لمسح رمز QR.
+Create this instance in Mubtkir API? This will register the instance name and prepare it for QR scanning.,إنشاء هذه النسخة في Mubtkir API؟ سيسجّل هذا اسم النسخة ويجهّزها لمسح رمز QR.
 Instance created successfully. You can now scan the QR code.,تم إنشاء النسخة بنجاح. يمكنك الآن مسح رمز QR.
 Show QR Code,عرض رمز QR
 Scan the QR Code with WhatsApp,امسح رمز QR بواسطة واتساب
@@ -45,16 +45,16 @@ Waiting for the connection... this dialog will refresh automatically.,في ان�
 Test Connection,اختبار الاتصال
 Is Active,نشط
 Only active servers are used to create new instances.,تُستخدم الخوادم النشطة فقط لإنشاء نسخ جديدة.
-Current reachability of the Evolution API server. Updated automatically by the Test Connection button.,إمكانية الوصول الحالية لخادم Evolution API. تُحدَّث تلقائياً بواسطة زر اختبار الاتصال.
+Current reachability of the Mubtkir API server. Updated automatically by the Test Connection button.,إمكانية الوصول الحالية لخادم Mubtkir API. تُحدَّث تلقائياً بواسطة زر اختبار الاتصال.
 Offline,غير متصل
 Online,متصل
 Credentials (System Manager only),بيانات الاعتماد (لمدير النظام فقط)
 Base URL,الرابط الأساسي
 API Key,مفتاح API
-"Evolution API base URL, e.g. https://evo.example.com. Visible to System Manager only.",الرابط الأساسي لـ Evolution API، مثال: https://evo.example.com. مرئي لمدير النظام فقط.
-Global API key (apikey header) for the Evolution API server. Visible to System Manager only.,مفتاح API العام (ترويسة apikey) لخادم Evolution API. مرئي لمدير النظام فقط.
+"Mubtkir API base URL, e.g. https://evo.example.com. Visible to System Manager only.",الرابط الأساسي لـ Mubtkir API، مثال: https://evo.example.com. مرئي لمدير النظام فقط.
+Global API key (apikey header) for the Mubtkir API server. Visible to System Manager only.,مفتاح API العام (ترويسة apikey) لخادم Mubtkir API. مرئي لمدير النظام فقط.
 Connection Successful,تم الاتصال بنجاح
-Evolution API server is reachable and responding correctly.,خادم Evolution API متاح ويستجيب بشكل صحيح.
+Mubtkir API server is reachable and responding correctly.,خادم Mubtkir API متاح ويستجيب بشكل صحيح.
 No WhatsApp instance linked,لا توجد نسخة واتساب مرتبطة
 WhatsApp status unavailable,حالة واتساب غير متاحة
 ⚠ WhatsApp disconnected! Click the status dot to reconnect.,⚠ واتساب غير متصل! اضغط على نقطة الحالة لإعادة الاتصال.
@@ -232,26 +232,26 @@ Version,الإصدار
 Phone ID,معرّف الهاتف
 Business ID,معرّف الأعمال
 App ID,معرّف التطبيق
-Evolution / Instance Settings,إعدادات Evolution / النسخ
+Mubtkir API / Instance Settings,إعدادات Mubtkir API / النسخ
 Default Server,الخادم الافتراضي
-Evolution server used by default when creating new WhatsApp instances.,الخادم المستخدم افتراضياً عند إنشاء نسخ واتساب جديدة.
+Mubtkir API server used by default when creating new WhatsApp instances.,خادم Mubtkir API المستخدم افتراضياً عند إنشاء نسخ واتساب جديدة.
 Max Attachment Size (MB),أقصى حجم للمرفق (ميجابايت)
 "Maximum allowed size, in megabytes, for outgoing attachments.",أقصى حجم مسموح به بالميجابايت للمرفقات الصادرة.
 Retention Days,أيام الاحتفاظ
 Number of days to keep message history before cleanup.,عدد الأيام للاحتفاظ بسجل الرسائل قبل التنظيف.
 Asia/Riyadh,آسيا/الرياض
 Successfully Sent to,تم الإرسال بنجاح إلى
-Sync with Evolution,مزامنة مع Evolution
-Syncing with Evolution API...,جاري المزامنة مع Evolution API...
-Instance Not Found on Evolution,النسخة غير موجودة على Evolution
-"This instance no longer exists on the Evolution server. The record has been kept and reset — use ""Create Instance"" to re-create it under the same name.",لم تعد هذه النسخة موجودة على خادم Evolution. تم الاحتفاظ بالسجل وإعادة تعيينه — استخدم ""إنشاء النسخة"" لإعادة إنشائها بنفس الاسم.
+Sync with Mubtkir API,مزامنة مع Mubtkir API
+Syncing with Mubtkir API...,جاري المزامنة مع Mubtkir API...
+Instance Not Found on Mubtkir API,النسخة غير موجودة على Mubtkir API
+"This instance no longer exists on the Mubtkir API server. The record has been kept and reset — use ""Create Instance"" to re-create it under the same name.",لم تعد هذه النسخة موجودة على خادم Mubtkir API. تم الاحتفاظ بالسجل وإعادة تعيينه — استخدم «إنشاء النسخة» لإعادة إنشائها بنفس الاسم.
 In sync. Connection status: {0},تمت المزامنة. حالة الاتصال: {0}
 Sync Instances,مزامنة النسخ
-Reconciling instances with Evolution...,جاري مطابقة النسخ مع Evolution...
+Reconciling instances with Mubtkir API...,جاري مطابقة النسخ مع Mubtkir API...
 Sync Complete,اكتملت المزامنة
 All {0} instance(s) are in sync.,جميع النسخ ({0}) متزامنة.
-"Checked {0} instance(s). {1} no longer exist on Evolution and were reset for re-creation: {2}",تم فحص {0} نسخة. {1} لم تعد موجودة على Evolution وأُعيد تعيينها لإعادة الإنشاء: {2}
-Could not reach the Evolution server to sync. Please try again.,تعذّر الوصول إلى خادم Evolution للمزامنة. حاول مرة أخرى.
+Checked {0} instance(s). {1} no longer exist on Mubtkir API and were reset for re-creation: {2},تم فحص {0} نسخة. {1} لم تعد موجودة على Mubtkir API وأُعيد تعيينها لإعادة الإنشاء: {2}
+Could not reach the Mubtkir API server to sync. Please try again.,تعذّر الوصول إلى خادم Mubtkir API للمزامنة. حاول مرة أخرى.
 Sync Failed,فشلت المزامنة
 Disconnect,قطع الاتصال
 About this screen,عن هذه الشاشة
@@ -261,3 +261,53 @@ How to use this screen,طريقة استخدام هذه الشاشة
 WhatsApp Connected,واتساب متصل
 WhatsApp Connecting,واتساب يتصل
 WhatsApp Disconnected,واتساب منقطع
+Evolution Phone Settings,إعدادات هاتف Mubtkir API
+Mubtkir API Server,خادم Mubtkir API
+Mubtkir API Phone Settings,إعدادات هاتف Mubtkir API
+Mubtkir API Phone Settings not configured,إعدادات هاتف Mubtkir API غير مضبوطة
+Contacting Mubtkir API...,جاري الاتصال بـ Mubtkir API...
+Could not reach the Mubtkir API. See the dialog for details.,تعذّر الوصول إلى Mubtkir API. راجع النافذة للتفاصيل.
+Human friendly name to identify this Mubtkir API server.,اسم مبسّط للتعرّف على خادم Mubtkir API هذا.
+Per-instance API key returned by the Mubtkir API. Visible to System Manager only.,مفتاح API لكل نسخة يُرجعه Mubtkir API. مرئي لمدير النظام فقط.
+"Mubtkir API base URL, e.g. https://api.example.com. Visible to System Manager only.",الرابط الأساسي لـ Mubtkir API، مثال: https://api.example.com. مرئي لمدير النظام فقط.
+No Mubtkir API Server is configured for this instance.,لا يوجد خادم Mubtkir API مضبوط لهذه النسخة.
+Please set an Mubtkir API Server on this instance first.,يرجى ضبط خادم Mubtkir API لهذه النسخة أولاً.
+You are not permitted to sync Mubtkir API servers.,غير مسموح لك بمزامنة خوادم Mubtkir API.
+Mubtkir API Error,خطأ Mubtkir API
+Sent,مُرسَلة
+Delivered,مُوصّلة
+Read,مقروءة
+Failed,فاشلة
+Received,واردة
+Queued,في الطابور
+In Progress,قيد التنفيذ
+Completed,مكتملة
+Partially Failed,فشل جزئي
+All,الكل
+Hourly,كل ساعة
+Daily,يومي
+Weekly,أسبوعي
+Monthly,شهري
+Yearly,سنوي
+Hourly Long,كل ساعة (طويل)
+Daily Long,يومي (طويل)
+Weekly Long,أسبوعي (طويل)
+Monthly Long,شهري (طويل)
+Monday,الإثنين
+Tuesday,الثلاثاء
+Wednesday,الأربعاء
+Thursday,الخميس
+Friday,الجمعة
+Saturday,السبت
+Sunday,الأحد
+Text,نص
+Number,رقم
+Datetime,تاريخ ووقت
+Currency (SAR),عملة (ريال)
+Date (DD/MM/YYYY),تاريخ (يوم/شهر/سنة)
+Date (YYYY-MM-DD),تاريخ (سنة-شهر-يوم)
+Before Validate,قبل التحقق
+Before Save (Submitted Document),قبل الحفظ (مستند مرحّل)
+After Save (Submitted Document),بعد الحفظ (مستند مرحّل)
+Creating instance in Mubtkir API...,جاري إنشاء النسخة في Mubtkir API...
+Could not fetch a QR code. Please verify the Mubtkir API Server settings and try again.,تعذّر جلب رمز QR. يرجى التحقق من إعدادات خادم Mubtkir API والمحاولة مرة أخرى.

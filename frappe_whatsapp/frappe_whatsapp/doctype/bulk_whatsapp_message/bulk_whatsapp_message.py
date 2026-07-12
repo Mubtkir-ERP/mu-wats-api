@@ -109,7 +109,7 @@ class BulkWhatsAppMessage(Document):
         )
     
     def send_single_message(self, recipient):
-        """Send a single message via Evolution API. Returns True on success, False on failure."""
+        """Send a single message via Mubtkir API. Returns True on success, False on failure."""
         
         # Add random delay between messages to prevent blocking
         min_delay = cint(self.message_delay) or 20
@@ -136,9 +136,9 @@ class BulkWhatsAppMessage(Document):
             except Exception as e:
                 frappe.log_error(f"Error parsing recipient data: {str(e)}", "WhatsApp Bulk Messaging")
         
-        # Get Evolution Phone Settings - check user first, then sender_number
+        # Get Mubtkir API Phone Settings - check user first, then sender_number
         user_evolution_settings = frappe.db.get_value(
-            "Evolution Phone Settings",
+            "Mubtkir API Phone Settings",
             {"user": frappe.session.user},
             "name"
         )
@@ -148,7 +148,7 @@ class BulkWhatsAppMessage(Document):
             evolution_settings = frappe.get_doc("Evolution Phone Settings", self.sender_number)
         
         if not evolution_settings.base_url or not evolution_settings.instance_name:
-            frappe.log_error("Evolution Phone Settings not configured", "WhatsApp Bulk Messaging")
+            frappe.log_error("Mubtkir API Phone Settings not configured", "WhatsApp Bulk Messaging")
             self.db_set("status", "Partially Failed")
             return
         
@@ -265,7 +265,7 @@ class BulkWhatsAppMessage(Document):
                 }
                 content_type = 'text'
             
-            # Make request to Evolution API
+            # Make request to Mubtkir API
             response = requests.post(url, headers=headers, json=payload, timeout=30)
             response_data = response.json()
             

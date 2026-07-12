@@ -14,7 +14,7 @@ TEST_TIMEOUT = 20
 
 
 class EvolutionServer(Document):
-	"""An Evolution API server used to host WhatsApp instances."""
+	"""An Mubtkir API server used to host WhatsApp instances."""
 
 	def validate(self):
 		"""Normalise the base URL by stripping any trailing slash."""
@@ -52,7 +52,7 @@ class EvolutionServer(Document):
 
 		# Log which base_url is being tested (first 20 chars only, for security).
 		frappe.logger().error(
-			f"Testing Evolution Server '{self.name}' | base_url={base_url[:20]!r} | "
+			f"Testing Mubtkir API Server '{self.name}' | base_url={base_url[:20]!r} | "
 			f"api_key_set={bool(api_key)}"
 		)
 
@@ -62,7 +62,7 @@ class EvolutionServer(Document):
 				"ok": False,
 				"url": base_url,
 				"status_code": None,
-				"body": "Base URL or API Key is not set on this Evolution Server.",
+				"body": "Base URL or API Key is not set on this Mubtkir API Server.",
 			}
 
 		url = f"{base_url}/instance/fetchInstances"
@@ -72,7 +72,7 @@ class EvolutionServer(Document):
 			response = requests.get(url, headers=headers, timeout=TEST_TIMEOUT)
 		except Exception as exc:
 			tb = traceback.format_exc()
-			frappe.logger().error(f"Evolution API connection error [GET {url}]:\n{tb}")
+			frappe.logger().error(f"Mubtkir API connection error [GET {url}]:\n{tb}")
 			self._set_connection_status("Offline")
 			return {
 				"ok": False,
@@ -82,7 +82,7 @@ class EvolutionServer(Document):
 			}
 
 		frappe.logger().error(
-			f"Evolution API response [GET {url}]: {response.status_code} — {response.text}"
+			f"Mubtkir API response [GET {url}]: {response.status_code} — {response.text}"
 		)
 
 		ok = response.status_code == 200

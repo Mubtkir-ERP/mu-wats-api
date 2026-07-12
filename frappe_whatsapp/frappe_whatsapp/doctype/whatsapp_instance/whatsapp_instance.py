@@ -9,7 +9,7 @@ from frappe.model.document import Document
 
 
 class WhatsappInstance(Document):
-	"""A single WhatsApp connection hosted on an Evolution API server."""
+	"""A single WhatsApp connection hosted on an Mubtkir API server."""
 
 	def autoname(self):
 		"""Generate the instance name as: <site prefix>-<5 random digits>.
@@ -43,10 +43,10 @@ class WhatsappInstance(Document):
 		self.validate_single_instance_per_user()
 
 	def on_trash(self):
-		"""Keep Evolution in sync: delete the remote instance when this record is
+		"""Keep Mubtkir API in sync: delete the remote instance when this record is
 		removed in ERPNext.
 
-		This makes deletion from the ERPNext UI propagate to the Evolution API.
+		This makes deletion from the ERPNext UI propagate to the Mubtkir API.
 		The removal is best-effort (a missing/unreachable remote never blocks the
 		local delete). ``delete_whatsapp_instance`` sets ``wa_skip_remote_delete``
 		when it has already handled — or intentionally kept — the remote.
