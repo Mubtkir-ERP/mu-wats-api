@@ -301,6 +301,26 @@ def create_whatsapp_instance(instance_name):
 	return {"success": True, "api_key": instance_key}
 
 
+def delete_remote_instance(doc):
+	"""Best-effort removal of an instance from its Evolution server.
+
+	Calls ``DELETE /instance/delete/{name}``. Any failure (the remote may
+	already be gone, or the server unreachable) is logged and swallowed so it
+	never blocks removal of the local record. Does nothing when no Evolution
+	server is set.
+	"""
+	if not getattr(doc, "evolution_server", None):
+		return
+	try:
+		base_url, api_key = _server_credentials(doc.evolution_server)
+		_request("DELETE", base_url, f"/instance/delete/{doc.name}", api_key)
+	except Exception:
+		frappe.log_error(
+			message=frappe.get_traceback(),
+			title=f"Evolution remote delete failed for {doc.name}",
+		)
+
+
 @frappe.whitelist()
 def delete_whatsapp_instance(instance_name, delete_remote=False):
 	"""Cleanup helper: remove a WhatsApp instance record (and optionally remote).
@@ -309,6 +329,10 @@ def delete_whatsapp_instance(instance_name, delete_remote=False):
 	When ``delete_remote`` is truthy, also calls ``DELETE /instance/delete/{name}``
 	on the Evolution API first. Missing local records are treated as already
 	cleaned up.
+
+	Deleting the local document normally triggers ``on_trash`` which removes the
+	remote too; this helper drives that behaviour explicitly via
+	``wa_skip_remote_delete`` so the remote is only touched when asked for.
 	"""
 	if not frappe.has_permission("Whatsapp Instance", "delete"):
 		frappe.throw(_("You are not permitted to delete WhatsApp instances."))
@@ -318,19 +342,132 @@ def delete_whatsapp_instance(instance_name, delete_remote=False):
 
 	if frappe.utils.cint(delete_remote):
 		doc = frappe.get_doc("Whatsapp Instance", instance_name)
-		try:
-			base_url, api_key = _server_credentials(doc.evolution_server)
-			_request("DELETE", base_url, f"/instance/delete/{instance_name}", api_key)
-		except Exception:
-			# Remote may already be gone; log but still remove the local record.
-			frappe.log_error(
-				message=frappe.get_traceback(),
-				title=f"Remote delete failed for {instance_name}",
-			)
+		delete_remote_instance(doc)
 
-	frappe.delete_doc("Whatsapp Instance", instance_name, ignore_permissions=True)
+	# The remote has already been handled above (or intentionally kept), so tell
+	# on_trash not to repeat the DELETE call.
+	frappe.flags.wa_skip_remote_delete = True
+	try:
+		frappe.delete_doc("Whatsapp Instance", instance_name, ignore_permissions=True)
+	finally:
+		frappe.flags.wa_skip_remote_delete = False
 	frappe.db.commit()
 	return {"deleted": True, "message": f"Deleted {instance_name}."}
+
+
+def _fetch_remote_instance_names(base_url, api_key):
+	"""Return the set of instance names currently present on an Evolution server.
+
+	Tolerates the response-shape differences between Evolution API versions
+	(bare list vs ``{"data": [...]}``; flat record vs ``{"instance": {...}}``).
+	Raises to the caller if the server cannot be reached, so a transient outage
+	is never mistaken for "all instances were deleted".
+	"""
+	data = _request("GET", base_url, "/instance/fetchInstances", api_key)
+	records = data if isinstance(data, list) else (data.get("data") or data.get("instances") or [])
+	names = set()
+	for rec in records:
+		if not isinstance(rec, dict):
+			continue
+		info = rec.get("instance") if isinstance(rec.get("instance"), dict) else rec
+		name = info.get("instanceName") or info.get("name")
+		if name:
+			names.add(name)
+	return names
+
+
+def _clear_registration(instance_name):
+	"""Reset a local instance so it looks unregistered and can be re-created.
+
+	Clears the per-instance ``api_key`` (so ``is_registered`` returns False and
+	the form shows the "Create Instance" button again), marks it Disconnected and
+	wipes ``connected_since``.
+	"""
+	frappe.db.set_value(
+		"Whatsapp Instance",
+		instance_name,
+		{
+			"connection_status": "Disconnected",
+			"api_key": "",
+			"connected_since": None,
+		},
+	)
+	frappe.db.commit()
+
+
+@frappe.whitelist()
+def sync_instance_with_evolution(instance_name):
+	"""Reconcile a single local instance against its Evolution server.
+
+	If the instance no longer exists on Evolution (it was deleted there), the
+	local record is kept but its registration is cleared so the user can
+	re-create it under the same name. If it still exists, its live connection
+	status is refreshed. Returns ``{"exists": bool, "status": <status>}``.
+	"""
+	doc = _get_instance(instance_name)
+	doc.check_permission("write")
+
+	if not doc.evolution_server:
+		frappe.throw(_("Please set an Evolution Server on this instance first."))
+
+	base_url, api_key = _server_credentials(doc.evolution_server)
+
+	try:
+		remote_names = _fetch_remote_instance_names(base_url, api_key)
+	except Exception:
+		# Could not reach Evolution — do NOT clear the record on a transient error.
+		frappe.throw(
+			_("Could not reach the Evolution server to sync. Please try again."),
+			title=_("Sync Failed"),
+		)
+
+	if instance_name not in remote_names:
+		_clear_registration(instance_name)
+		return {"exists": False, "status": "Disconnected"}
+
+	# Still present remotely — refresh the live status/phone number.
+	result = get_instance_status(instance_name)
+	return {"exists": True, "status": result.get("status")}
+
+
+@frappe.whitelist()
+def sync_server_instances(server_name):
+	"""Reconcile every local instance hosted on ``server_name`` against Evolution.
+
+	Any local instance missing from the server has its registration cleared (see
+	``_clear_registration``). Returns ``{"checked": n, "missing": [...]}``.
+	"""
+	if not frappe.has_permission("Evolution Server", "write"):
+		frappe.throw(_("You are not permitted to sync Evolution servers."))
+
+	server = frappe.get_doc("Evolution Server", server_name)
+	base_url = server.get_base_url()
+	api_key = server.get_api_key()
+	if not base_url or not api_key:
+		frappe.throw(
+			_("Evolution Server {0} is missing its Base URL or API Key.").format(
+				frappe.bold(server_name)
+			)
+		)
+
+	try:
+		remote_names = _fetch_remote_instance_names(base_url, api_key)
+	except Exception:
+		frappe.throw(
+			_("Could not reach the Evolution server to sync. Please try again."),
+			title=_("Sync Failed"),
+		)
+
+	local = frappe.get_all(
+		"Whatsapp Instance",
+		filters={"evolution_server": server_name},
+		pluck="name",
+	)
+	missing = [name for name in local if name not in remote_names]
+	for name in missing:
+		_clear_registration(name)
+
+	return {"checked": len(local), "missing": missing}
 
 
 @frappe.whitelist()

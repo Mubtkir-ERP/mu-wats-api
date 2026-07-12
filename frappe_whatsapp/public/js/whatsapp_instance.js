@@ -147,11 +147,48 @@ function build_action_buttons(frm, registered) {
 	// 3. Check Status (default) — always available.
 	frm.add_custom_button(__("Check Status"), () => check_status(frm));
 
-	// 4. Disconnect (danger, red) — only when currently connected.
+	// 4. Sync with Evolution (default) — reconcile this record against the
+	//    Evolution server. If the instance was deleted there, the registration
+	//    is cleared so the "Create Instance" button reappears for re-creation.
+	frm.add_custom_button(__("Sync with Evolution"), () => sync_with_evolution(frm));
+
+	// 5. Disconnect (danger, red) — only when currently connected.
 	if (status === "Connected") {
 		const btn = frm.add_custom_button(__("Disconnect"), () => confirm_disconnect(frm));
 		btn.removeClass("btn-default").addClass("btn-danger");
 	}
+}
+
+function sync_with_evolution(frm) {
+	frappe.call({
+		method: "frappe_whatsapp.api.sync_instance_with_evolution",
+		args: { instance_name: frm.doc.name },
+		freeze: true,
+		freeze_message: __("Syncing with Evolution API..."),
+		callback: function (r) {
+			if (r.exc) {
+				return;
+			}
+			const msg = r.message || {};
+			if (msg.exists === false) {
+				// Removed on Evolution — registration was cleared locally.
+				frappe.msgprint({
+					title: __("Instance Not Found on Evolution"),
+					indicator: "orange",
+					message: __(
+						"This instance no longer exists on the Evolution server. The record has been kept and reset — use \"Create Instance\" to re-create it under the same name."
+					),
+				});
+			} else {
+				frappe.show_alert({
+					message: __("In sync. Connection status: {0}", [msg.status || "Disconnected"]),
+					indicator: WA_STATUS_COLORS[msg.status] || "blue",
+				});
+			}
+			// Reload so buttons rebuild (Create Instance reappears when cleared).
+			frm.reload_doc();
+		},
+	});
 }
 
 function create_instance(frm) {

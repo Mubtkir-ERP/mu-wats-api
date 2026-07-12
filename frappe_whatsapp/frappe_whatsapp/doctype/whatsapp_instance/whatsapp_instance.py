@@ -42,6 +42,23 @@ class WhatsappInstance(Document):
 		"""Run all validations."""
 		self.validate_single_instance_per_user()
 
+	def on_trash(self):
+		"""Keep Evolution in sync: delete the remote instance when this record is
+		removed in ERPNext.
+
+		This makes deletion from the ERPNext UI propagate to the Evolution API.
+		The removal is best-effort (a missing/unreachable remote never blocks the
+		local delete). ``delete_whatsapp_instance`` sets ``wa_skip_remote_delete``
+		when it has already handled — or intentionally kept — the remote.
+		"""
+		if frappe.flags.get("wa_skip_remote_delete"):
+			return
+
+		# Imported lazily to avoid a circular import at module load time.
+		from frappe_whatsapp.api import delete_remote_instance
+
+		delete_remote_instance(self)
+
 	def validate_single_instance_per_user(self):
 		"""Block creating more than one instance for the same linked user."""
 		if not self.linked_user:

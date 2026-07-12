@@ -8,8 +8,40 @@ frappe.ui.form.on("Evolution Server", {
 		}
 
 		frm.add_custom_button(__("Test Connection"), () => test_connection(frm));
+		frm.add_custom_button(__("Sync Instances"), () => sync_instances(frm));
 	},
 });
+
+function sync_instances(frm) {
+	frappe.call({
+		method: "frappe_whatsapp.api.sync_server_instances",
+		args: { server_name: frm.doc.name },
+		freeze: true,
+		freeze_message: __("Reconciling instances with Evolution..."),
+		callback: function (r) {
+			if (r.exc) {
+				return;
+			}
+			const msg = r.message || {};
+			const missing = msg.missing || [];
+			if (missing.length) {
+				frappe.msgprint({
+					title: __("Sync Complete"),
+					indicator: "orange",
+					message: __(
+						"Checked {0} instance(s). {1} no longer exist on Evolution and were reset for re-creation: {2}",
+						[msg.checked, missing.length, missing.join(", ")]
+					),
+				});
+			} else {
+				frappe.show_alert({
+					message: __("All {0} instance(s) are in sync.", [msg.checked]),
+					indicator: "green",
+				});
+			}
+		},
+	});
+}
 
 function test_connection(frm) {
 	frappe.call({

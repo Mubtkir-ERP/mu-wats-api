@@ -241,3 +241,18 @@ Retention Days,أيام الاحتفاظ
 Number of days to keep message history before cleanup.,عدد الأيام للاحتفاظ بسجل الرسائل قبل التنظيف.
 Asia/Riyadh,آسيا/الرياض
 Successfully Sent to,تم الإرسال بنجاح إلى
+Sync with Evolution,مزامنة مع Evolution
+Syncing with Evolution API...,جاري المزامنة مع Evolution API...
+Instance Not Found on Evolution,النسخة غير موجودة على Evolution
+"This instance no longer exists on the Evolution server. The record has been kept and reset — use ""Create Instance"" to re-create it under the same name.",لم تعد هذه النسخة موجودة على خادم Evolution. تم الاحتفاظ بالسجل وإعادة تعيينه — استخدم ""إنشاء النسخة"" لإعادة إنشائها بنفس الاسم.
+In sync. Connection status: {0},تمت المزامنة. حالة الاتصال: {0}
+Sync Instances,مزامنة النسخ
+Reconciling instances with Evolution...,جاري مطابقة النسخ مع Evolution...
+Sync Complete,اكتملت المزامنة
+All {0} instance(s) are in sync.,جميع النسخ ({0}) متزامنة.
+"Checked {0} instance(s). {1} no longer exist on Evolution and were reset for re-creation: {2}",تم فحص {0} نسخة. {1} لم تعد موجودة على Evolution وأُعيد تعيينها لإعادة الإنشاء: {2}
+Could not reach the Evolution server to sync. Please try again.,تعذّر الوصول إلى خادم Evolution للمزامنة. حاول مرة أخرى.
+Sync Failed,فشلت المزامنة
+Disconnect,قطع الاتصال
+About this screen,عن هذه الشاشة
+عن هذه الشاشة,عن هذه الشاشة

@@ -14,5 +14,6 @@
  "name": "Received Messages",
  "show_percentage_stats": 0,
  "stats_time_interval": "Monthly",
- "type": "Document Type"
+ "type": "Document Type",
+ "color": "#9B59B6"
 }
