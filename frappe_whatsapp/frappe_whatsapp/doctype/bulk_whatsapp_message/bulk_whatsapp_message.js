@@ -5,6 +5,23 @@ frappe.ui.form.on('Bulk WhatsApp Message', {
             preview_bulk_messages(frm);
         });
 
+        // Diagnostics: show the per-recipient send log (Evolution responses).
+        if (frm.doc.send_log) {
+            frm.add_custom_button(__('View Send Log'), function() {
+                const d = new frappe.ui.Dialog({
+                    title: __('Send Log'),
+                    size: 'large',
+                    fields: [{ fieldtype: 'HTML', fieldname: 'log' }],
+                });
+                d.get_field('log').$wrapper.html(
+                    `<pre style="max-height:60vh;overflow:auto;white-space:pre-wrap;` +
+                    `word-break:break-word;font-size:12px;background:var(--fg-color,#f7f7f7);` +
+                    `padding:12px;border-radius:8px;">${frappe.utils.escape_html(frm.doc.send_log)}</pre>`
+                );
+                d.show();
+            });
+        }
+
         // Add progress bar
         if(frm.doc.docstatus === 1 && frm.doc.status != 'Draft') {
             frm.add_custom_button(__('Check Progress'), function() {

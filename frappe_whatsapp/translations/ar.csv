@@ -392,3 +392,6 @@ Attachment Too Large,المرفق كبير جداً
 "The attachment is {0} MB, over the {1} MB limit. WhatsApp rejects large media (videos above ~16 MB) even if the send looks successful. Use a smaller file.",حجم المرفق {0} ميجابايت، ويتجاوز الحد {1} ميجابايت. واتساب يرفض الوسائط الكبيرة (الفيديو أكبر من ~16 ميجا) حتى لو بدا الإرسال ناجحاً. استخدم ملفاً أصغر.
 Last error,آخر خطأ
 Bulk Send Result,نتيجة الإرسال الجماعي
+Send Log,سجل الإرسال
+View Send Log,عرض سجل الإرسال
+"Per-recipient diagnostics: endpoint, HTTP status and the raw Evolution response. Use it to trace why a message did not arrive.",تشخيص لكل مستلم: نقطة النهاية وحالة HTTP ورد Evolution الخام. استخدمه لتتبّع سبب عدم وصول الرسالة.

@@ -95,6 +95,7 @@ class BulkWhatsAppMessage(Document):
         # Resolve the sending instance up-front (aborts the run if unavailable).
         self._resolve_sender()
         self._send_errors = []
+        self._log_lines = []
 
         recipients_list = self._gather_recipients()
 
@@ -132,7 +133,11 @@ class BulkWhatsAppMessage(Document):
             self.db_set("status", "Failed")
         else:
             self.db_set("status", "Partially Failed")
-        
+
+        # Persist the diagnostics log so failures can be traced from the form.
+        if getattr(self, "_log_lines", None):
+            self.db_set("send_log", "\n".join(self._log_lines)[:50000])
+
         msg = _("Bulk WhatsApp Message completed: {0} sent, {1} failed").format(sent, failed)
         if getattr(self, "_send_errors", None):
             msg += "<br><br><b>" + _("Last error") + ":</b> " + frappe.utils.escape_html(
@@ -231,6 +236,7 @@ class BulkWhatsAppMessage(Document):
         phone_number = recipient.get("mobile_number")
         if not phone_number:
             frappe.log_error("No phone number for recipient", "WhatsApp Bulk Messaging")
+            self._log("✗ (recipient has no mobile number)")
             return False
         
         # Format phone number
@@ -304,9 +310,16 @@ class BulkWhatsAppMessage(Document):
                 content_type = "text"
 
             # Make request to Mubtkir API
+            endpoint = url.rsplit("/message/", 1)[-1].split("/")[0] if "/message/" in url else url
             response = requests.post(url, headers=headers, json=payload, timeout=30)
-            response_data = response.json()
-            
+            try:
+                response_data = response.json()
+            except Exception:
+                response_data = {}
+            self._log(
+                f"→ {phone_number} | {content_type} via {endpoint} | HTTP {response.status_code} | {response.text[:600]}"
+            )
+
             if response.status_code in [200, 201]:
                 success = True
                 
@@ -352,6 +365,12 @@ class BulkWhatsAppMessage(Document):
 
         return success
 
+    def _log(self, line):
+        """Append a line to the in-memory send log (persisted after the run)."""
+        if not hasattr(self, "_log_lines"):
+            self._log_lines = []
+        self._log_lines.append(line)
+
     def _record_failure(self, phone_number, message_text, error_message):
         """Log a send failure, keep it for the result popup, and store it on a
         Failed WhatsApp Message so the reason is visible on the record."""
@@ -359,6 +378,7 @@ class BulkWhatsAppMessage(Document):
         if not hasattr(self, "_send_errors"):
             self._send_errors = []
         self._send_errors.append(error_message)
+        self._log(f"✗ {phone_number} | FAILED: {error_message}")
         frappe.log_error(
             f"Failed to send WhatsApp message to {phone_number}: {error_message}",
             "WhatsApp Bulk Messaging",

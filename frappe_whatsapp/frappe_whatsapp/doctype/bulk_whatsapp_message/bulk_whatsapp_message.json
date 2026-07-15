@@ -26,6 +26,7 @@
   "section_status",
   "status",
   "sent_count",
+  "send_log",
   "scheduled_time",
   "amended_from"
  ],
@@ -153,6 +154,14 @@
    "fieldtype": "Int",
    "label": "Sent Count",
    "read_only": 1
+  },
+  {
+   "fieldname": "send_log",
+   "fieldtype": "Code",
+   "options": "Text",
+   "label": "Send Log",
+   "read_only": 1,
+   "description": "Per-recipient diagnostics: endpoint, HTTP status and the raw Evolution response. Use it to trace why a message did not arrive."
   },
   {
    "description": "Leave empty to send immediately after submission",
