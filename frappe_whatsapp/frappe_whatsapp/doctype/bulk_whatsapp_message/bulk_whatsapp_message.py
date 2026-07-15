@@ -381,10 +381,24 @@ class BulkWhatsAppMessage(Document):
             pass
     
     def format_number(self, number):
-        """Format phone number - remove leading + if present"""
-        if number and number.startswith("+"):
-            number = number[1:]
-        return number
+        """Normalise a phone number to WhatsApp's international digits-only form.
+
+        Strips spaces, dashes, parentheses and a leading ``+``/``00``. As a
+        convenience for Saudi numbers, a local ``05XXXXXXXX`` (10 digits) is
+        converted to ``9665XXXXXXXX``. Numbers must otherwise already include
+        their country code.
+        """
+        if not number:
+            return number
+        import re
+
+        digits = re.sub(r"\D", "", str(number))
+        if digits.startswith("00"):
+            digits = digits[2:]
+        # Local Saudi mobile (05XXXXXXXX) -> 9665XXXXXXXX.
+        if len(digits) == 10 and digits.startswith("05"):
+            digits = "966" + digits[1:]
+        return digits
 
     def retry_failed(self):
         """Retry failed messages"""
