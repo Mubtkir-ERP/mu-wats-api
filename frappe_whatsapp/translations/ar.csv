@@ -200,10 +200,10 @@ Recipient List,قائمة مستلمين
 Mobile Number,رقم الجوال
 Recipient Name,اسم المستلم
 Make sure that Template variables are same as Recipient data fields,تأكد أن متغيرات القالب مطابقة لحقول بيانات المستلم
-Variable Type,نوع المتغير
+Variable Type,نوع المتغيّرات
 Common,مشترك
 Unique,فريد
-Template Variables,متغيرات القالب
+Template Variables,متغيّرات القالب
 Attach,إرفاق
 Draft,مسودة
 Sent Count,عدد المُرسَل
@@ -376,3 +376,7 @@ Saved. Review the schedule and enable it.,تم الحفظ. راجع الجدول
 No report specified.,لم يُحدَّد تقرير.
 The connected WhatsApp instance used to send this campaign. Defaults to your own instance if left empty.,نسخة الواتساب المتصلة المستخدمة لإرسال هذه الحملة. تُستخدم نسختك تلقائياً إذا تُرك فارغاً.
 No WhatsApp instance to send from. Set 'Send From Instance'.,لا توجد نسخة واتساب للإرسال منها. حدّد «الإرسال من النسخة».
+Turn on to send a pre-approved WhatsApp Template as the message. Turn off to send the plain Message Content above.,فعّله لإرسال قالب واتساب معتمد كرسالة. أوقفه لإرسال نص «محتوى الرسالة» أعلاه.
+The WhatsApp Template used as the campaign message.,قالب واتساب المستخدم كرسالة الحملة.
+"How template placeholders ({{1}}, {{2}}...) are filled. Common: the same values for all recipients (set once below). Unique: different values taken from each recipient's own data.",كيف تُملأ متغيّرات القالب ({{1}}، {{2}}...). مشترك: نفس القيم لكل المستلمين (تُحدَّد مرة واحدة بالأسفل). فريد: قيم مختلفة تُؤخذ من بيانات كل مستلم.
+"Shared values for the template placeholders, as JSON. Example: {""1"": ""Mubtkir"", ""2"": ""20% off""} fills {{1}} and {{2}} for everyone.","القيم المشتركة لمتغيّرات القالب بصيغة JSON. مثال: {""1"": ""مبتكر""، ""2"": ""خصم 20%""} تملأ {{1}} و{{2}} للجميع."
