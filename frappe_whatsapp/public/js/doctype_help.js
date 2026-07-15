@@ -81,14 +81,20 @@ frappe_whatsapp.DOCTYPE_HELP = {
 	},
 	"Bulk WhatsApp Message": {
 		en: [
-			"This screen sends a campaign (the same message) to many recipients at once — for marketing, announcements or reminders.",
-			"How to use it: 1) Set a Title and the sender number. 2) Choose recipients — an individual list or a saved Recipient List. 3) Pick the Template or content and map any variables. 4) Set the Min/Max delay between messages to control the sending rate and reduce the risk of blocking. 5) Optionally set a Scheduled Time, then submit.",
-			"Tip: smaller batches with a sensible delay are safer. Leave the scheduled time empty to send immediately after submitting.",
+			"This screen sends a campaign to many recipients at once — for marketing, announcements or reminders.",
+			"Steps: 1) Set a Title and the Send-From instance. 2) Choose recipients: Individual (add rows) or a saved Recipient List. 3) Write the message — plain text, or turn on Use Template. 4) Set the Min/Max delay between messages to reduce the risk of blocking. 5) Optionally attach an image/PDF/video/audio and set a Scheduled Time, then Submit. Use \"Preview Messages\" to check the final text first.",
+			"Variable Type — how template placeholders ({{1}}, {{2}}...) are filled:",
+			"• Common (same for everyone): fill the values once in Template Variables. Example — template \"Hello {{1}}, enjoy {{2}} off\" with {\"1\":\"dear customer\",\"2\":\"20%\"} → everyone gets \"Hello dear customer, enjoy 20% off\". Use for identical announcements.",
+			"• Unique (different per recipient): each recipient's values come from their own Recipient Data. Example — template \"Hello {{1}}, invoice {{2}} is {{3}} SAR\"; Ahmed's data {\"1\":\"Ahmed\",\"2\":\"INV-100\",\"3\":\"500\"} → \"Hello Ahmed, invoice INV-100 is 500 SAR\". Use for personalised messages.",
+			"To vary only a few words (e.g. the greeting), keep the fixed text in the template and put just the varying words as placeholders. Values fill {{1}}, {{2}}... in order — the keys are only labels.",
 		],
 		ar: [
-			"هذه الشاشة تُرسل حملة (نفس الرسالة) إلى عدة مستلمين دفعة واحدة — للتسويق أو الإعلانات أو التذكيرات.",
-			"طريقة الاستخدام: ١) اضبط عنواناً ورقم المُرسِل. ٢) اختر المستلمين — قائمة فردية أو قائمة مستلمين محفوظة. ٣) اختر القالب أو المحتوى واربط أي متغيّرات. ٤) اضبط أقل/أقصى تأخير بين الرسائل للتحكم في معدّل الإرسال وتقليل خطر الحظر. ٥) اختيارياً اضبط وقتاً مجدولاً ثم رحّل المستند.",
-			"نصيحة: الدفعات الأصغر مع تأخير معقول أكثر أماناً. اترك الوقت المجدول فارغاً للإرسال فوراً بعد الترحيل.",
+			"هذه الشاشة تُرسل حملة إلى عدة مستلمين دفعة واحدة — للتسويق أو الإعلانات أو التذكيرات.",
+			"الخطوات: ١) اضبط عنواناً والنسخة المُرسِلة. ٢) اختر المستلمين: فردي (أضف صفوفاً) أو قائمة مستلمين محفوظة. ٣) اكتب الرسالة — نص عادي، أو فعّل «استخدام قالب». ٤) اضبط أقل/أقصى تأخير بين الرسائل لتقليل خطر الحظر. ٥) اختيارياً أرفق صورة/PDF/فيديو/صوت واضبط وقتاً مجدولاً ثم رحّل. استخدم «معاينة الرسائل» للتأكد من النص النهائي أولاً.",
+			"نوع المتغيّرات — كيف تُملأ متغيّرات القالب ({{1}}، {{2}}...):",
+			"• مشترك (نفس القيم للجميع): تكتب القيم مرة واحدة في «متغيّرات القالب». مثال — القالب «مرحباً {{1}}، لديك خصم {{2}}» مع {\"1\":\"عميلنا العزيز\",\"2\":\"20%\"} ← الكل يستلم «مرحباً عميلنا العزيز، لديك خصم 20%». استخدمه للإعلانات الموحّدة.",
+			"• فريد (مختلف لكل مستلم): قيم كل مستلم تُؤخذ من حقل «Recipient Data» الخاص به. مثال — القالب «مرحباً {{1}}، فاتورتك {{2}} بمبلغ {{3}} ريال»؛ بيانات أحمد {\"1\":\"أحمد\",\"2\":\"INV-100\",\"3\":\"500\"} ← «مرحباً أحمد، فاتورتك INV-100 بمبلغ 500 ريال». استخدمه للرسائل المخصّصة.",
+			"لتغيير كلمات قليلة فقط (مثل التحية)، اترك النص الثابت في القالب وضع الكلمات المتغيّرة فقط كمتغيّرات. القيم تملأ {{1}}، {{2}}... بالترتيب — والمفاتيح مجرد تسمية.",
 		],
 	},
 	"WhatsApp Recipient List": {
