@@ -324,18 +324,21 @@ class BulkWhatsAppMessage(Document):
                     "message_type": "Template" if self.use_template else "Text",
                     "message_id": message_id,
                     "content_type": content_type,
-                    "status": "Success",
+                    "status": "Sent",
                     "bulk_message_reference": self.name
                 }
-                
+
                 if self.use_template:
                     new_doc.update({
                         "use_template": 1,
                         "template": self.template,
                         "template_parameters": recipient.get("recipient_data") if self.variable_type == 'Unique' else self.template_variables
                     })
-                
-                frappe.get_doc(new_doc).insert(ignore_permissions=True)
+
+                # Already sent via Evolution — don't let the doctype re-send via Meta.
+                msg_doc = frappe.get_doc(new_doc)
+                msg_doc.flags.skip_meta_send = True
+                msg_doc.insert(ignore_permissions=True)
             else:
                 self._record_failure(phone_number, message_text, _extract_error(response_data))
 
@@ -361,7 +364,7 @@ class BulkWhatsAppMessage(Document):
             "WhatsApp Bulk Messaging",
         )
         try:
-            frappe.get_doc(
+            fail_doc = frappe.get_doc(
                 {
                     "doctype": "WhatsApp Message",
                     "type": "Outgoing",
@@ -371,7 +374,9 @@ class BulkWhatsAppMessage(Document):
                     "status": "Failed",
                     "bulk_message_reference": self.name,
                 }
-            ).insert(ignore_permissions=True)
+            )
+            fail_doc.flags.skip_meta_send = True
+            fail_doc.insert(ignore_permissions=True)
         except Exception:
             pass
     

@@ -11,6 +11,12 @@ class WhatsAppMessage(Document):
 
     def before_insert(self):
         """Send message."""
+        # Records created by the Evolution / bulk flow were already sent through
+        # the Evolution API; this flag stops us re-sending them via Meta (which
+        # would need a Meta token and fail).
+        if self.flags.get("skip_meta_send"):
+            return
+
         if self.type == "Outgoing" and self.message_type != "Template":
             if self.attach and not self.attach.startswith("http"):
                 link = frappe.utils.get_url() + "/" + self.attach
@@ -42,7 +48,7 @@ class WhatsAppMessage(Document):
 
             try:
                 self.notify(data)
-                self.status = "Success"
+                self.status = "Sent"
             except Exception as e:
                 self.status = "Failed"
                 frappe.throw(f"Failed to send message {str(e)}")
