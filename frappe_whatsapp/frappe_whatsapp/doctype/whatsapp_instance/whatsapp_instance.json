@@ -19,7 +19,8 @@
   "connection_status",
   "phone_number",
   "column_break_status",
-  "connected_since"
+  "connected_since",
+  "disconnect_alerted"
  ],
  "fields": [
   {
@@ -107,6 +108,16 @@
    "label": "Connected Since",
    "description": "Timestamp of the last successful connection.",
    "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "disconnect_alerted",
+   "fieldtype": "Check",
+   "label": "Disconnect Alerted",
+   "description": "Internal flag: set once a disconnect alert has been sent, cleared on reconnection, so alerts are not repeated.",
+   "read_only": 1,
+   "hidden": 1,
+   "no_copy": 1
   }
  ],
  "grid_page_length": 50,

@@ -20,7 +20,12 @@
   "default_server",
   "retention_days",
   "column_break_evolution",
-  "max_attachment_size"
+  "max_attachment_size",
+  "monitoring_section",
+  "enable_disconnect_alert",
+  "company_supervisor_email",
+  "column_break_monitoring",
+  "company_supervisor_mobile"
  ],
  "fields": [
   {
@@ -104,6 +109,35 @@
    "fieldtype": "Int",
    "label": "Retention Days",
    "description": "Number of days to keep message history before cleanup."
+  },
+  {
+   "fieldname": "monitoring_section",
+   "fieldtype": "Section Break",
+   "label": "Connection Monitoring"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_disconnect_alert",
+   "fieldtype": "Check",
+   "label": "Enable Disconnect Alerts",
+   "description": "When on, an email and an internal notification are sent whenever a connected WhatsApp instance drops."
+  },
+  {
+   "fieldname": "company_supervisor_email",
+   "fieldtype": "Data",
+   "label": "Company Supervisor Email",
+   "options": "Email",
+   "description": "Email of the operating company's supervisor. Receives disconnect and failure alerts in addition to the site's System Managers."
+  },
+  {
+   "fieldname": "column_break_monitoring",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company_supervisor_mobile",
+   "fieldtype": "Data",
+   "label": "Company Supervisor Mobile",
+   "description": "Optional mobile number (with country code) of the company supervisor, for future WhatsApp-based alerts."
   }
  ],
  "grid_page_length": 50,

@@ -311,3 +311,12 @@ Before Save (Submitted Document),قبل الحفظ (مستند مرحّل)
 After Save (Submitted Document),بعد الحفظ (مستند مرحّل)
 Creating instance in Mubtkir API...,جاري إنشاء النسخة في Mubtkir API...
 Could not fetch a QR code. Please verify the Mubtkir API Server settings and try again.,تعذّر جلب رمز QR. يرجى التحقق من إعدادات خادم Mubtkir API والمحاولة مرة أخرى.
+Connection Monitoring,مراقبة الاتصال
+Enable Disconnect Alerts,تفعيل تنبيهات الانقطاع
+"When on, an email and an internal notification are sent whenever a connected WhatsApp instance drops.",عند التفعيل، يُرسَل إيميل وإشعار داخلي كلما انقطع اتصال نسخة واتساب متصلة.
+Company Supervisor Email,إيميل مشرف الشركة
+Email of the operating company's supervisor. Receives disconnect and failure alerts in addition to the site's System Managers.,إيميل مشرف الشركة المشغّلة. يستقبل تنبيهات الانقطاع والفشل بالإضافة إلى مدراء نظام السايت.
+Company Supervisor Mobile,جوال مشرف الشركة
+"Optional mobile number (with country code) of the company supervisor, for future WhatsApp-based alerts.",رقم جوال اختياري (مع رمز الدولة) لمشرف الشركة، لتنبيهات واتساب المستقبلية.
+Disconnect Alerted,تم تنبيه الانقطاع
+unknown,غير معروف

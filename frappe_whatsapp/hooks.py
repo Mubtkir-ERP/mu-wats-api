@@ -117,6 +117,12 @@ doctype_js = {"Whatsapp Instance": "public/js/whatsapp_instance.js"}
 # ---------------
 
 scheduler_events = {
+    "cron": {
+        # Poll instance connectivity every 15 minutes and alert on drops.
+        "*/15 * * * *": [
+            "frappe_whatsapp.monitoring.check_instance_connections"
+        ]
+    },
     "all": [
         "frappe_whatsapp.utils.trigger_whatsapp_notifications_all"
     ],
