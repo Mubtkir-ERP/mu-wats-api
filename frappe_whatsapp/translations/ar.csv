@@ -360,3 +360,12 @@ Last Sent On,آخر إرسال في
 "Could not resolve a recipient mobile number. Set a Party with a contact, or a mobile override.",تعذّر تحديد رقم جوال المستلم. حدّد طرفاً له جهة اتصال، أو أدخل رقم تجاوز.
 No WhatsApp instance available to send from. Set 'Send From Instance'.,لا توجد نسخة واتساب متاحة للإرسال منها. حدّد «الإرسال من النسخة».
 Report Filters must be valid JSON.,يجب أن تكون فلاتر التقرير بصيغة JSON صحيحة.
+Type of the recipient party. The Party list and mobile number follow this.,نوع الطرف المستلم. تتبع قائمة الطرف ورقم الجوال هذا الاختيار.
+Use WhatsApp Template for Message,استخدام قالب واتساب للرسالة
+Take the accompanying message from a WhatsApp Template instead of free text.,أخذ الرسالة المرافقة من قالب واتساب بدلاً من نص حر.
+Message Template,قالب الرسالة
+Template whose body is sent as the caption with the report.,القالب الذي يُرسل نصه مرافقاً للتقرير.
+Shareholder,مساهم
+Employee,موظف
+Customer,عميل
+Supplier,مورّد

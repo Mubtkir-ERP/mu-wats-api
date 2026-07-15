@@ -162,9 +162,10 @@ class WhatsAppScheduledReport(Document):
 			if mobile:
 				return mobile
 
-		# Fallback: a phone-like field directly on the party document.
+		# Fallback: a phone-like field directly on the party document
+		# (e.g. Employee.cell_number, Customer.mobile_no).
 		meta = frappe.get_meta(self.party_type)
-		for field in ("mobile_no", "mobile", "phone", "whatsapp_no", "contact_mobile"):
+		for field in ("mobile_no", "mobile", "cell_number", "phone", "whatsapp_no", "contact_mobile"):
 			if meta.has_field(field):
 				val = frappe.db.get_value(self.party_type, self.party, field)
 				if val:
@@ -193,6 +194,20 @@ class WhatsAppScheduledReport(Document):
 			frappe.throw(_("No WhatsApp instance available to send from. Set 'Send From Instance'."))
 		return name
 
+	def _caption(self):
+		"""Accompanying message text: from a WhatsApp Template or the free-text caption."""
+		if self.use_template and self.template:
+			tmpl = frappe.db.get_value("WhatsApp Templates", self.template, "*")
+			if tmpl:
+				return (
+					tmpl.get("template")
+					or tmpl.get("message_content")
+					or tmpl.get("body")
+					or tmpl.get("message")
+					or ""
+				)
+		return self.caption or ""
+
 	def _send_file(self, file_url, filename, mimetype):
 		from frappe_whatsapp.api import _request, _server_credentials
 
@@ -207,8 +222,9 @@ class WhatsAppScheduledReport(Document):
 			"fileName": filename,
 			"mimetype": mimetype,
 		}
-		if self.caption:
-			payload["caption"] = self.caption
+		caption = self._caption()
+		if caption:
+			payload["caption"] = caption
 
 		_request("POST", base_url, f"/message/sendMedia/{instance_name}", api_key, payload)
 

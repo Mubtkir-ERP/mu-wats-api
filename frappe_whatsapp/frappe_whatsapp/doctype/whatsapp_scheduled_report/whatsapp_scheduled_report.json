@@ -12,6 +12,8 @@
   "report_format",
   "filters_json",
   "caption",
+  "use_template",
+  "template",
   "column_break_main",
   "recipient_section",
   "party_type",
@@ -68,7 +70,23 @@
    "fieldname": "caption",
    "fieldtype": "Small Text",
    "label": "Message Caption",
-   "description": "Optional text sent with the report file."
+   "description": "Optional text sent with the report file.",
+   "depends_on": "eval:!doc.use_template"
+  },
+  {
+   "fieldname": "use_template",
+   "fieldtype": "Check",
+   "default": "0",
+   "label": "Use WhatsApp Template for Message",
+   "description": "Take the accompanying message from a WhatsApp Template instead of free text."
+  },
+  {
+   "fieldname": "template",
+   "fieldtype": "Link",
+   "options": "WhatsApp Templates",
+   "label": "Message Template",
+   "depends_on": "eval:doc.use_template",
+   "description": "Template whose body is sent as the caption with the report."
   },
   {
    "fieldname": "column_break_main",
@@ -81,10 +99,10 @@
   },
   {
    "fieldname": "party_type",
-   "fieldtype": "Link",
+   "fieldtype": "Select",
    "label": "Party Type",
-   "options": "DocType",
-   "description": "Type of the recipient party (e.g. Customer, Supplier, User, Contact)."
+   "description": "Type of the recipient party. The Party list and mobile number follow this.",
+   "options": "Customer\nSupplier\nEmployee\nShareholder"
   },
   {
    "fieldname": "party",
