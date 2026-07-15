@@ -15,7 +15,7 @@ import json
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import get_url, getdate, now, now_datetime, nowdate
+from frappe.utils import cint, get_url, getdate, now, now_datetime, nowdate
 
 # Format -> (file extension, document mime type sent to WhatsApp).
 _FORMAT_META = {
@@ -278,3 +278,63 @@ def trigger_scheduled_reports():
 				doc.send_now()
 		except Exception:
 			frappe.log_error(frappe.get_traceback(), f"Scheduled report failed: {name}")
+
+
+def _apply_report_args(doc, **kwargs):
+	"""Populate a (possibly unsaved) scheduled-report doc from dialog arguments."""
+	import json as _json
+
+	filters = kwargs.get("filters")
+	if isinstance(filters, str):
+		filters = filters.strip() or "{}"
+	else:
+		filters = _json.dumps(filters or {})
+
+	doc.report = kwargs.get("report")
+	doc.report_format = kwargs.get("report_format") or "PDF"
+	doc.filters_json = filters
+	doc.party_type = kwargs.get("party_type")
+	doc.party = kwargs.get("party")
+	doc.mobile_number = kwargs.get("mobile_number")
+	doc.caption = kwargs.get("caption")
+	doc.use_template = cint(kwargs.get("use_template"))
+	doc.template = kwargs.get("template")
+	doc.whatsapp_instance = kwargs.get("whatsapp_instance")
+	return doc
+
+
+@frappe.whitelist()
+def send_report_adhoc(**kwargs):
+	"""Render and send a report immediately from the report view (no schedule).
+
+	Reuses the WhatsApp Scheduled Report rendering/sending on an unsaved doc so
+	the current report filters/format chosen in the report page are honoured.
+	"""
+	if not kwargs.get("report"):
+		frappe.throw(_("No report specified."))
+
+	doc = _apply_report_args(frappe.new_doc("WhatsApp Scheduled Report"), **kwargs)
+	doc.report_title = kwargs.get("report")  # not saved; only used for the filename
+
+	filename, content, mimetype = doc._render_file()
+	file_url = doc._save_file(filename, content)
+	doc._send_file(file_url, filename, mimetype)
+	return {"sent": True, "file": filename}
+
+
+@frappe.whitelist()
+def create_scheduled_report(**kwargs):
+	"""Create a WhatsApp Scheduled Report from the report view's current setup.
+
+	Starts Disabled with a Daily default so the user can review the schedule
+	before it goes live. Returns the new record name.
+	"""
+	if not kwargs.get("report"):
+		frappe.throw(_("No report specified."))
+
+	doc = _apply_report_args(frappe.new_doc("WhatsApp Scheduled Report"), **kwargs)
+	doc.report_title = f"{kwargs.get('report')} - {frappe.generate_hash(length=5)}"
+	doc.frequency = "Daily"
+	doc.disabled = 1
+	doc.insert()
+	return {"name": doc.name}
