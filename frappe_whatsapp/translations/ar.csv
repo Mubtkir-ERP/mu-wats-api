@@ -388,3 +388,5 @@ Showing the first 25 recipients.,عرض أول 25 مستلماً.
 Messaging,المراسلة
 Automation,الأتمتة
 Logs,السجلات
+Attachment Too Large,المرفق كبير جداً
+"The attachment is {0} MB, over the {1} MB limit. WhatsApp rejects large media (videos above ~16 MB) even if the send looks successful. Use a smaller file.",حجم المرفق {0} ميجابايت، ويتجاوز الحد {1} ميجابايت. واتساب يرفض الوسائط الكبيرة (الفيديو أكبر من ~16 ميجا) حتى لو بدا الإرسال ناجحاً. استخدم ملفاً أصغر.

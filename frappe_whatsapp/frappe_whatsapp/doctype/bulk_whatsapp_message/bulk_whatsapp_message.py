@@ -24,10 +24,32 @@ class BulkWhatsAppMessage(Document):
     def validate(self):
         # self.validate_message()
         self.validate_recipients()
-    
+        self.validate_attachment()
+
     def validate_message(self):
         if not self.message_content:
             frappe.throw(_("Message content is required"))
+
+    def validate_attachment(self):
+        """Block over-sized media before submit so the send doesn't silently fail.
+
+        WhatsApp rejects large media (videos over ~16 MB) even when Evolution
+        accepts the request and reports success, which otherwise leaves the
+        campaign marked "Completed" while nothing is delivered.
+        """
+        if not self.attach:
+            return
+        max_mb = frappe.db.get_single_value("WhatsApp Settings", "max_attachment_size") or 16
+        file_size = frappe.db.get_value("File", {"file_url": self.attach}, "file_size")
+        if file_size and file_size > max_mb * 1024 * 1024:
+            frappe.throw(
+                _(
+                    "The attachment is {0} MB, over the {1} MB limit. WhatsApp rejects "
+                    "large media (videos above ~16 MB) even if the send looks successful. "
+                    "Use a smaller file."
+                ).format(round(file_size / (1024 * 1024), 1), max_mb),
+                title=_("Attachment Too Large"),
+            )
     
     def validate_recipients(self):
         if not self.recipients and not self.recipient_list:
