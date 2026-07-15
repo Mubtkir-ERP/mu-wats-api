@@ -13,9 +13,9 @@ app_license = "MIT"
 # include js, css files in header of desk.html
 # app_include_css = "/assets/frappe_whatsapp/css/frappe_whatsapp.css"
 app_include_js = [
-    "/assets/frappe_whatsapp/js/frappe_whatsapp.js",
-    "/assets/frappe_whatsapp/js/doctype_help.js",
-    "/assets/frappe_whatsapp/js/report_send.js",
+    "/assets/frappe_whatsapp/js/wa_main.js",
+    "/assets/frappe_whatsapp/js/wa_help.js",
+    "/assets/frappe_whatsapp/js/wa_report.js",
 ]
 
 # include js, css files in header of web template
