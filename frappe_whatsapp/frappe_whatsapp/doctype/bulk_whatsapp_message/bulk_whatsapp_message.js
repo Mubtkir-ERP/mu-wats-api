@@ -1,5 +1,10 @@
 frappe.ui.form.on('Bulk WhatsApp Message', {
     refresh: function(frm) {
+        // Preview the final message per recipient before sending.
+        frm.add_custom_button(__('Preview Messages'), function() {
+            preview_bulk_messages(frm);
+        });
+
         // Add progress bar
         if(frm.doc.docstatus === 1 && frm.doc.status != 'Draft') {
             frm.add_custom_button(__('Check Progress'), function() {
@@ -79,3 +84,44 @@ frappe.ui.form.on('Bulk WhatsApp Message', {
         return true;
     }
 });
+
+function preview_bulk_messages(frm) {
+    frappe.call({
+        doc: frm.doc,
+        method: "preview_messages",
+        args: { limit: 25 },
+        freeze: true,
+        freeze_message: __("Building preview..."),
+        callback: function(r) {
+            const rows = r.message || [];
+            if (!rows.length) {
+                frappe.msgprint(__("No recipients to preview. Add recipients first."));
+                return;
+            }
+            const esc = frappe.utils.escape_html;
+            let body = rows.map(function(row, i) {
+                return `
+                    <div style="border:1px solid var(--border-color,#e0e0e0);border-radius:8px;
+                                padding:10px 12px;margin-bottom:8px;">
+                        <div style="font-weight:600;margin-bottom:6px;">
+                            ${i + 1}. ${esc(row.name || "")}
+                            <span style="color:var(--text-muted,#888);font-weight:400;">${esc(row.mobile || "")}</span>
+                        </div>
+                        <div dir="auto" style="white-space:pre-wrap;line-height:1.6;">${esc(row.message || "")}</div>
+                    </div>`;
+            }).join("");
+
+            const note = rows.length >= 25
+                ? `<p style="color:var(--text-muted,#888);">${__("Showing the first 25 recipients.")}</p>`
+                : "";
+
+            const d = new frappe.ui.Dialog({
+                title: __("Message Preview") + ` (${rows.length})`,
+                size: "large",
+                fields: [{ fieldtype: "HTML", fieldname: "preview" }],
+            });
+            d.get_field("preview").$wrapper.html(note + body);
+            d.show();
+        }
+    });
+}

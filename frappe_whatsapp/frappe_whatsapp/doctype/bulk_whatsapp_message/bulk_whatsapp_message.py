@@ -73,24 +73,8 @@ class BulkWhatsAppMessage(Document):
         # Resolve the sending instance up-front (aborts the run if unavailable).
         self._resolve_sender()
 
-        recipients_list = []
-        
-        if self.recipient_type == 'Recipient List' and self.recipient_list:
-            # Fetch recipients from the recipient list
-            recipients_list = frappe.get_all(
-                "WhatsApp Recipient", 
-                filters={"parent": self.recipient_list},
-                fields=["mobile_number", "name", "recipient_name", "recipient_data"]
-            )
-        else:
-            # Use recipients from the current document
-            for recipient in self.recipients:
-                recipients_list.append({
-                    "mobile_number": recipient.mobile_number,
-                    "recipient_name": recipient.recipient_name,
-                    "recipient_data": recipient.recipient_data or "{}"
-                })
-        
+        recipients_list = self._gather_recipients()
+
         total = len(recipients_list)
         sent = 0
         failed = 0
@@ -132,6 +116,78 @@ class BulkWhatsAppMessage(Document):
             alert=True
         )
     
+    def _build_message_text(self, recipient):
+        """Resolve the final message text for one recipient.
+
+        Returns the template body with its {{1}}, {{2}}... placeholders filled
+        (from the recipient's own data for Unique, or the shared Template
+        Variables for Common), or the plain Message Content. Returns None when a
+        template is configured but cannot be found.
+        """
+        if self.use_template and self.template:
+            template = frappe.db.get_value("WhatsApp Templates", self.template, fieldname="*")
+            if not template:
+                frappe.log_error(f"Template {self.template} not found", "WhatsApp Bulk Messaging")
+                return None
+
+            parameters = []
+            if recipient.get("recipient_data") and self.variable_type == "Unique":
+                try:
+                    parameters = list(json.loads(recipient.get("recipient_data", "{}")).values())
+                except Exception:
+                    pass
+            elif self.template_variables and self.variable_type == "Common":
+                try:
+                    parameters = list(json.loads(self.template_variables).values())
+                except Exception:
+                    pass
+
+            message_text = (
+                template.get("template")
+                or template.get("message_content")
+                or template.get("body")
+                or template.get("message")
+                or ""
+            )
+            for i, param in enumerate(parameters, 1):
+                message_text = message_text.replace(f"{{{{{i}}}}}", str(param))
+            return message_text
+
+        return self.message_content or ""
+
+    def _gather_recipients(self):
+        """Return the recipient list (mobile_number, recipient_name, recipient_data)."""
+        if self.recipient_type == "Recipient List" and self.recipient_list:
+            return frappe.get_all(
+                "WhatsApp Recipient",
+                filters={"parent": self.recipient_list},
+                fields=["mobile_number", "name", "recipient_name", "recipient_data"],
+            )
+        return [
+            {
+                "mobile_number": r.mobile_number,
+                "recipient_name": r.recipient_name,
+                "recipient_data": r.recipient_data or "{}",
+            }
+            for r in (self.recipients or [])
+        ]
+
+    @frappe.whitelist()
+    def preview_messages(self, limit=25):
+        """Return the resolved message for the first ``limit`` recipients (no send)."""
+        limit = int(limit or 25)
+        out = []
+        for r in self._gather_recipients()[:limit]:
+            text = self._build_message_text(r)
+            out.append(
+                {
+                    "mobile": r.get("mobile_number"),
+                    "name": r.get("recipient_name"),
+                    "message": text if text is not None else _("(template not found)"),
+                }
+            )
+        return out
+
     def send_single_message(self, recipient):
         """Send a single message via Mubtkir API. Returns True on success, False on failure."""
         
@@ -176,41 +232,11 @@ class BulkWhatsAppMessage(Document):
         message_text = None
         
         try:
-            message_text = ""
-
             # 1) Resolve the message text — from a template, or the plain body.
-            if self.use_template and self.template:
-                template = frappe.db.get_value(
-                    "WhatsApp Templates", self.template, fieldname='*'
-                )
-                if not template:
-                    frappe.log_error(f"Template {self.template} not found", "WhatsApp Bulk Messaging")
-                    return
-
-                parameters = []
-                if recipient.get("recipient_data") and self.variable_type == 'Unique':
-                    try:
-                        parameters = list(json.loads(recipient.get("recipient_data", "{}")).values())
-                    except Exception:
-                        pass
-                elif self.template_variables and self.variable_type == 'Common':
-                    try:
-                        parameters = list(json.loads(self.template_variables).values())
-                    except Exception:
-                        pass
-
-                message_text = (
-                    template.get("template")
-                    or template.get("message_content")
-                    or template.get("body")
-                    or template.get("message")
-                    or ""
-                )
-                for i, param in enumerate(parameters, 1):
-                    message_text = message_text.replace(f"{{{{{i}}}}}", str(param))
-            else:
-                # Plain-text campaign uses the Message Content field.
-                message_text = self.message_content or ""
+            message_text = self._build_message_text(recipient)
+            if message_text is None:
+                # Template configured but not found (already logged) — skip.
+                return
 
             # 2) Resolve the attachment URL (device upload or ERPNext file).
             attachment_url = None
