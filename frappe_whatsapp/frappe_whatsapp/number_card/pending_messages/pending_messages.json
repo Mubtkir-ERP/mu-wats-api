@@ -9,7 +9,7 @@
  "is_public": 1,
  "is_standard": 1,
  "label": "Pending Messages",
- "modified": "2026-07-08 00:00:00.000000",
+ "modified": "2026-07-15 12:00:00.000000",
  "module": "Frappe Whatsapp",
  "name": "Pending Messages",
  "show_percentage_stats": 0,
