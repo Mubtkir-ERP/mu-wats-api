@@ -288,7 +288,7 @@ class WhatsAppNotification(Document):
 
         # Check if logged-in user has a linked Mubtkir API Phone Settings
         user_evolution_settings = frappe.db.get_value(
-            "Mubtkir API Phone Settings",
+            "Evolution Phone Settings",
             {"user": frappe.session.user},
             "name"
         )

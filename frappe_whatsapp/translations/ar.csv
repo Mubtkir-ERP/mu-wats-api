@@ -337,3 +337,6 @@ Reminders Sent,عدد التذكيرات المرسلة
 Cleared,تم التحقق
 Thank-you Sent,تم إرسال الشكر
 Reference Name,اسم المرجع
+Message Content,محتوى الرسالة
+"Plain text body of the campaign, used when 'Use Template' is off. You can also attach an image, PDF, video or audio file below.",نص الحملة، يُستخدم عند إيقاف «استخدام قالب». يمكنك أيضاً إرفاق صورة أو PDF أو فيديو أو ملف صوتي بالأسفل.
+"Optional media for the campaign: image, PDF, video or audio. Uploaded from your device or picked from ERPNext files.",وسائط اختيارية للحملة: صورة أو PDF أو فيديو أو صوت. تُرفع من جهازك أو تُختار من ملفات ERPNext.

@@ -138,7 +138,7 @@ class BulkWhatsAppMessage(Document):
         
         # Get Mubtkir API Phone Settings - check user first, then sender_number
         user_evolution_settings = frappe.db.get_value(
-            "Mubtkir API Phone Settings",
+            "Evolution Phone Settings",
             {"user": frappe.session.user},
             "name"
         )
@@ -163,108 +163,79 @@ class BulkWhatsAppMessage(Document):
         message_text = None
         
         try:
-            # Get template if using template
+            message_text = ""
+
+            # 1) Resolve the message text — from a template, or the plain body.
             if self.use_template and self.template:
                 template = frappe.db.get_value(
-                    "WhatsApp Templates", self.template,
-                    fieldname='*'
+                    "WhatsApp Templates", self.template, fieldname='*'
                 )
-                
                 if not template:
                     frappe.log_error(f"Template {self.template} not found", "WhatsApp Bulk Messaging")
                     return
-                
-                # Build parameters for template
+
                 parameters = []
                 if recipient.get("recipient_data") and self.variable_type == 'Unique':
                     try:
-                        params = list(json.loads(recipient.get("recipient_data", "{}")).values())
-                        parameters = params
-                    except:
+                        parameters = list(json.loads(recipient.get("recipient_data", "{}")).values())
+                    except Exception:
                         pass
                 elif self.template_variables and self.variable_type == 'Common':
                     try:
-                        params = list(json.loads(self.template_variables).values())
-                        parameters = params
-                    except:
+                        parameters = list(json.loads(self.template_variables).values())
+                    except Exception:
                         pass
-                
-                # Build message text from template - 'template' is the actual field name
+
                 message_text = (
-                    template.get("template") or 
-                    template.get("message_content") or 
-                    template.get("body") or 
-                    template.get("message") or
-                    ""
+                    template.get("template")
+                    or template.get("message_content")
+                    or template.get("body")
+                    or template.get("message")
+                    or ""
                 )
-                
-                # Replace parameters in message text
                 for i, param in enumerate(parameters, 1):
                     message_text = message_text.replace(f"{{{{{i}}}}}", str(param))
-                
-                # Handle attachments - must be full URL or base64
-                attachment_url = None
-                filename = None
-                
-                if self.attach:
-                    # Get filename
-                    filename = self.attach.split("/")[-1] if "/" in self.attach else self.attach
-                    
-                    # Ensure we have a full URL
-                    if self.attach.startswith("http://") or self.attach.startswith("https://"):
-                        attachment_url = self.attach
-                    else:
-                        # Convert relative path to full URL
-                        base_url = frappe.utils.get_url()
-                        if self.attach.startswith("/"):
-                            attachment_url = f'{base_url}{self.attach}'
-                        else:
-                            attachment_url = f'{base_url}/{self.attach}'
-                
-                # Determine content type and endpoint
-                if attachment_url:
-                    if filename and filename.lower().endswith('.pdf'):
-                        # Send document
-                        url = f"{evolution_settings.base_url}/message/sendMedia/{evolution_settings.instance_name}"
-                        payload = {
-                            "number": phone_number,
-                            "mediatype": "document",
-                            "mimetype": "application/pdf",
-                            "caption": message_text,
-                            "media": attachment_url,
-                            "fileName": filename
-                        }
-                        content_type = 'document'
-                    else:
-                        # Send image
-                        url = f"{evolution_settings.base_url}/message/sendMedia/{evolution_settings.instance_name}"
-                        payload = {
-                            "number": phone_number,
-                            "mediatype": "image",
-                            "caption": message_text,
-                            "media": attachment_url
-                        }
-                        content_type = 'image'
-                else:
-                    if message_text is None:
-                        message_text = 'No Text'
-                    # Send text message
-                    url = f"{evolution_settings.base_url}/message/sendText/{evolution_settings.instance_name}"
-                    payload = {
-                        "number": phone_number,
-                        "text": message_text
-                    }
-                    content_type = 'text'
             else:
-                # Non-template message (plain text)
-                message_text = "Bulk message"  # Fallback
-                url = f"{evolution_settings.base_url}/message/sendText/{evolution_settings.instance_name}"
+                # Plain-text campaign uses the Message Content field.
+                message_text = self.message_content or ""
+
+            # 2) Resolve the attachment URL (device upload or ERPNext file).
+            attachment_url = None
+            filename = None
+            if self.attach:
+                filename = self.attach.split("/")[-1] if "/" in self.attach else self.attach
+                if self.attach.startswith(("http://", "https://")):
+                    attachment_url = self.attach
+                else:
+                    base_url = frappe.utils.get_url()
+                    attachment_url = (
+                        f"{base_url}{self.attach}"
+                        if self.attach.startswith("/")
+                        else f"{base_url}/{self.attach}"
+                    )
+
+            # 3) Build the payload — media (image / PDF / video / audio) or text.
+            if attachment_url:
+                mediatype, mimetype = _media_kind(filename)
+                url = f"{evolution_settings.base_url}/message/sendMedia/{evolution_settings.instance_name}"
                 payload = {
                     "number": phone_number,
-                    "text": message_text
+                    "mediatype": mediatype,
+                    "media": attachment_url,
                 }
-                content_type = 'text'
-            
+                if message_text:
+                    payload["caption"] = message_text
+                if mediatype == "document":
+                    payload["fileName"] = filename
+                    payload["mimetype"] = mimetype or "application/octet-stream"
+                content_type = mediatype
+            else:
+                if not message_text:
+                    message_text = "No Text"
+                url = f"{evolution_settings.base_url}/message/sendText/{evolution_settings.instance_name}"
+                payload = {"number": phone_number, "text": message_text}
+                content_type = "text"
+
             # Make request to Mubtkir API
             response = requests.post(url, headers=headers, json=payload, timeout=30)
             response_data = response.json()
@@ -374,3 +345,35 @@ class BulkWhatsAppMessage(Document):
             "queued": queued,
             "percent": (sent / total * 100) if total else 0
         }
+
+
+# Map a file extension to an Evolution ``mediatype`` and (for documents) a mime.
+_MEDIA_EXT = {
+    "image": {"jpg", "jpeg", "png", "gif", "webp", "bmp"},
+    "video": {"mp4", "3gp", "mov", "mkv", "webm"},
+    "audio": {"mp3", "ogg", "oga", "opus", "aac", "m4a", "amr", "wav"},
+}
+_DOC_MIME = {
+    "pdf": "application/pdf",
+    "doc": "application/msword",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "xls": "application/vnd.ms-excel",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "csv": "text/csv",
+    "txt": "text/plain",
+    "zip": "application/zip",
+}
+
+
+def _media_kind(filename):
+    """Return ``(mediatype, mimetype)`` for a filename.
+
+    ``mediatype`` is one of image / video / audio / document (Evolution's
+    sendMedia types). ``mimetype`` is only meaningful for documents; it is
+    ``None`` for image/video/audio.
+    """
+    ext = filename.rsplit(".", 1)[-1].lower() if filename and "." in filename else ""
+    for kind, exts in _MEDIA_EXT.items():
+        if ext in exts:
+            return kind, None
+    return "document", _DOC_MIME.get(ext)
