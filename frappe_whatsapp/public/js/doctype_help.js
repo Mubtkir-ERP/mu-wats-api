@@ -127,6 +127,16 @@ frappe_whatsapp.DOCTYPE_HELP = {
 			"طريقة الاستخدام: ١) اختر التقرير والصيغة (PDF أو Excel أو CSV). ٢) اختيارياً أضف فلاتر التقرير بصيغة JSON. ٣) حدّد المستلم بنوع الطرف + الطرف المعني (يُؤخذ جواله من جهة الاتصال) أو أدخل رقم تجاوز. ٤) اضبط الجدولة والنسخة المُرسِلة. استخدم «إرسال الآن» للتجربة الفورية.",
 		],
 	},
+	"WhatsApp Reminder Log": {
+		en: [
+			"This screen tracks the state of recurring reminders (from WhatsApp Notification's 'Repeat Until Condition Clears'). One row per document being reminded.",
+			"Records are created and updated automatically: it shows the last reminder date, how many were sent, whether the condition cleared (e.g. the invoice was paid) and whether a thank-you was sent. You normally only view it to audit why a reminder did or didn't repeat.",
+		],
+		ar: [
+			"هذه الشاشة تتتبّع حالة التذكيرات المتكررة (من خيار «التكرار حتى يتحقق الشرط» في إشعار واتساب). صف واحد لكل مستند يُذكَّر به.",
+			"تُنشأ السجلات وتُحدَّث تلقائياً: تعرض تاريخ آخر تذكير، وعددها، وهل تحقّق الشرط (مثل سداد الفاتورة)، وهل أُرسلت رسالة الشكر. عادةً تفتحها فقط لمراجعة سبب تكرار التذكير أو توقّفه.",
+		],
+	},
 	"WhatsApp Notification Log": {
 		en: [
 			"This screen is the history of automated notifications that were triggered — what was sent, to whom, and the result.",

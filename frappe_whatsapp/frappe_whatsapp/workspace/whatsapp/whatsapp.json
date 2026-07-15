@@ -1,6 +1,6 @@
 {
  "charts": [],
- "content": "[{\"id\": \"wa_header\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\">WhatsApp Management</span>\", \"col\": 12}}, {\"id\": \"nc_sent\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Sent Messages\", \"col\": 2}}, {\"id\": \"nc_delivered\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Delivered Messages\", \"col\": 2}}, {\"id\": \"nc_read\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Read Messages\", \"col\": 2}}, {\"id\": \"nc_pending\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Pending Messages\", \"col\": 2}}, {\"id\": \"nc_failed\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Failed Messages\", \"col\": 2}}, {\"id\": \"nc_received\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Received Messages\", \"col\": 2}}, {\"id\": \"wa_card_instance\", \"type\": \"card\", \"data\": {\"card_name\": \"Instance Management\", \"col\": 3}}, {\"id\": \"wa_card_notifications\", \"type\": \"card\", \"data\": {\"card_name\": \"Notifications\", \"col\": 3}}, {\"id\": \"wa_card_messages\", \"type\": \"card\", \"data\": {\"card_name\": \"Messages\", \"col\": 3}}, {\"id\": \"wa_card_settings\", \"type\": \"card\", \"data\": {\"card_name\": \"Settings\", \"col\": 3}}, {\"id\": \"wa_card_reports\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 3}}]",
+ "content": "[{\"id\": \"wa_header\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\">WhatsApp Management</span>\", \"col\": 12}}, {\"id\": \"sc_instance\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Whatsapp Instance\", \"col\": 3}}, {\"id\": \"sc_message\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"WhatsApp Message\", \"col\": 3}}, {\"id\": \"sc_bulk\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"Bulk WhatsApp Message\", \"col\": 3}}, {\"id\": \"sc_report\", \"type\": \"shortcut\", \"data\": {\"shortcut_name\": \"WhatsApp Scheduled Report\", \"col\": 3}}, {\"id\": \"nc_sent\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Sent Messages\", \"col\": 2}}, {\"id\": \"nc_delivered\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Delivered Messages\", \"col\": 2}}, {\"id\": \"nc_read\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Read Messages\", \"col\": 2}}, {\"id\": \"nc_pending\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Pending Messages\", \"col\": 2}}, {\"id\": \"nc_failed\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Failed Messages\", \"col\": 2}}, {\"id\": \"nc_received\", \"type\": \"number_card\", \"data\": {\"number_card_name\": \"Received Messages\", \"col\": 2}}, {\"id\": \"wa_card_instance\", \"type\": \"card\", \"data\": {\"card_name\": \"Instance Management\", \"col\": 4}}, {\"id\": \"wa_card_messaging\", \"type\": \"card\", \"data\": {\"card_name\": \"Messaging\", \"col\": 4}}, {\"id\": \"wa_card_automation\", \"type\": \"card\", \"data\": {\"card_name\": \"Automation\", \"col\": 4}}, {\"id\": \"wa_card_reports\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 4}}, {\"id\": \"wa_card_logs\", \"type\": \"card\", \"data\": {\"card_name\": \"Logs\", \"col\": 4}}, {\"id\": \"wa_card_settings\", \"type\": \"card\", \"data\": {\"card_name\": \"Settings\", \"col\": 4}}]",
  "creation": "2026-07-02 00:00:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
@@ -45,60 +45,8 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Notifications",
-   "link_count": 4,
-   "onboard": 0,
-   "type": "Card Break"
-  },
-  {
-   "dependencies": "",
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "WhatsApp Notification",
-   "link_count": 0,
-   "link_to": "WhatsApp Notification",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "dependencies": "",
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "WhatsApp Templates",
-   "link_count": 0,
-   "link_to": "WhatsApp Templates",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "dependencies": "",
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "WhatsApp Notification Log",
-   "link_count": 0,
-   "link_to": "WhatsApp Notification Log",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "dependencies": "",
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "WhatsApp Reminder Log",
-   "link_count": 0,
-   "link_to": "WhatsApp Reminder Log",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "hidden": 0,
-   "is_query_report": 0,
-   "label": "Messages",
-   "link_count": 4,
+   "label": "Messaging",
+   "link_count": 3,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -128,17 +76,6 @@
    "dependencies": "",
    "hidden": 0,
    "is_query_report": 0,
-   "label": "WhatsApp Recipient",
-   "link_count": 0,
-   "link_to": "WhatsApp Recipient",
-   "link_type": "DocType",
-   "onboard": 0,
-   "type": "Link"
-  },
-  {
-   "dependencies": "",
-   "hidden": 0,
-   "is_query_report": 0,
    "label": "WhatsApp Recipient List",
    "link_count": 0,
    "link_to": "WhatsApp Recipient List",
@@ -149,8 +86,8 @@
   {
    "hidden": 0,
    "is_query_report": 0,
-   "label": "Settings",
-   "link_count": 1,
+   "label": "Automation",
+   "link_count": 2,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -158,9 +95,20 @@
    "dependencies": "",
    "hidden": 0,
    "is_query_report": 0,
-   "label": "WhatsApp Settings",
+   "label": "WhatsApp Notification",
    "link_count": 0,
-   "link_to": "WhatsApp Settings",
+   "link_to": "WhatsApp Notification",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "WhatsApp Templates",
+   "link_count": 0,
+   "link_to": "WhatsApp Templates",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -180,6 +128,55 @@
    "label": "WhatsApp Scheduled Report",
    "link_count": 0,
    "link_to": "WhatsApp Scheduled Report",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Logs",
+   "link_count": 2,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "WhatsApp Notification Log",
+   "link_count": 0,
+   "link_to": "WhatsApp Notification Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "WhatsApp Reminder Log",
+   "link_count": 0,
+   "link_to": "WhatsApp Reminder Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Settings",
+   "link_count": 1,
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "WhatsApp Settings",
+   "link_count": 0,
+   "link_to": "WhatsApp Settings",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"
@@ -207,22 +204,22 @@
   {
    "color": "Blue",
    "doc_view": "List",
-   "label": "WhatsApp Notification",
-   "link_to": "WhatsApp Notification",
+   "label": "WhatsApp Message",
+   "link_to": "WhatsApp Message",
+   "type": "DocType"
+  },
+  {
+   "color": "Purple",
+   "doc_view": "List",
+   "label": "Bulk WhatsApp Message",
+   "link_to": "Bulk WhatsApp Message",
    "type": "DocType"
   },
   {
    "color": "Orange",
    "doc_view": "List",
-   "label": "WhatsApp Templates",
-   "link_to": "WhatsApp Templates",
-   "type": "DocType"
-  },
-  {
-   "color": "Grey",
-   "doc_view": "List",
-   "label": "WhatsApp Message",
-   "link_to": "WhatsApp Message",
+   "label": "WhatsApp Scheduled Report",
+   "link_to": "WhatsApp Scheduled Report",
    "type": "DocType"
   }
  ],
