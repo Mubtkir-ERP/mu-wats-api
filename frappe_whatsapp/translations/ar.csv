@@ -374,3 +374,5 @@ Send Report to WhatsApp,إرسال التقرير للواتساب
 Save as Scheduled,حفظ كمجدول
 Saved. Review the schedule and enable it.,تم الحفظ. راجع الجدولة وفعّلها.
 No report specified.,لم يُحدَّد تقرير.
+The connected WhatsApp instance used to send this campaign. Defaults to your own instance if left empty.,نسخة الواتساب المتصلة المستخدمة لإرسال هذه الحملة. تُستخدم نسختك تلقائياً إذا تُرك فارغاً.
+No WhatsApp instance to send from. Set 'Send From Instance'.,لا توجد نسخة واتساب للإرسال منها. حدّد «الإرسال من النسخة».

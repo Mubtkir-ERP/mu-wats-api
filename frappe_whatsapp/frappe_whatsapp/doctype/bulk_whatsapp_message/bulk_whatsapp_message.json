@@ -47,9 +47,10 @@
   {
    "fieldname": "sender_number",
    "fieldtype": "Link",
-   "label": "Sender Number",
-   "options": "Evolution Phone Settings",
-   "reqd": 1
+   "label": "Send From Instance",
+   "options": "Whatsapp Instance",
+   "reqd": 0,
+   "description": "The connected WhatsApp instance used to send this campaign. Defaults to your own instance if left empty."
   },
   {
    "default": "20",

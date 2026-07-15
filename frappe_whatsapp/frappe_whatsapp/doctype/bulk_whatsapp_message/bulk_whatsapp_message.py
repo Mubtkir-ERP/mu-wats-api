@@ -47,8 +47,32 @@ class BulkWhatsAppMessage(Document):
         self.db_set("status", "In Progress")
         self.send_messages()
     
+    def _resolve_sender(self):
+        """Resolve (base_url, api_key, instance_name) of the sending instance.
+
+        Uses the selected 'Send From Instance', falling back to the current
+        user's own WhatsApp instance. Cached on the doc for the whole run.
+        """
+        from frappe_whatsapp.api import _server_credentials
+
+        instance_name = self.sender_number or frappe.db.get_value(
+            "Whatsapp Instance", {"linked_user": frappe.session.user}, "name"
+        )
+        if not instance_name:
+            frappe.throw(_("No WhatsApp instance to send from. Set 'Send From Instance'."))
+
+        server = frappe.db.get_value("Whatsapp Instance", instance_name, "evolution_server")
+        base_url, api_key = _server_credentials(server)
+
+        self._sender_base = base_url
+        self._sender_key = api_key
+        self._sender_instance = instance_name
+
     def send_messages(self):
         """Send messages directly (synchronously) with progress updates"""
+        # Resolve the sending instance up-front (aborts the run if unavailable).
+        self._resolve_sender()
+
         recipients_list = []
         
         if self.recipient_type == 'Recipient List' and self.recipient_list:
@@ -136,25 +160,14 @@ class BulkWhatsAppMessage(Document):
             except Exception as e:
                 frappe.log_error(f"Error parsing recipient data: {str(e)}", "WhatsApp Bulk Messaging")
         
-        # Get Mubtkir API Phone Settings - check user first, then sender_number
-        user_evolution_settings = frappe.db.get_value(
-            "Evolution Phone Settings",
-            {"user": frappe.session.user},
-            "name"
-        )
-        if user_evolution_settings:
-            evolution_settings = frappe.get_doc("Evolution Phone Settings", user_evolution_settings)
-        else:
-            evolution_settings = frappe.get_doc("Evolution Phone Settings", self.sender_number)
-        
-        if not evolution_settings.base_url or not evolution_settings.instance_name:
-            frappe.log_error("Mubtkir API Phone Settings not configured", "WhatsApp Bulk Messaging")
-            self.db_set("status", "Partially Failed")
-            return
-        
+        # The sending instance was resolved once in send_messages(); guard in
+        # case send_single_message is ever called on its own.
+        if not getattr(self, "_sender_instance", None):
+            self._resolve_sender()
+
         headers = {
             "Content-Type": "application/json",
-            "apikey": evolution_settings.global_api_key
+            "apikey": self._sender_key,
         }
         
         success = False
@@ -217,7 +230,7 @@ class BulkWhatsAppMessage(Document):
             # 3) Build the payload — media (image / PDF / video / audio) or text.
             if attachment_url:
                 mediatype, mimetype = _media_kind(filename)
-                url = f"{evolution_settings.base_url}/message/sendMedia/{evolution_settings.instance_name}"
+                url = f"{self._sender_base}/message/sendMedia/{self._sender_instance}"
                 payload = {
                     "number": phone_number,
                     "mediatype": mediatype,
@@ -232,7 +245,7 @@ class BulkWhatsAppMessage(Document):
             else:
                 if not message_text:
                     message_text = "No Text"
-                url = f"{evolution_settings.base_url}/message/sendText/{evolution_settings.instance_name}"
+                url = f"{self._sender_base}/message/sendText/{self._sender_instance}"
                 payload = {"number": phone_number, "text": message_text}
                 content_type = "text"
 
