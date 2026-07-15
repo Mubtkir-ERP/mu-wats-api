@@ -94,6 +94,7 @@ class BulkWhatsAppMessage(Document):
         """Send messages directly (synchronously) with progress updates"""
         # Resolve the sending instance up-front (aborts the run if unavailable).
         self._resolve_sender()
+        self._send_errors = []
 
         recipients_list = self._gather_recipients()
 
@@ -132,10 +133,15 @@ class BulkWhatsAppMessage(Document):
         else:
             self.db_set("status", "Partially Failed")
         
+        msg = _("Bulk WhatsApp Message completed: {0} sent, {1} failed").format(sent, failed)
+        if getattr(self, "_send_errors", None):
+            msg += "<br><br><b>" + _("Last error") + ":</b> " + frappe.utils.escape_html(
+                self._send_errors[-1]
+            )
         frappe.msgprint(
-            _("Bulk WhatsApp Message completed: {0} sent, {1} failed").format(sent, failed),
+            msg,
             indicator="green" if failed == 0 else "orange",
-            alert=True
+            title=_("Bulk Send Result"),
         )
     
     def _build_message_text(self, recipient):
@@ -268,12 +274,12 @@ class BulkWhatsAppMessage(Document):
                 if self.attach.startswith(("http://", "https://")):
                     attachment_url = self.attach
                 else:
-                    base_url = frappe.utils.get_url()
-                    attachment_url = (
-                        f"{base_url}{self.attach}"
-                        if self.attach.startswith("/")
-                        else f"{base_url}/{self.attach}"
-                    )
+                    from urllib.parse import quote
+
+                    path = self.attach if self.attach.startswith("/") else "/" + self.attach
+                    # Percent-encode so Arabic names / spaces in the path are valid
+                    # for the Evolution server to fetch (keep the path slashes).
+                    attachment_url = frappe.utils.get_url() + quote(path, safe="/")
 
             # 3) Build the payload — media (image / PDF / video / audio) or text.
             if attachment_url:
@@ -331,31 +337,43 @@ class BulkWhatsAppMessage(Document):
                 
                 frappe.get_doc(new_doc).insert(ignore_permissions=True)
             else:
-                error_message = response_data.get("response", {}).get("message", "Unknown Error")
-                frappe.log_error(f"Failed to send WhatsApp message: {error_message}", "WhatsApp Bulk Messaging")
-                
-                # Create failed message record
-                frappe.get_doc({
-                    "doctype": "WhatsApp Message",
-                    "type": "Outgoing",
-                    "message": message_text,
-                    "to": phone_number,
-                    "message_type": "Template" if self.use_template else "Text",
-                    "status": "Failed",
-                    "bulk_message_reference": self.name
-                }).insert(ignore_permissions=True)
-                
+                self._record_failure(phone_number, message_text, _extract_error(response_data))
+
         except requests.exceptions.RequestException as e:
-            error_message = f"Connection error: {str(e)}"
-            frappe.log_error(error_message, "WhatsApp Bulk Messaging")
+            self._record_failure(phone_number, message_text, f"Connection error: {e}")
         except Exception as e:
-            error_message = str(e)
-            frappe.log_error(error_message, "WhatsApp Bulk Messaging")
+            self._record_failure(phone_number, message_text, str(e))
         finally:
             # Update sent count
             self.db_set("sent_count", cint(self.sent_count) + 1)
-        
+
         return success
+
+    def _record_failure(self, phone_number, message_text, error_message):
+        """Log a send failure, keep it for the result popup, and store it on a
+        Failed WhatsApp Message so the reason is visible on the record."""
+        error_message = (error_message or "Unknown error")[:500]
+        if not hasattr(self, "_send_errors"):
+            self._send_errors = []
+        self._send_errors.append(error_message)
+        frappe.log_error(
+            f"Failed to send WhatsApp message to {phone_number}: {error_message}",
+            "WhatsApp Bulk Messaging",
+        )
+        try:
+            frappe.get_doc(
+                {
+                    "doctype": "WhatsApp Message",
+                    "type": "Outgoing",
+                    "message": f"{message_text or ''}\n\n[ERROR] {error_message}".strip(),
+                    "to": phone_number,
+                    "message_type": "Template" if self.use_template else "Text",
+                    "status": "Failed",
+                    "bulk_message_reference": self.name,
+                }
+            ).insert(ignore_permissions=True)
+        except Exception:
+            pass
     
     def format_number(self, number):
         """Format phone number - remove leading + if present"""
@@ -424,6 +442,20 @@ _DOC_MIME = {
     "txt": "text/plain",
     "zip": "application/zip",
 }
+
+
+def _extract_error(response_data):
+    """Pull a human-readable error string out of Evolution's varied error shapes."""
+    if isinstance(response_data, dict):
+        resp = response_data.get("response")
+        if isinstance(resp, dict):
+            msg = resp.get("message")
+            if isinstance(msg, list):
+                return ", ".join(str(m) for m in msg)
+            if msg:
+                return str(msg)
+        return str(response_data.get("message") or response_data)
+    return str(response_data)
 
 
 def _media_kind(filename):
