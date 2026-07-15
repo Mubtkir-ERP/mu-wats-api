@@ -46,7 +46,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "Notifications",
-   "link_count": 3,
+   "link_count": 4,
    "onboard": 0,
    "type": "Card Break"
   },
@@ -79,6 +79,17 @@
    "label": "WhatsApp Notification Log",
    "link_count": 0,
    "link_to": "WhatsApp Notification Log",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "dependencies": "",
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "WhatsApp Reminder Log",
+   "link_count": 0,
+   "link_to": "WhatsApp Reminder Log",
    "link_type": "DocType",
    "onboard": 0,
    "type": "Link"

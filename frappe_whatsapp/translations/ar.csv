@@ -320,3 +320,20 @@ Company Supervisor Mobile,جوال مشرف الشركة
 "Optional mobile number (with country code) of the company supervisor, for future WhatsApp-based alerts.",رقم جوال اختياري (مع رمز الدولة) لمشرف الشركة، لتنبيهات واتساب المستقبلية.
 Disconnect Alerted,تم تنبيه الانقطاع
 unknown,غير معروف
+Recurring Reminder,تذكير متكرر
+Repeat Until Condition Clears,التكرار حتى يتحقق الشرط
+Keep resending this reminder on an interval until the Condition above is no longer true (e.g. the invoice is paid or the subscription renewed). Requires a Condition and a Reference Date.,إعادة إرسال هذا التذكير كل فترة حتى يصبح الشرط أعلاه غير محقق (مثل سداد الفاتورة أو تجديد الاشتراك). يتطلب شرطاً وتاريخاً مرجعياً.
+Repeat Every (days),التكرار كل (أيام)
+Number of days between repeated reminders for the same document.,عدد الأيام بين التذكيرات المتكررة لنفس المستند.
+Look Back (days),الرجوع للخلف (أيام)
+How far back from the Reference Date to keep scanning documents for repeated reminders.,إلى أي مدى نرجع للخلف من التاريخ المرجعي لمواصلة فحص المستندات للتذكيرات المتكررة.
+Send Thank-you When Cleared,إرسال شكر عند التحقق
+"When the condition clears (e.g. payment received), send a one-time thank-you message and stop reminding.",عند تحقّق الشرط (مثل استلام السداد)، يُرسَل رسالة شكر لمرة واحدة ويتوقف التذكير.
+Thank-you Template,قالب الشكر
+Template used for the thank-you message.,القالب المستخدم لرسالة الشكر.
+WhatsApp Reminder Log,سجل تذكيرات واتساب
+Last Reminder Sent On,آخر تذكير أُرسل في
+Reminders Sent,عدد التذكيرات المرسلة
+Cleared,تم التحقق
+Thank-you Sent,تم إرسال الشكر
+Reference Name,اسم المرجع

@@ -645,6 +645,143 @@ class WhatsAppNotification(Document):
             self.send_template_message(doc)
             # print(doc.name)
 
+    # ------------------------------------------------------------------
+    # Recurring reminders — repeat until the Condition clears, then thank.
+    # ------------------------------------------------------------------
+    def _reminder_condition_true(self, doc):
+        """True while the reminder is still needed for ``doc``.
+
+        Uses the notification Condition (e.g. ``doc.outstanding_amount > 0``).
+        With no condition, any document inside the scan window is treated as
+        still needing a reminder.
+        """
+        if not self.condition:
+            return True
+        try:
+            return bool(
+                frappe.safe_eval(self.condition, get_safe_globals(), dict(doc=doc.as_dict()))
+            )
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), f"Reminder condition failed: {self.name}")
+            return False
+
+    def _get_reminder_state(self, ref_name):
+        """Return the WhatsApp Reminder Log for this notification + doc, or None."""
+        name = frappe.db.get_value(
+            "WhatsApp Reminder Log",
+            {
+                "notification": self.name,
+                "reference_doctype": self.reference_doctype,
+                "reference_name": ref_name,
+            },
+            "name",
+        )
+        return frappe.get_doc("WhatsApp Reminder Log", name) if name else None
+
+    def _maybe_send_reminder(self, doc, interval, today):
+        """Send a reminder for ``doc`` if enough days passed since the last one."""
+        from frappe.utils import getdate, date_diff
+
+        state = self._get_reminder_state(doc.name)
+        if state and not state.cleared and state.last_sent_on:
+            if date_diff(today, getdate(state.last_sent_on)) < interval:
+                return  # too soon since the last reminder
+
+        # send_template_message re-checks the Condition itself.
+        self.send_template_message(doc)
+
+        if not state:
+            state = frappe.get_doc(
+                {
+                    "doctype": "WhatsApp Reminder Log",
+                    "notification": self.name,
+                    "reference_doctype": self.reference_doctype,
+                    "reference_name": doc.name,
+                    "sent_count": 0,
+                }
+            )
+        state.last_sent_on = today
+        state.sent_count = (state.sent_count or 0) + 1
+        state.cleared = 0
+        state.thanked = 0
+        state.save(ignore_permissions=True)
+
+    def _maybe_thank(self, doc, today, state=None):
+        """Mark a reminder cleared and send a one-time thank-you if configured."""
+        state = state or self._get_reminder_state(doc.name)
+        if not state or state.cleared:
+            return
+        state.cleared = 1
+        if self.send_thank_you_on_clear and self.thank_you_template and not state.thanked:
+            tmpl = frappe.db.get_value("WhatsApp Templates", self.thank_you_template, "*")
+            if tmpl:
+                self.send_template_message(doc, default_template=tmpl, ignore_condition=True)
+                state.thanked = 1
+        state.save(ignore_permissions=True)
+
+    def run_recurring_reminders(self):
+        """Repeat reminders and fire thank-yous for one notification's documents."""
+        if self.disabled or not self.repeat_until_cleared:
+            return
+        if not self.reference_doctype or not self.date_changed:
+            return
+
+        from frappe.utils import getdate
+
+        today = getdate(nowdate())
+        interval = self.repeat_interval_days or 3
+        lookback = self.reminder_lookback_days or 365
+        start = add_to_date(nowdate(), days=-lookback)
+
+        candidates = frappe.get_all(
+            self.reference_doctype,
+            pluck="name",
+            filters=[
+                {self.date_changed: ("<=", nowdate() + " 23:59:59")},
+                {self.date_changed: (">=", str(start) + " 00:00:00")},
+            ],
+        )
+
+        seen = set()
+        for nm in candidates:
+            seen.add(nm)
+            doc = frappe.get_doc(self.reference_doctype, nm)
+            if self._reminder_condition_true(doc):
+                self._maybe_send_reminder(doc, interval, today)
+            else:
+                self._maybe_thank(doc, today)
+
+        # Catch documents that cleared but sit outside the scan window.
+        open_states = frappe.get_all(
+            "WhatsApp Reminder Log",
+            filters={"notification": self.name, "cleared": 0},
+            fields=["name", "reference_name"],
+        )
+        for st in open_states:
+            if st.reference_name in seen:
+                continue
+            if not frappe.db.exists(self.reference_doctype, st.reference_name):
+                continue
+            doc = frappe.get_doc(self.reference_doctype, st.reference_name)
+            if not self._reminder_condition_true(doc):
+                self._maybe_thank(doc, today)
+
+
+def process_recurring_reminders():
+    """Scheduled (daily): drive recurring reminders for all enabled notifications."""
+    if frappe.flags.in_import or frappe.flags.in_patch:
+        return
+    names = frappe.get_all(
+        "WhatsApp Notification",
+        filters={"repeat_until_cleared": 1, "disabled": 0},
+        pluck="name",
+    )
+    for name in names:
+        try:
+            frappe.get_doc("WhatsApp Notification", name).run_recurring_reminders()
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), f"Recurring reminders failed: {name}")
+
 
 @frappe.whitelist()
 def call_trigger_notifications():

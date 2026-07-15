@@ -35,6 +35,13 @@
   "condition",
   "column_break_12",
   "fields",
+  "recurring_section",
+  "repeat_until_cleared",
+  "repeat_interval_days",
+  "reminder_lookback_days",
+  "column_break_recurring",
+  "send_thank_you_on_clear",
+  "thank_you_template",
   "property_section",
   "set_property_after_alert",
   "property_value",
@@ -231,6 +238,54 @@
    "fieldname": "attach_from_field",
    "fieldtype": "Data",
    "label": "Attach from field "
+  },
+  {
+   "fieldname": "recurring_section",
+   "fieldtype": "Section Break",
+   "label": "Recurring Reminder"
+  },
+  {
+   "fieldname": "repeat_until_cleared",
+   "fieldtype": "Check",
+   "default": "0",
+   "label": "Repeat Until Condition Clears",
+   "description": "Keep resending this reminder on an interval until the Condition above is no longer true (e.g. the invoice is paid or the subscription renewed). Requires a Condition and a Reference Date."
+  },
+  {
+   "fieldname": "repeat_interval_days",
+   "fieldtype": "Int",
+   "default": "3",
+   "label": "Repeat Every (days)",
+   "depends_on": "eval:doc.repeat_until_cleared",
+   "description": "Number of days between repeated reminders for the same document."
+  },
+  {
+   "fieldname": "reminder_lookback_days",
+   "fieldtype": "Int",
+   "default": "365",
+   "label": "Look Back (days)",
+   "depends_on": "eval:doc.repeat_until_cleared",
+   "description": "How far back from the Reference Date to keep scanning documents for repeated reminders."
+  },
+  {
+   "fieldname": "column_break_recurring",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "send_thank_you_on_clear",
+   "fieldtype": "Check",
+   "default": "0",
+   "label": "Send Thank-you When Cleared",
+   "depends_on": "eval:doc.repeat_until_cleared",
+   "description": "When the condition clears (e.g. payment received), send a one-time thank-you message and stop reminding."
+  },
+  {
+   "fieldname": "thank_you_template",
+   "fieldtype": "Link",
+   "options": "WhatsApp Templates",
+   "label": "Thank-you Template",
+   "depends_on": "eval:doc.repeat_until_cleared && doc.send_thank_you_on_clear",
+   "description": "Template used for the thank-you message."
   },
   {
    "fieldname": "property_section",
