@@ -321,7 +321,7 @@ class BulkWhatsAppMessage(Document):
                     "type": "Outgoing",
                     "message": message_text,
                     "to": phone_number,
-                    "message_type": "Template" if self.use_template else "Text",
+                    "message_type": "Template" if self.use_template else "Manual",
                     "message_id": message_id,
                     "content_type": content_type,
                     "status": "Sent",
@@ -370,7 +370,7 @@ class BulkWhatsAppMessage(Document):
                     "type": "Outgoing",
                     "message": f"{message_text or ''}\n\n[ERROR] {error_message}".strip(),
                     "to": phone_number,
-                    "message_type": "Template" if self.use_template else "Text",
+                    "message_type": "Template" if self.use_template else "Manual",
                     "status": "Failed",
                     "bulk_message_reference": self.name,
                 }
