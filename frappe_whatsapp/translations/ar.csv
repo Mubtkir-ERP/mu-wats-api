@@ -395,3 +395,12 @@ Bulk Send Result,نتيجة الإرسال الجماعي
 Send Log,سجل الإرسال
 View Send Log,عرض سجل الإرسال
 "Per-recipient diagnostics: endpoint, HTTP status and the raw Evolution response. Use it to trace why a message did not arrive.",تشخيص لكل مستلم: نقطة النهاية وحالة HTTP ورد Evolution الخام. استخدمه لتتبّع سبب عدم وصول الرسالة.
+Send Test Message,إرسال رسالة اختبار
+Sending test message...,جاري إرسال رسالة الاختبار...
+"International format, e.g. 9665XXXXXXXX. A local 05XXXXXXXX is auto-converted.",الصيغة الدولية، مثل 9665XXXXXXXX. الرقم المحلي 05XXXXXXXX يُحوَّل تلقائياً.
+Recipient Number,رقم المستلم
+Sent to,أُرسل إلى
+Evolution response,رد Evolution
+Sent — check delivery,أُرسل — تحقّق من الوصول
+Send Failed,فشل الإرسال
+If the response looks OK but the message did not arrive: check that the number is a real WhatsApp account and that this instance is truly connected (phone → Linked Devices).,إذا كان الرد سليماً لكن الرسالة لم تصل: تأكد أن الرقم حساب واتساب حقيقي وأن هذه النسخة متصلة فعلاً (الجوال ← الأجهزة المرتبطة).

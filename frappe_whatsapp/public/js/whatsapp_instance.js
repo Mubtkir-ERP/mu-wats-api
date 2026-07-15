@@ -152,11 +152,69 @@ function build_action_buttons(frm, registered) {
 	//    is cleared so the "Create Instance" button reappears for re-creation.
 	frm.add_custom_button(__("Sync with Mubtkir API"), () => sync_with_evolution(frm));
 
+	// 4b. Send Test Message — diagnostic: shows the raw Evolution response.
+	frm.add_custom_button(__("Send Test Message"), () => send_test_message(frm));
+
 	// 5. Disconnect (danger, red) — only when currently connected.
 	if (status === "Connected") {
 		const btn = frm.add_custom_button(__("Disconnect"), () => confirm_disconnect(frm));
 		btn.removeClass("btn-default").addClass("btn-danger");
 	}
+}
+
+function send_test_message(frm) {
+	const dialog = new frappe.ui.Dialog({
+		title: __("Send Test Message"),
+		fields: [
+			{
+				fieldtype: "Data",
+				fieldname: "number",
+				label: __("Recipient Number"),
+				reqd: 1,
+				description: __("International format, e.g. 9665XXXXXXXX. A local 05XXXXXXXX is auto-converted."),
+			},
+			{
+				fieldtype: "Small Text",
+				fieldname: "text",
+				label: __("Message"),
+				default: "Test message from ERPNext ✅",
+			},
+		],
+		primary_action_label: __("Send"),
+		primary_action(values) {
+			frappe.call({
+				method: "frappe_whatsapp.api.send_test_message",
+				args: { instance_name: frm.doc.name, number: values.number, text: values.text },
+				freeze: true,
+				freeze_message: __("Sending test message..."),
+				callback: function (r) {
+					if (r.exc) {
+						return;
+					}
+					const m = r.message || {};
+					const color = m.ok ? "green" : "red";
+					const html = `
+						<div style="padding:6px;">
+							<p><b>${__("Sent to")}:</b> ${frappe.utils.escape_html(m.number_sent || "")}</p>
+							<p><b>${__("HTTP Status")}:</b> <span style="color:${color};">${m.status_code}</span></p>
+							<p><b>${__("Evolution response")}:</b></p>
+							<pre style="max-height:40vh;overflow:auto;white-space:pre-wrap;word-break:break-word;
+								background:var(--fg-color,#f5f5f5);padding:10px;border-radius:6px;font-size:12px;">${frappe.utils.escape_html(m.response || "")}</pre>
+							<p style="color:var(--text-muted,#888);">${__("If the response looks OK but the message did not arrive: check that the number is a real WhatsApp account and that this instance is truly connected (phone → Linked Devices).")}</p>
+						</div>`;
+					const d2 = new frappe.ui.Dialog({
+						title: m.ok ? __("Sent — check delivery") : __("Send Failed"),
+						size: "large",
+						fields: [{ fieldtype: "HTML", fieldname: "res" }],
+					});
+					d2.get_field("res").$wrapper.html(html);
+					d2.show();
+					dialog.hide();
+				},
+			});
+		},
+	});
+	dialog.show();
 }
 
 function sync_with_evolution(frm) {

@@ -557,6 +557,41 @@ def disconnect_instance(instance_name):
 	return _store_status(instance_name, "Disconnected", doc)
 
 @frappe.whitelist()
+def send_test_message(instance_name, number, text=None):
+	"""Send one test text message and return the RAW Evolution response.
+
+	A direct diagnostic for "reported sent but never arrived": it shows the exact
+	number sent to (after normalisation), the HTTP status and Evolution's raw
+	body, so the failure point (number, instance session, Evolution) is visible.
+	"""
+	doc = _get_instance(instance_name)
+	doc.check_permission("write")
+	base_url, api_key = _server_credentials(doc.evolution_server)
+
+	digits = re.sub(r"\D", "", str(number or ""))
+	if digits.startswith("00"):
+		digits = digits[2:]
+	if len(digits) == 10 and digits.startswith("05"):
+		digits = "966" + digits[1:]
+	if not digits:
+		frappe.throw(_("Please enter a recipient number."))
+
+	url = f"{base_url}/message/sendText/{instance_name}"
+	payload = {"number": digits, "text": text or "Test message from ERPNext ✅"}
+	try:
+		resp = requests.post(url, headers=_headers(api_key), json=payload, timeout=REQUEST_TIMEOUT)
+	except Exception as exc:
+		return {"ok": False, "number_sent": digits, "status_code": None, "response": str(exc)}
+
+	return {
+		"ok": resp.status_code in (200, 201),
+		"number_sent": digits,
+		"status_code": resp.status_code,
+		"response": (resp.text or "")[:2000],
+	}
+
+
+@frappe.whitelist()
 def get_user_instance_status():
     """Return WhatsApp instance status for the current logged-in user."""
     instance = frappe.db.get_value(
