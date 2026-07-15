@@ -111,6 +111,16 @@ frappe_whatsapp.DOCTYPE_HELP = {
 			"طريقة الاستخدام: اضبط خادم Mubtkir API الافتراضي المستخدم عند إنشاء نسخ جديدة، ونموذج الطباعة الافتراضي لكل نوع مستند (للمرفقات)، وأقصى حجم للمرفق، وعدد الأيام للاحتفاظ بسجل الرسائل قبل التنظيف. اضبطها مرة واحدة لتطابق سياستك.",
 		],
 	},
+	"WhatsApp Scheduled Report": {
+		en: [
+			"This screen sends an ERPNext report automatically on a schedule (daily/weekly/monthly) as a WhatsApp file.",
+			"How to use it: 1) Pick the Report and the Format (PDF, Excel or CSV). 2) Optionally add report Filters as JSON. 3) Choose the recipient by Party Type + Party (their mobile is taken from the linked contact) or enter a mobile override. 4) Set the schedule and Send-From instance. Use \"Send Now\" to test immediately.",
+		],
+		ar: [
+			"هذه الشاشة تُرسل تقرير ERPNext تلقائياً حسب جدول (يومي/أسبوعي/شهري) كملف واتساب.",
+			"طريقة الاستخدام: ١) اختر التقرير والصيغة (PDF أو Excel أو CSV). ٢) اختيارياً أضف فلاتر التقرير بصيغة JSON. ٣) حدّد المستلم بنوع الطرف + الطرف المعني (يُؤخذ جواله من جهة الاتصال) أو أدخل رقم تجاوز. ٤) اضبط الجدولة والنسخة المُرسِلة. استخدم «إرسال الآن» للتجربة الفورية.",
+		],
+	},
 	"WhatsApp Notification Log": {
 		en: [
 			"This screen is the history of automated notifications that were triggered — what was sent, to whom, and the result.",

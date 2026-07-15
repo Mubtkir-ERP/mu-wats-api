@@ -1,0 +1,201 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:report_title",
+ "creation": "2026-07-15 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "report_title",
+  "report",
+  "report_format",
+  "filters_json",
+  "caption",
+  "column_break_main",
+  "recipient_section",
+  "party_type",
+  "party",
+  "column_break_recipient",
+  "mobile_number",
+  "whatsapp_instance",
+  "schedule_section",
+  "frequency",
+  "schedule_time",
+  "repeat_every",
+  "column_break_schedule",
+  "schedule_day",
+  "week_day",
+  "disabled",
+  "status_section",
+  "last_sent_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "report_title",
+   "fieldtype": "Data",
+   "label": "Title",
+   "reqd": 1,
+   "unique": 1,
+   "description": "A name for this scheduled report."
+  },
+  {
+   "fieldname": "report",
+   "fieldtype": "Link",
+   "label": "Report",
+   "options": "Report",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "The ERPNext report to render and send."
+  },
+  {
+   "default": "PDF",
+   "fieldname": "report_format",
+   "fieldtype": "Select",
+   "label": "Format",
+   "options": "PDF\nExcel\nCSV",
+   "in_list_view": 1,
+   "description": "Output format of the report file that is sent."
+  },
+  {
+   "fieldname": "filters_json",
+   "fieldtype": "Code",
+   "label": "Report Filters (JSON)",
+   "options": "JSON",
+   "description": "Optional filters passed to the report, as a JSON object. Example: {\"company\": \"My Co\", \"from_date\": \"2026-01-01\"}."
+  },
+  {
+   "fieldname": "caption",
+   "fieldtype": "Small Text",
+   "label": "Message Caption",
+   "description": "Optional text sent with the report file."
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "recipient_section",
+   "fieldtype": "Section Break",
+   "label": "Recipient"
+  },
+  {
+   "fieldname": "party_type",
+   "fieldtype": "Link",
+   "label": "Party Type",
+   "options": "DocType",
+   "description": "Type of the recipient party (e.g. Customer, Supplier, User, Contact)."
+  },
+  {
+   "fieldname": "party",
+   "fieldtype": "Dynamic Link",
+   "label": "Party",
+   "options": "party_type",
+   "description": "The specific recipient. Their mobile number is resolved from the linked primary contact."
+  },
+  {
+   "fieldname": "column_break_recipient",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "mobile_number",
+   "fieldtype": "Data",
+   "label": "Recipient Mobile (override)",
+   "description": "Optional. If set, the report is sent to this number and the party lookup is skipped."
+  },
+  {
+   "fieldname": "whatsapp_instance",
+   "fieldtype": "Link",
+   "label": "Send From Instance",
+   "options": "Whatsapp Instance",
+   "description": "The connected WhatsApp instance used to send. Leave empty to use the current user's instance."
+  },
+  {
+   "fieldname": "schedule_section",
+   "fieldtype": "Section Break",
+   "label": "Schedule"
+  },
+  {
+   "default": "Daily",
+   "fieldname": "frequency",
+   "fieldtype": "Select",
+   "label": "Frequency",
+   "options": "Daily\nWeekly\nMonthly",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "schedule_time",
+   "fieldtype": "Time",
+   "label": "Send Time",
+   "description": "Hour of day to send (the report is sent within the matching hour)."
+  },
+  {
+   "default": "1",
+   "fieldname": "repeat_every",
+   "fieldtype": "Int",
+   "label": "Repeat Every",
+   "description": "Repeat interval (every N days/weeks/months depending on Frequency)."
+  },
+  {
+   "fieldname": "column_break_schedule",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "schedule_day",
+   "fieldtype": "Int",
+   "label": "Day of Month",
+   "depends_on": "eval:doc.frequency=='Monthly'",
+   "description": "Day of the month (1-31) to send on, for Monthly frequency."
+  },
+  {
+   "fieldname": "week_day",
+   "fieldtype": "Select",
+   "label": "Day of Week",
+   "options": "\nMonday\nTuesday\nWednesday\nThursday\nFriday\nSaturday\nSunday",
+   "depends_on": "eval:doc.frequency=='Weekly'"
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "fieldname": "status_section",
+   "fieldtype": "Section Break",
+   "label": "Status"
+  },
+  {
+   "fieldname": "last_sent_on",
+   "fieldtype": "Datetime",
+   "label": "Last Sent On",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-15 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Frappe Whatsapp",
+ "name": "WhatsApp Scheduled Report",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

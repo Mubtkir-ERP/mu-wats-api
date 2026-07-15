@@ -88,7 +88,7 @@ Linked DocType,مستند مرتبط
 Disabled,معطّل
 Template,القالب
 Fields,الحقول
-Format,التنسيق
+Format,الصيغة
 Field name,اسم الحقل
 Condition,الشرط
 Send Time,وقت الإرسال
@@ -340,3 +340,23 @@ Reference Name,اسم المرجع
 Message Content,محتوى الرسالة
 "Plain text body of the campaign, used when 'Use Template' is off. You can also attach an image, PDF, video or audio file below.",نص الحملة، يُستخدم عند إيقاف «استخدام قالب». يمكنك أيضاً إرفاق صورة أو PDF أو فيديو أو ملف صوتي بالأسفل.
 "Optional media for the campaign: image, PDF, video or audio. Uploaded from your device or picked from ERPNext files.",وسائط اختيارية للحملة: صورة أو PDF أو فيديو أو صوت. تُرفع من جهازك أو تُختار من ملفات ERPNext.
+WhatsApp Scheduled Report,تقرير واتساب مجدول
+Reports,التقارير
+Report,التقرير
+Report Filters (JSON),فلاتر التقرير (JSON)
+Message Caption,نص مرافق للرسالة
+Recipient,المستلم
+Party Type,نوع الطرف
+Party,الطرف المعني
+Recipient Mobile (override),جوال المستلم (تجاوز)
+Send From Instance,الإرسال من النسخة
+Schedule,الجدولة
+Frequency,التكرار
+Send Now,إرسال الآن
+Render and send this report now?,عرض وإرسال هذا التقرير الآن؟
+Rendering and sending report...,جاري عرض وإرسال التقرير...
+Report sent.,تم إرسال التقرير.
+Last Sent On,آخر إرسال في
+"Could not resolve a recipient mobile number. Set a Party with a contact, or a mobile override.",تعذّر تحديد رقم جوال المستلم. حدّد طرفاً له جهة اتصال، أو أدخل رقم تجاوز.
+No WhatsApp instance available to send from. Set 'Send From Instance'.,لا توجد نسخة واتساب متاحة للإرسال منها. حدّد «الإرسال من النسخة».
+Report Filters must be valid JSON.,يجب أن تكون فلاتر التقرير بصيغة JSON صحيحة.

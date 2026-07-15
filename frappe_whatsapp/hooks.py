@@ -128,7 +128,8 @@ scheduler_events = {
     ],
     "hourly": [
         "frappe_whatsapp.utils.trigger_whatsapp_notifications_hourly",
-        "frappe_whatsapp.frappe_whatsapp.doctype.whatsapp_notification.whatsapp_notification.trigger_monthly_notifications"
+        "frappe_whatsapp.frappe_whatsapp.doctype.whatsapp_notification.whatsapp_notification.trigger_monthly_notifications",
+        "frappe_whatsapp.frappe_whatsapp.doctype.whatsapp_scheduled_report.whatsapp_scheduled_report.trigger_scheduled_reports"
     ],
     "hourly_long": [
         "frappe_whatsapp.utils.trigger_whatsapp_notifications_hourly_long"
