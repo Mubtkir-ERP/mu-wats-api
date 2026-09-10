@@ -1,0 +1,168 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2022-10-27 17:51:09.426813",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "enabled",
+  "token",
+  "url",
+  "phone_id",
+  "app_id",
+  "column_break_main",
+  "allow_auto_read_receipt",
+  "webhook_verify_token",
+  "version",
+  "business_id",
+  "evolution_section",
+  "default_server",
+  "retention_days",
+  "column_break_evolution",
+  "max_attachment_size",
+  "monitoring_section",
+  "enable_disconnect_alert",
+  "company_supervisor_email",
+  "column_break_monitoring",
+  "company_supervisor_mobile"
+ ],
+ "fields": [
+  {
+   "fieldname": "token",
+   "fieldtype": "Password",
+   "label": "Token",
+   "length": 250
+  },
+  {
+   "fieldname": "url",
+   "fieldtype": "Data",
+   "label": "URL"
+  },
+  {
+   "fieldname": "version",
+   "fieldtype": "Data",
+   "label": "Version"
+  },
+  {
+   "fieldname": "phone_id",
+   "fieldtype": "Data",
+   "label": "Phone ID"
+  },
+  {
+   "fieldname": "business_id",
+   "fieldtype": "Data",
+   "label": "Business ID"
+  },
+  {
+   "fieldname": "webhook_verify_token",
+   "fieldtype": "Data",
+   "label": "Webhook Verify Token"
+  },
+  {
+   "default": "0",
+   "fieldname": "enabled",
+   "fieldtype": "Check",
+   "label": "Enabled"
+  },
+  {
+   "fieldname": "app_id",
+   "fieldtype": "Data",
+   "label": "App ID"
+  },
+  {
+   "default": "1",
+   "fieldname": "allow_auto_read_receipt",
+   "fieldtype": "Check",
+   "label": "Allow Auto Read Receipt"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "evolution_section",
+   "fieldtype": "Section Break",
+   "label": "Mubtkir API / Instance Settings"
+  },
+  {
+   "fieldname": "column_break_evolution",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "default_server",
+   "fieldtype": "Link",
+   "label": "Default Server",
+   "options": "Evolution Server",
+   "description": "Mubtkir API server used by default when creating new WhatsApp instances."
+  },
+  {
+   "default": "16",
+   "fieldname": "max_attachment_size",
+   "fieldtype": "Int",
+   "label": "Max Attachment Size (MB)",
+   "description": "Maximum allowed size, in megabytes, for outgoing attachments."
+  },
+  {
+   "default": "90",
+   "fieldname": "retention_days",
+   "fieldtype": "Int",
+   "label": "Retention Days",
+   "description": "Number of days to keep message history before cleanup."
+  },
+  {
+   "fieldname": "monitoring_section",
+   "fieldtype": "Section Break",
+   "label": "Connection Monitoring"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_disconnect_alert",
+   "fieldtype": "Check",
+   "label": "Enable Disconnect Alerts",
+   "description": "When on, an email and an internal notification are sent whenever a connected WhatsApp instance drops."
+  },
+  {
+   "fieldname": "company_supervisor_email",
+   "fieldtype": "Data",
+   "label": "Company Supervisor Email",
+   "options": "Email",
+   "description": "Email of the operating company's supervisor. Receives disconnect and failure alerts in addition to the site's System Managers."
+  },
+  {
+   "fieldname": "column_break_monitoring",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company_supervisor_mobile",
+   "fieldtype": "Data",
+   "label": "Company Supervisor Mobile",
+   "description": "Optional mobile number (with country code) of the company supervisor, for future WhatsApp-based alerts."
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2025-10-02 18:09:26.499196",
+ "modified_by": "Administrator",
+ "module": "Frappe Whatsapp",
+ "name": "WhatsApp Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

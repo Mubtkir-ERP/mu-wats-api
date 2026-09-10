@@ -1,0 +1,239 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "format:PULL-{#####}",
+ "creation": "2026-09-10 21:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "source_section",
+  "source_instance",
+  "source_type",
+  "column_break_src",
+  "pull_button",
+  "filter_section",
+  "only_with_name",
+  "replied_within_days",
+  "min_inbound_count",
+  "column_break_filter",
+  "engagement_status",
+  "keyword_filter",
+  "verify_whatsapp",
+  "results_section",
+  "pulled_count",
+  "selected_count",
+  "select_all",
+  "pulled_numbers",
+  "destination_section",
+  "destination",
+  "column_break_dest",
+  "target_recipient_list",
+  "new_list_name",
+  "lead_source",
+  "save_button",
+  "export_button"
+ ],
+ "fields": [
+  {
+   "fieldname": "source_section",
+   "fieldtype": "Section Break",
+   "label": "Source"
+  },
+  {
+   "description": "Which connected WhatsApp instance to pull numbers from.",
+   "fieldname": "source_instance",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Source Instance",
+   "options": "Whatsapp Instance",
+   "reqd": 1
+  },
+  {
+   "default": "Chats",
+   "description": "Chats = numbers you have actually messaged with. Contacts = all saved contacts on the device.",
+   "fieldname": "source_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Source Type",
+   "options": "Chats\nContacts"
+  },
+  {
+   "fieldname": "column_break_src",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Fetch numbers from the instance using the filters below.",
+   "fieldname": "pull_button",
+   "fieldtype": "Button",
+   "label": "Pull Numbers"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "filter_section",
+   "fieldtype": "Section Break",
+   "label": "Filters"
+  },
+  {
+   "default": "0",
+   "description": "Skip numbers that have no display name.",
+   "fieldname": "only_with_name",
+   "fieldtype": "Check",
+   "label": "Only With Name"
+  },
+  {
+   "description": "Keep only numbers that sent an inbound message within this many days (0 = no limit). Uses the local WhatsApp Message history.",
+   "fieldname": "replied_within_days",
+   "fieldtype": "Int",
+   "label": "Replied Within (days)"
+  },
+  {
+   "description": "Keep only numbers with at least this many inbound messages (0 = no limit).",
+   "fieldname": "min_inbound_count",
+   "fieldtype": "Int",
+   "label": "Min Inbound Messages"
+  },
+  {
+   "fieldname": "column_break_filter",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "All",
+   "description": "Active = interacted recently, Idle = 30-90 days, Dead = 90+ days. Based on local message history.",
+   "fieldname": "engagement_status",
+   "fieldtype": "Select",
+   "label": "Engagement Status",
+   "options": "All\nActive\nIdle\nDead"
+  },
+  {
+   "description": "Keep only numbers whose conversation contains this word (searches local inbound messages).",
+   "fieldname": "keyword_filter",
+   "fieldtype": "Data",
+   "label": "Keyword In Conversation"
+  },
+  {
+   "default": "0",
+   "description": "Verify each number actually has WhatsApp before adding (slower).",
+   "fieldname": "verify_whatsapp",
+   "fieldtype": "Check",
+   "label": "Verify WhatsApp Numbers"
+  },
+  {
+   "fieldname": "results_section",
+   "fieldtype": "Section Break",
+   "label": "Results"
+  },
+  {
+   "default": "0",
+   "fieldname": "pulled_count",
+   "fieldtype": "Int",
+   "label": "Pulled",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "selected_count",
+   "fieldtype": "Int",
+   "label": "Selected",
+   "read_only": 1
+  },
+  {
+   "fieldname": "select_all",
+   "fieldtype": "Button",
+   "label": "Toggle Select All"
+  },
+  {
+   "fieldname": "pulled_numbers",
+   "fieldtype": "Table",
+   "label": "Pulled Numbers",
+   "options": "WhatsApp Pulled Number"
+  },
+  {
+   "fieldname": "destination_section",
+   "fieldtype": "Section Break",
+   "label": "Save / Export"
+  },
+  {
+   "default": "Recipient List",
+   "fieldname": "destination",
+   "fieldtype": "Select",
+   "label": "Destination",
+   "options": "Recipient List\nLead\nExcel"
+  },
+  {
+   "depends_on": "eval:doc.destination=='Recipient List'",
+   "description": "Add to an existing list, or leave blank and set a new list name below.",
+   "fieldname": "target_recipient_list",
+   "fieldtype": "Link",
+   "label": "Target Recipient List",
+   "options": "WhatsApp Recipient List"
+  },
+  {
+   "depends_on": "eval:doc.destination=='Recipient List' && !doc.target_recipient_list",
+   "fieldname": "new_list_name",
+   "fieldtype": "Data",
+   "label": "New List Name"
+  },
+  {
+   "default": "WhatsApp Pull",
+   "depends_on": "eval:doc.destination=='Lead'",
+   "fieldname": "lead_source",
+   "fieldtype": "Data",
+   "label": "Lead Source"
+  },
+  {
+   "fieldname": "column_break_dest",
+   "fieldtype": "Column Break"
+  },
+  {
+   "depends_on": "eval:doc.destination!='Excel'",
+   "description": "Save the selected numbers to the chosen destination.",
+   "fieldname": "save_button",
+   "fieldtype": "Button",
+   "label": "Save Selected"
+  },
+  {
+   "depends_on": "eval:doc.destination=='Excel'",
+   "description": "Download the selected numbers as an Excel file.",
+   "fieldname": "export_button",
+   "fieldtype": "Button",
+   "label": "Export to Excel"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-09-10 21:00:00",
+ "modified_by": "Administrator",
+ "module": "Frappe Whatsapp",
+ "name": "WhatsApp Contact Puller",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "WhatsApp Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
