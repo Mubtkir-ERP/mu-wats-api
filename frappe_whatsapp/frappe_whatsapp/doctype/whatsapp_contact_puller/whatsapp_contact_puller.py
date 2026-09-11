@@ -74,6 +74,83 @@ def _fetch_from_evolution(base_url, api_key, instance_name, source_type):
 	return out
 
 
+def _fetch_messages_for_number(base_url, api_key, instance_name, number, limit=200):
+	"""Deep history: fetch a number's messages from Evolution (/chat/findMessages).
+
+	Returns a list of dicts: {"inbound": bool, "text": str, "ts": int|None}.
+	Covers conversations that happened BEFORE the webhook was ever set up —
+	the local WhatsApp Message table can't see those.
+	"""
+	jid = f"{number}@s.whatsapp.net"
+	payload = {"where": {"key": {"remoteJid": jid}}, "limit": limit}
+	try:
+		resp = _request("POST", base_url, f"/chat/findMessages/{instance_name}", api_key, payload)
+	except Exception:
+		return []
+
+	# Evolution may nest the records under data.messages.records / data / messages.
+	records = resp
+	for key in ("messages", "records"):
+		if isinstance(records, dict) and key in records:
+			records = records[key]
+	if isinstance(records, dict):
+		records = records.get("data") or records.get("records") or []
+	if not isinstance(records, list):
+		return []
+
+	out = []
+	for m in records:
+		if not isinstance(m, dict):
+			continue
+		key = m.get("key", {}) or {}
+		inbound = not key.get("fromMe", False)
+		msg = m.get("message", {}) or {}
+		text = (
+			msg.get("conversation")
+			or (msg.get("extendedTextMessage") or {}).get("text")
+			or (msg.get("imageMessage") or {}).get("caption")
+			or ""
+		)
+		ts = m.get("messageTimestamp")
+		try:
+			ts = int(ts) if ts else None
+		except (ValueError, TypeError):
+			ts = None
+		out.append({"inbound": inbound, "text": text or "", "ts": ts})
+	return out
+
+
+def _engagement_from_history(messages):
+	"""Compute engagement signals from a deep-history message list.
+
+	Returns {"last": datetime|None, "count": inbound_count, "hours": {hour:count},
+	         "texts": [inbound texts], "last_dir": "in"|"out"|None}.
+	"""
+	from datetime import datetime
+
+	count = 0
+	last = None
+	hours = {}
+	texts = []
+	last_ts = None
+	last_dir = None
+	for m in messages:
+		ts = m.get("ts")
+		dt = datetime.fromtimestamp(ts) if ts else None
+		if m["inbound"]:
+			count += 1
+			texts.append(m["text"])
+			if dt:
+				hours[dt.hour] = hours.get(dt.hour, 0) + 1
+				if not last or dt > last:
+					last = dt
+		# track most recent message direction regardless of inbound/outbound
+		if ts and (last_ts is None or ts > last_ts):
+			last_ts = ts
+			last_dir = "in" if m["inbound"] else "out"
+	return {"last": last, "count": count, "hours": hours, "texts": texts, "last_dir": last_dir}
+
+
 def _engagement_map(numbers):
 	"""Return {number: {"last": datetime|None, "count": int}} from local history.
 
@@ -114,25 +191,25 @@ def _keyword_matches(numbers, keyword):
 	return {_clean_number(r.number) for r in rows if _clean_number(r.number) in wanted}
 
 
-def _status_of(last, ref_now):
-	"""Classify engagement by last-interaction age."""
+def _status_of(last, ref_now, active_days=30, idle_days=90):
+	"""Classify engagement by last-interaction age (configurable windows)."""
 	if not last:
 		return "Dead"
 	age_days = (ref_now - get_datetime(last)).days
-	if age_days <= 30:
+	if age_days <= active_days:
 		return "Active"
-	if age_days <= 90:
+	if age_days <= idle_days:
 		return "Idle"
 	return "Dead"
 
 
-def _tier_of(status, count):
-	"""Idea 4: auto A/B/C tier from engagement.
+def _tier_of(status, count, a_min_msgs=5):
+	"""Auto A/B/C tier from engagement (A threshold configurable).
 
-	A = Active and chatty (>=5 inbound), B = Active/Idle with some replies,
-	C = dormant or barely engaged.
+	A = Active and chatty (>= a_min_msgs inbound), B = Active/Idle with >=1
+	inbound, C = dormant or no engagement.
 	"""
-	if status == "Active" and count >= 5:
+	if status == "Active" and count >= a_min_msgs:
 		return "A"
 	if status in ("Active", "Idle") and count >= 1:
 		return "B"
@@ -202,13 +279,22 @@ def pull(docname):
 	raw = _fetch_from_evolution(base_url, api_key, instance_name, doc.source_type or "Chats")
 
 	numbers = [r["number"] for r in raw]
-	engagement = _engagement_map(numbers)
-	keyword_set = _keyword_matches(numbers, (doc.keyword_filter or "").strip())
-	best_hours = _best_hour_map(numbers)
-	rnr_set = _read_no_reply_set(numbers)
 	ref_now = now_datetime()
 
-	# Idea 10: win-back preset forces engagement_status = Dead (90+ days).
+	# Configurable thresholds (fall back to sensible defaults).
+	active_days = int(doc.active_within_days or 30)
+	idle_days = int(doc.idle_within_days or 90)
+	a_min = int(doc.tier_a_min_msgs or 5)
+	deep = bool(doc.deep_history)
+	hist_limit = int(doc.history_limit or 200)
+	keyword = (doc.keyword_filter or "").strip().lower()
+
+	# Local (ERPNext) engagement as fallback when deep history is off.
+	local_eng = {} if deep else _engagement_map(numbers)
+	local_hours = {} if deep else _best_hour_map(numbers)
+	local_rnr = set() if deep else _read_no_reply_set(numbers)
+	local_kw = None if deep else _keyword_matches(numbers, keyword)
+
 	effective_status = doc.engagement_status
 	if doc.winback_preset:
 		effective_status = "Dead"
@@ -220,23 +306,42 @@ def pull(docname):
 	doc.set("pulled_numbers", [])
 	kept = 0
 	tier_counts = {"A": 0, "B": 0, "C": 0}
+
 	for r in raw:
 		number, name = r["number"], r["name"]
 
 		if doc.only_with_name and not name:
 			continue
-		if (doc.keyword_filter or "").strip() and number not in keyword_set:
-			continue
 
-		eng = engagement.get(number, {"last": None, "count": 0})
-		last, count = eng["last"], eng["count"]
+		# Gather engagement signals: deep (Evolution history) or local (ERPNext).
+		if deep:
+			msgs = _fetch_messages_for_number(base_url, api_key, instance_name, number, hist_limit)
+			h = _engagement_from_history(msgs)
+			last, count, hours = h["last"], h["count"], h["hours"]
+			texts = h["texts"]
+			read_no_reply = 1 if h["last_dir"] == "out" else 0
+		else:
+			eng = local_eng.get(number, {"last": None, "count": 0})
+			last, count = eng["last"], eng["count"]
+			hours = None
+			texts = None
+			read_no_reply = 1 if number in local_rnr else 0
+
+		# Keyword filter (searches deep texts, or local match set).
+		if keyword:
+			if deep:
+				if not any(keyword in (t or "").lower() for t in texts):
+					continue
+			else:
+				if number not in (local_kw or set()):
+					continue
 
 		if cutoff and (not last or get_datetime(last) < get_datetime(cutoff)):
 			continue
 		if doc.min_inbound_count and count < int(doc.min_inbound_count):
 			continue
 
-		status = _status_of(last, ref_now)
+		status = _status_of(last, ref_now, active_days, idle_days)
 		if effective_status and effective_status != "All":
 			if status != effective_status:
 				continue
@@ -245,7 +350,13 @@ def pull(docname):
 			if not _verify_number(base_url, api_key, instance_name, number):
 				continue
 
-		tier = _tier_of(status, count)
+		# Best hour: from deep hours dict, or local map.
+		if deep:
+			best_hour = f"{max(hours, key=hours.get):02d}:00" if hours else ""
+		else:
+			best_hour = local_hours.get(number, "")
+
+		tier = _tier_of(status, count, a_min)
 		tier_counts[tier] += 1
 		exists_in = _where_exists(number)
 		doc.append("pulled_numbers", {
@@ -255,16 +366,16 @@ def pull(docname):
 			"last_interaction": last,
 			"inbound_count": count,
 			"tier": tier,
-			"best_send_hour": best_hours.get(number, ""),
-			"read_no_reply": 1 if number in rnr_set else 0,
+			"best_send_hour": best_hour,
+			"read_no_reply": read_no_reply,
 			"already_exists": 1 if exists_in else 0,
 			"exists_in": exists_in or "",
+			"company": doc.company or "",
 		})
 		kept += 1
 
 	doc.pulled_count = kept
 	doc.selected_count = kept
-	# Idea 11: list quality score = share of A/B (engaged) numbers.
 	engaged = tier_counts["A"] + tier_counts["B"]
 	doc.quality_score = round((engaged / kept) * 100, 1) if kept else 0
 	doc.tier_summary = f"A: {tier_counts['A']}  |  B: {tier_counts['B']}  |  C: {tier_counts['C']}"
@@ -379,6 +490,7 @@ def _save_to_recipient_list(doc, selected):
 			"recipient_code": f"recip-num-{seq:03d}",
 			"mobile_number": row.mobile_number,
 			"recipient_name": row.contact_name or "",
+			"company": doc.company or "",
 			"recipient_data": frappe.as_json({
 				"name": row.contact_name or "",
 				"tier": row.get("tier") or "",
@@ -406,6 +518,7 @@ def _save_to_leads(doc, selected):
 			"lead_name": row.contact_name or number,
 			"mobile_no": number,
 			"phone": number,
+			"company": doc.company or None,
 			"source": source if frappe.db.exists("Lead Source", source) else None,
 		})
 		lead.insert(ignore_permissions=True)
