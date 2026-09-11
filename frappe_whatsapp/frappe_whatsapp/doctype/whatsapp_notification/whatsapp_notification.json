@@ -1,0 +1,364 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "field:notification_name",
+ "creation": "2022-10-27 22:04:58.515829",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "notification_name",
+  "notification_type",
+  "reference_doctype",
+  "print_format",
+  "phone_source",
+  "phone_field",
+  "event_frequency",
+  "repeat_every",
+  "schedule_day",
+  "week_day",
+  "schedule_time",
+  "doctype_event",
+  "days_in_advance",
+  "date_changed",
+  "column_break_3",
+  "disabled",
+  "template",
+  "whatsapp_instance",
+  "code",
+  "attach_document_print",
+  "custom_attachment",
+  "attach",
+  "attach_from_field",
+  "file_name",
+  "section_break_11",
+  "condition",
+  "column_break_12",
+  "fields",
+  "recurring_section",
+  "repeat_until_cleared",
+  "repeat_interval_days",
+  "reminder_lookback_days",
+  "column_break_recurring",
+  "send_thank_you_on_clear",
+  "thank_you_template",
+  "property_section",
+  "set_property_after_alert",
+  "property_value",
+  "help_section",
+  "help_html",
+  "header_type"
+ ],
+ "fields": [
+  {
+   "depends_on": "eval:doc.notification_type=='DocType Event' || doc.notification_type=='Scheduler Event'",
+   "description": "Required only for DocType Event and Days Before/After",
+   "fieldname": "reference_doctype",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Reference Document Type",
+   "options": "DocType"
+  },
+  {
+   "depends_on": "eval:doc.reference_doctype",
+   "description": "Print format to attach as PDF. Leave empty to use default.",
+   "fieldname": "print_format",
+   "fieldtype": "Link",
+   "label": "Print Format",
+   "options": "Print Format"
+  },
+  {
+   "default": "Primary Contact",
+   "depends_on": "eval:doc.notification_type=='DocType Event'",
+   "description": "How to find the recipient's phone number",
+   "fieldname": "phone_source",
+   "fieldtype": "Select",
+   "label": "Phone Source",
+   "options": "Primary Contact\nField in Document\nLinked DocType",
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.phone_source=='Field in Document' || doc.phone_source=='Linked DocType'",
+   "description": "Select the field that contains the phone number. For Linked DocType use format: link_field.fieldname e.g. customer.mobile_no",
+   "fieldname": "phone_field",
+   "fieldtype": "Select",
+   "label": "Phone Field",
+   "mandatory_depends_on": "eval:doc.phone_source=='Field in Document' || doc.phone_source=='Linked DocType'"
+  },
+  {
+   "depends_on": "eval:doc.notification_type == \"Scheduler Event\"",
+   "fieldname": "event_frequency",
+   "fieldtype": "Select",
+   "label": "Event Frequency",
+   "mandatory_depends_on": "eval:doc.script_type == \"Scheduler Event\"",
+   "options": "All\nHourly\nDaily\nWeekly\nMonthly\nYearly\nHourly Long\nDaily Long\nWeekly Long\nMonthly Long"
+  },
+  {
+   "default": "1",
+   "depends_on": "eval:doc.notification_type=='Scheduler Event'",
+   "description": "Send every N units. Example: 3 with Daily = every 3 days. 2 with Weekly = every 2 weeks.",
+   "fieldname": "repeat_every",
+   "fieldtype": "Int",
+   "label": "Repeat Every"
+  },
+  {
+   "default": "1",
+   "depends_on": "eval:doc.notification_type=='Scheduler Event' && doc.event_frequency=='Monthly'",
+   "description": "Day of the month to send (1-28). Example: 1 = first day of month",
+   "fieldname": "schedule_day",
+   "fieldtype": "Int",
+   "label": "Day of Month",
+   "mandatory_depends_on": "eval:doc.notification_type=='Scheduler Event' && doc.event_frequency=='Monthly'"
+  },
+  {
+   "depends_on": "eval:doc.notification_type=='Scheduler Event' && doc.event_frequency=='Weekly'",
+   "description": "Which day of the week to send",
+   "fieldname": "week_day",
+   "fieldtype": "Select",
+   "label": "Day of Week",
+   "mandatory_depends_on": "eval:doc.notification_type=='Scheduler Event' && doc.event_frequency=='Weekly'",
+   "options": "\nMonday\nTuesday\nWednesday\nThursday\nFriday\nSaturday\nSunday"
+  },
+  {
+   "default": "08:00:00",
+   "depends_on": "eval:doc.notification_type=='Scheduler Event'",
+   "description": "Time to send. Used for Daily, Weekly, and Monthly schedules.",
+   "fieldname": "schedule_time",
+   "fieldtype": "Time",
+   "label": "Send Time"
+  },
+  {
+   "depends_on": "eval:doc.notification_type==='DocType Event'",
+   "fieldname": "doctype_event",
+   "fieldtype": "Select",
+   "label": "DocType Event",
+   "options": "Before Insert\nBefore Validate\nBefore Save\nAfter Insert\nAfter Save\nBefore Submit\nAfter Submit\nBefore Cancel\nAfter Cancel\nBefore Delete\nAfter Delete\nBefore Save (Submitted Document)\nAfter Save (Submitted Document)\nDays After\nDays Before"
+  },
+  {
+   "fieldname": "column_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "disabled",
+   "fieldtype": "Check",
+   "label": "Disabled"
+  },
+  {
+   "fieldname": "help_section",
+   "fieldtype": "Section Break",
+   "label": "Help"
+  },
+  {
+   "fieldname": "help_html",
+   "fieldtype": "HTML",
+   "options": "<div style=\"display:flex; gap:16px; flex-wrap:wrap; font-size:13px; line-height:1.9;\">\n\n  <!-- Arabic column -->\n  <div dir=\"rtl\" style=\"flex:1; min-width:300px; background:#f8faf8; border:1px solid #e5e9e5; border-radius:10px; padding:14px 18px;\">\n    <h4 style=\"margin:0 0 10px; color:#1a7f4b;\">دليل الشروط والإرسال</h4>\n    <p style=\"margin:0 0 12px; color:#555;\">الشرط تعبير بسيط بلغة Python يحدد <b>متى تُرسل الرسالة</b>. إذا تحقق الشرط تُرسل، وإلا تُتجاهل. استخدم فقط حقول المستند.</p>\n    <p style=\"margin:0 0 4px;\"><b>أمثلة جاهزة — اضغط للنسخ:</b></p>\n    <ul style=\"margin:0 0 12px; padding-inline-start:18px;\">\n      <li><code>doc.outstanding_amount &gt; 0</code> — فقط إذا كان هناك مبلغ مستحق</li>\n      <li><code>doc.custom_whatsapp_sent == 0</code> — منع الإرسال المكرر</li>\n      <li><code>doc.status == \"Submitted\"</code> — المستندات المرحّلة فقط</li>\n      <li><code>doc.customer_group == \"Retail\"</code> — مجموعة عملاء محددة</li>\n      <li><code>doc.grand_total &gt; 1000</code> — إذا تجاوز الإجمالي ١٠٠٠</li>\n      <li><code>doc.docstatus == 1</code> — المرحّلة فقط</li>\n    </ul>\n    <p style=\"margin:0 0 4px;\"><b>الدوال المسموحة للأحداث المجدولة:</b></p>\n    <ul style=\"margin:0 0 12px; padding-inline-start:18px; color:#555;\">\n      <li><code>frappe.db.get_value</code> — جلب قيمة واحدة</li>\n      <li><code>frappe.db.get_list</code> — جلب قائمة سجلات</li>\n      <li><code>frappe.utils.now_datetime</code> — الوقت الحالي</li>\n      <li><code>frappe.utils.add_to_date</code> — إضافة/طرح أيام من تاريخ</li>\n    </ul>\n    <p style=\"margin:0 0 4px;\"><b>الإرسال المجدول:</b></p>\n    <p style=\"margin:0 0 2px; color:#555;\">١ — قالب بسيط لأرقام محددة:</p>\n    <pre style=\"background:#eef1ee; border-radius:6px; padding:8px; margin:0 0 8px; direction:ltr; text-align:left;\"><code>doc.set(\"_contact_list\", [\"9665XXXXXXXX\"])</code></pre>\n    <p style=\"margin:0 0 2px; color:#555;\">٢ — مبني على مستند مع جلب بياناته:</p>\n    <pre style=\"background:#eef1ee; border-radius:6px; padding:8px; margin:0; direction:ltr; text-align:left;\"><code>rows = frappe.get_list(\"Sales Invoice\",\n    {\"outstanding_amount\": [\">\", 0]})\ndata_list = []\nfor r in rows:\n    data_list.append({\"name\": r.name,\n        \"phone_no\": \"9665XXXXXXXX\"})\ndoc.set(\"_data_list\", data_list)</code></pre>\n  </div>\n\n  <!-- English column -->\n  <div dir=\"ltr\" style=\"flex:1; min-width:300px; background:#f8f9fa; border:1px solid #e5e7e9; border-radius:10px; padding:14px 18px;\">\n    <h4 style=\"margin:0 0 10px; color:#2d6cdf;\">Conditions &amp; Sending Guide</h4>\n    <p style=\"margin:0 0 12px; color:#555;\">A condition is a simple Python expression that decides <b>when the message is sent</b>. If it evaluates true the message is sent; otherwise it is skipped. Use only fields available on the document.</p>\n    <p style=\"margin:0 0 4px;\"><b>Ready examples — click to copy:</b></p>\n    <ul style=\"margin:0 0 12px; padding-inline-start:18px;\">\n      <li><code>doc.outstanding_amount &gt; 0</code> — Only if amount is due</li>\n      <li><code>doc.custom_whatsapp_sent == 0</code> — Prevent duplicate sends</li>\n      <li><code>doc.status == \"Submitted\"</code> — Only submitted documents</li>\n      <li><code>doc.customer_group == \"Retail\"</code> — Specific customer group</li>\n      <li><code>doc.grand_total &gt; 1000</code> — Only if total exceeds 1000</li>\n      <li><code>doc.docstatus == 1</code> — Only submitted (docstatus check)</li>\n    </ul>\n    <p style=\"margin:0 0 4px;\"><b>Allowed functions for scheduler events:</b></p>\n    <ul style=\"margin:0 0 12px; padding-inline-start:18px; color:#555;\">\n      <li><code>frappe.db.get_value</code> — get a single value</li>\n      <li><code>frappe.db.get_list</code> — get a list of records</li>\n      <li><code>frappe.utils.now_datetime</code> — current datetime</li>\n      <li><code>frappe.utils.add_to_date</code> — add/subtract days from a date</li>\n    </ul>\n    <p style=\"margin:0 0 4px;\"><b>Scheduled sending:</b></p>\n    <p style=\"margin:0 0 2px; color:#555;\">1 — Simple template to specific numbers:</p>\n    <pre style=\"background:#eef0f2; border-radius:6px; padding:8px; margin:0 0 8px;\"><code>doc.set(\"_contact_list\", [\"9665XXXXXXXX\"])</code></pre>\n    <p style=\"margin:0 0 2px; color:#555;\">2 — Based on a doctype, pulling its data:</p>\n    <pre style=\"background:#eef0f2; border-radius:6px; padding:8px; margin:0;\"><code>rows = frappe.get_list(\"Sales Invoice\",\n    {\"outstanding_amount\": [\">\", 0]})\ndata_list = []\nfor r in rows:\n    data_list.append({\"name\": r.name,\n        \"phone_no\": \"9665XXXXXXXX\"})\ndoc.set(\"_data_list\", data_list)</code></pre>\n  </div>\n\n</div>"
+  },
+  {
+   "fieldname": "notification_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Notification Type",
+   "options": "DocType Event\nScheduler Event",
+   "reqd": 1
+  },
+  {
+   "fieldname": "template",
+   "fieldtype": "Link",
+   "label": "Template",
+   "options": "WhatsApp Templates",
+   "reqd": 1
+  },
+  {
+   "description": "Python expression that must be true to send. See the Help section below for ready-to-use examples (click an example to insert it).",
+   "fieldname": "condition",
+   "fieldtype": "Code",
+   "label": "Condition",
+   "options": "Python Expression"
+  },
+  {
+   "fieldname": "column_break_12",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Enter fields in the right sequence as per the template parameters.",
+   "fieldname": "fields",
+   "fieldtype": "Table",
+   "label": "Fields",
+   "options": "WhatsApp Message Fields"
+  },
+  {
+   "fieldname": "section_break_11",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "code",
+   "fieldtype": "Code",
+   "options": "HTML",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "WhatsApp Template requires a document. ",
+   "fieldname": "attach_document_print",
+   "fieldtype": "Check",
+   "label": " Attach Document Print"
+  },
+  {
+   "default": "0",
+   "description": "WhatsApp Template requires document",
+   "fieldname": "custom_attachment",
+   "fieldtype": "Check",
+   "label": "Custom attachment"
+  },
+  {
+   "depends_on": "eval:doc.custom_attachment",
+   "description": "Upload the file as public. Whatsapp cannot access the private file.",
+   "fieldname": "attach",
+   "fieldtype": "Attach",
+   "label": "Attach"
+  },
+  {
+   "depends_on": "eval:doc.custom_attachment",
+   "fieldname": "file_name",
+   "fieldtype": "Data",
+   "label": "File name"
+  },
+  {
+   "fieldname": "header_type",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Header Type"
+  },
+  {
+   "depends_on": "eval:doc.custom_attachment",
+   "description": "Attach media from doctype field",
+   "fieldname": "attach_from_field",
+   "fieldtype": "Data",
+   "label": "Attach from field "
+  },
+  {
+   "fieldname": "recurring_section",
+   "fieldtype": "Section Break",
+   "label": "Recurring Reminder"
+  },
+  {
+   "fieldname": "repeat_until_cleared",
+   "fieldtype": "Check",
+   "default": "0",
+   "label": "Repeat Until Condition Clears",
+   "description": "Keep resending this reminder on an interval until the Condition above is no longer true (e.g. the invoice is paid or the subscription renewed). Requires a Condition and a Reference Date."
+  },
+  {
+   "fieldname": "repeat_interval_days",
+   "fieldtype": "Int",
+   "default": "3",
+   "label": "Repeat Every (days)",
+   "depends_on": "eval:doc.repeat_until_cleared",
+   "description": "Number of days between repeated reminders for the same document."
+  },
+  {
+   "fieldname": "reminder_lookback_days",
+   "fieldtype": "Int",
+   "default": "365",
+   "label": "Look Back (days)",
+   "depends_on": "eval:doc.repeat_until_cleared",
+   "description": "How far back from the Reference Date to keep scanning documents for repeated reminders."
+  },
+  {
+   "fieldname": "column_break_recurring",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "send_thank_you_on_clear",
+   "fieldtype": "Check",
+   "default": "0",
+   "label": "Send Thank-you When Cleared",
+   "depends_on": "eval:doc.repeat_until_cleared",
+   "description": "When the condition clears (e.g. payment received), send a one-time thank-you message and stop reminding."
+  },
+  {
+   "fieldname": "thank_you_template",
+   "fieldtype": "Link",
+   "options": "WhatsApp Templates",
+   "label": "Thank-you Template",
+   "depends_on": "eval:doc.repeat_until_cleared && doc.send_thank_you_on_clear",
+   "description": "Template used for the thank-you message."
+  },
+  {
+   "fieldname": "property_section",
+   "fieldtype": "Section Break",
+   "label": "Set Property After Alert"
+  },
+  {
+   "fieldname": "set_property_after_alert",
+   "fieldtype": "Select",
+   "label": "Set Property After Alert"
+  },
+  {
+   "fieldname": "property_value",
+   "fieldtype": "Data",
+   "label": "Value To Be Set"
+  },
+  {
+   "depends_on": "eval:doc.doctype_event==='Days Before' || doc.doctype_event==='Days After'",
+   "description": "Send days before or after the reference date",
+   "fieldname": "days_in_advance",
+   "fieldtype": "Int",
+   "label": "Days Before or After",
+   "mandatory_depends_on": "eval:doc.doctype_event==='Days Before' || doc.doctype_event==='Days After'"
+  },
+  {
+   "depends_on": "eval:doc.doctype_event==='Days Before' || doc.doctype_event==='Days After'",
+   "fieldname": "date_changed",
+   "fieldtype": "Select",
+   "label": "Reference Date",
+   "mandatory_depends_on": "eval:doc.doctype_event==='Days Before' || doc.doctype_event==='Days After'"
+  },
+  {
+   "fieldname": "notification_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Notification Name",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "whatsapp_instance",
+   "fieldtype": "Link",
+   "label": "WhatsApp Instance",
+   "options": "Whatsapp Instance",
+   "reqd": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-01-12 23:22:44.286893",
+ "modified_by": "Administrator",
+ "module": "Frappe Whatsapp",
+ "name": "WhatsApp Notification",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Script Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

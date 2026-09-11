@@ -1,0 +1,74 @@
+{
+ "actions": [],
+ "creation": "2026-09-10 21:00:00",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "selected",
+  "mobile_number",
+  "contact_name",
+  "last_interaction",
+  "inbound_count",
+  "already_exists",
+  "exists_in"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "fieldname": "selected",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Select"
+  },
+  {
+   "fieldname": "mobile_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Mobile Number",
+   "reqd": 1
+  },
+  {
+   "fieldname": "contact_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Name"
+  },
+  {
+   "fieldname": "last_interaction",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Last Interaction"
+  },
+  {
+   "fieldname": "inbound_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Inbound Msgs"
+  },
+  {
+   "default": "0",
+   "fieldname": "already_exists",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Already Exists"
+  },
+  {
+   "fieldname": "exists_in",
+   "fieldtype": "Data",
+   "label": "Exists In"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-10 21:00:00",
+ "modified_by": "Administrator",
+ "module": "Frappe Whatsapp",
+ "name": "WhatsApp Pulled Number",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
