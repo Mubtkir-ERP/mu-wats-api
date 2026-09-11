@@ -21,3 +21,6 @@ build-backend = "flit_core.buildapi"
 
 [tool.bench.frappe-dependencies]
 frappe = ">=14.0.0"
+
+[tool.flit.module]
+name = "frappe_whatsapp"

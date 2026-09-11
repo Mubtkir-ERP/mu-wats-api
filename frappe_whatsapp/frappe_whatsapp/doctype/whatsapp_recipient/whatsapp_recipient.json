@@ -5,11 +5,21 @@
  "editable_grid": 1,
  "engine": "InnoDB",
  "field_order": [
+  "recipient_code",
   "mobile_number",
   "recipient_name",
   "recipient_data"
  ],
  "fields": [
+  {
+   "fieldname": "recipient_code",
+   "fieldtype": "Data",
+   "label": "Recipient Code",
+   "in_list_view": 1,
+   "read_only": 1,
+   "unique": 0,
+   "description": "Sequence code recip-num-### assigned on import."
+  },
   {
    "fieldname": "mobile_number",
    "fieldtype": "Data",

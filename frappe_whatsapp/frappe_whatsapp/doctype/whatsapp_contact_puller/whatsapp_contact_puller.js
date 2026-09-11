@@ -5,9 +5,10 @@ frappe.ui.form.on("WhatsApp Contact Puller", {
 	refresh(frm) {
 		frm.dashboard.clear_headline();
 		if (frm.doc.pulled_count) {
-			frm.dashboard.set_headline(
-				__("Pulled {0} · Selected {1}", [frm.doc.pulled_count || 0, frm.doc.selected_count || 0])
-			);
+			let line = __("Pulled {0} · Selected {1}", [frm.doc.pulled_count || 0, frm.doc.selected_count || 0]);
+			if (frm.doc.tier_summary) line += "  ·  " + frm.doc.tier_summary;
+			if (frm.doc.quality_score) line += "  ·  " + __("Quality {0}%", [frm.doc.quality_score]);
+			frm.dashboard.set_headline(line);
 		}
 
 		// Live update of the selected counter when a checkbox is toggled.

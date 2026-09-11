@@ -259,6 +259,14 @@ class WhatsAppMessage(Document):
 
     @frappe.whitelist()
     def send_read_receipt(self):
+        # Read receipts are a Meta Cloud API feature. For Evolution-channel
+        # messages, or when no Meta token is configured, skip silently instead
+        # of raising "Password not found for WhatsApp Settings token".
+        if (self.channel or "Meta") == "Evolution":
+            return
+        if not frappe.db.get_single_value("WhatsApp Settings", "token"):
+            return
+
         data = {
             "messaging_product": "whatsapp",
             "status": "read",

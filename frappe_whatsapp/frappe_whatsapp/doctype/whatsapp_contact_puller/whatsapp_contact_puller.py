@@ -77,19 +77,27 @@ def _fetch_from_evolution(base_url, api_key, instance_name, source_type):
 def _engagement_map(numbers):
 	"""Return {number: {"last": datetime|None, "count": int}} from local history.
 
-	Counts inbound WhatsApp Messages per sender. One grouped query, not N.
+	Counts inbound WhatsApp Messages per sender. The stored `from` value is
+	normalised in Python (strip any @suffix and non-digits) so matching works
+	whether inbound was saved clean (966...) or as a JID (966...@s.whatsapp.net).
 	"""
 	if not numbers:
 		return {}
+	wanted = set(numbers)
 	rows = frappe.get_all(
 		"WhatsApp Message",
-		filters={"type": "Incoming", "from": ["in", list(numbers)]},
-		fields=["`from` as number", "max(creation) as last", "count(name) as cnt"],
-		group_by="`from`",
+		filters={"type": "Incoming"},
+		fields=["`from` as number", "creation"],
 	)
 	result = {}
 	for row in rows:
-		result[row.number] = {"last": row.last, "count": row.cnt or 0}
+		num = _clean_number(row.number)
+		if num not in wanted:
+			continue
+		entry = result.setdefault(num, {"last": None, "count": 0})
+		entry["count"] += 1
+		if not entry["last"] or get_datetime(row.creation) > get_datetime(entry["last"]):
+			entry["last"] = row.creation
 	return result
 
 
@@ -97,17 +105,13 @@ def _keyword_matches(numbers, keyword):
 	"""Return the subset of numbers whose inbound messages contain keyword."""
 	if not keyword:
 		return set(numbers)
+	wanted = set(numbers)
 	rows = frappe.get_all(
 		"WhatsApp Message",
-		filters={
-			"type": "Incoming",
-			"from": ["in", list(numbers)],
-			"message": ["like", f"%{keyword}%"],
-		},
+		filters={"type": "Incoming", "message": ["like", f"%{keyword}%"]},
 		fields=["`from` as number"],
-		group_by="`from`",
 	)
-	return {r.number for r in rows}
+	return {_clean_number(r.number) for r in rows if _clean_number(r.number) in wanted}
 
 
 def _status_of(last, ref_now):
@@ -120,6 +124,68 @@ def _status_of(last, ref_now):
 	if age_days <= 90:
 		return "Idle"
 	return "Dead"
+
+
+def _tier_of(status, count):
+	"""Idea 4: auto A/B/C tier from engagement.
+
+	A = Active and chatty (>=5 inbound), B = Active/Idle with some replies,
+	C = dormant or barely engaged.
+	"""
+	if status == "Active" and count >= 5:
+		return "A"
+	if status in ("Active", "Idle") and count >= 1:
+		return "B"
+	return "C"
+
+
+def _best_hour_map(numbers):
+	"""Idea 8: most frequent reply hour per number, from inbound history."""
+	if not numbers:
+		return {}
+	wanted = set(numbers)
+	rows = frappe.get_all(
+		"WhatsApp Message",
+		filters={"type": "Incoming"},
+		fields=["`from` as number", "creation"],
+	)
+	buckets = {}
+	for row in rows:
+		num = _clean_number(row.number)
+		if num not in wanted or not row.creation:
+			continue
+		hour = get_datetime(row.creation).hour
+		buckets.setdefault(num, {}).setdefault(hour, 0)
+		buckets[num][hour] += 1
+	result = {}
+	for num, hours in buckets.items():
+		best = max(hours, key=hours.get)
+		result[num] = f"{best:02d}:00"
+	return result
+
+
+def _read_no_reply_set(numbers):
+	"""Idea 9: numbers whose latest message is an outbound (no inbound after).
+
+	Approximation from local history: if the most recent message with this
+	number is Outgoing, they haven't replied since.
+	"""
+	if not numbers:
+		return set()
+	wanted = set(numbers)
+	rows = frappe.get_all(
+		"WhatsApp Message",
+		filters={},
+		fields=["`from` as frm", "`to` as t", "type", "creation"],
+		order_by="creation desc",
+	)
+	latest_dir = {}
+	for row in rows:
+		num = _clean_number(row.frm if row.type == "Incoming" else row.t)
+		if num not in wanted or num in latest_dir:
+			continue
+		latest_dir[num] = row.type
+	return {n for n, d in latest_dir.items() if d == "Outgoing"}
 
 
 # ---------------------------------------------------------------------------
@@ -138,7 +204,14 @@ def pull(docname):
 	numbers = [r["number"] for r in raw]
 	engagement = _engagement_map(numbers)
 	keyword_set = _keyword_matches(numbers, (doc.keyword_filter or "").strip())
+	best_hours = _best_hour_map(numbers)
+	rnr_set = _read_no_reply_set(numbers)
 	ref_now = now_datetime()
+
+	# Idea 10: win-back preset forces engagement_status = Dead (90+ days).
+	effective_status = doc.engagement_status
+	if doc.winback_preset:
+		effective_status = "Dead"
 
 	cutoff = None
 	if doc.replied_within_days and int(doc.replied_within_days) > 0:
@@ -146,6 +219,7 @@ def pull(docname):
 
 	doc.set("pulled_numbers", [])
 	kept = 0
+	tier_counts = {"A": 0, "B": 0, "C": 0}
 	for r in raw:
 		number, name = r["number"], r["name"]
 
@@ -161,14 +235,18 @@ def pull(docname):
 			continue
 		if doc.min_inbound_count and count < int(doc.min_inbound_count):
 			continue
-		if doc.engagement_status and doc.engagement_status != "All":
-			if _status_of(last, ref_now) != doc.engagement_status:
+
+		status = _status_of(last, ref_now)
+		if effective_status and effective_status != "All":
+			if status != effective_status:
 				continue
 
 		if doc.verify_whatsapp:
 			if not _verify_number(base_url, api_key, instance_name, number):
 				continue
 
+		tier = _tier_of(status, count)
+		tier_counts[tier] += 1
 		exists_in = _where_exists(number)
 		doc.append("pulled_numbers", {
 			"selected": 1,
@@ -176,6 +254,9 @@ def pull(docname):
 			"contact_name": name,
 			"last_interaction": last,
 			"inbound_count": count,
+			"tier": tier,
+			"best_send_hour": best_hours.get(number, ""),
+			"read_no_reply": 1 if number in rnr_set else 0,
 			"already_exists": 1 if exists_in else 0,
 			"exists_in": exists_in or "",
 		})
@@ -183,8 +264,12 @@ def pull(docname):
 
 	doc.pulled_count = kept
 	doc.selected_count = kept
+	# Idea 11: list quality score = share of A/B (engaged) numbers.
+	engaged = tier_counts["A"] + tier_counts["B"]
+	doc.quality_score = round((engaged / kept) * 100, 1) if kept else 0
+	doc.tier_summary = f"A: {tier_counts['A']}  |  B: {tier_counts['B']}  |  C: {tier_counts['C']}"
 	doc.save()
-	return {"pulled": kept}
+	return {"pulled": kept, "quality": doc.quality_score, "tiers": tier_counts}
 
 
 def _verify_number(base_url, api_key, instance_name, number):
@@ -283,14 +368,22 @@ def _save_to_recipient_list(doc, selected):
 		})
 
 	existing = {r.mobile_number for r in rl.get("recipients", [])}
+	# Continue the recip-num-### sequence from what the list already has.
+	seq = len(rl.get("recipients", []))
 	added = 0
 	for row in selected:
 		if row.mobile_number in existing:
 			continue
+		seq += 1
 		rl.append("recipients", {
+			"recipient_code": f"recip-num-{seq:03d}",
 			"mobile_number": row.mobile_number,
 			"recipient_name": row.contact_name or "",
-			"recipient_data": frappe.as_json({"name": row.contact_name or ""}),
+			"recipient_data": frappe.as_json({
+				"name": row.contact_name or "",
+				"tier": row.get("tier") or "",
+				"best_send_hour": row.get("best_send_hour") or "",
+			}),
 		})
 		existing.add(row.mobile_number)
 		added += 1
@@ -331,13 +424,17 @@ def export_excel(docname):
 
 	from frappe.utils.xlsxutils import make_xlsx
 
-	data = [["Mobile Number", "Name", "Last Interaction", "Inbound Msgs", "Already Exists"]]
+	data = [["Mobile Number", "Name", "Tier", "Best Hour", "Last Interaction",
+	         "Inbound Msgs", "Read/No Reply", "Already Exists"]]
 	for row in selected:
 		data.append([
 			row.mobile_number,
 			row.contact_name or "",
+			row.get("tier") or "",
+			row.get("best_send_hour") or "",
 			str(row.last_interaction or ""),
 			row.inbound_count or 0,
+			"Yes" if row.get("read_no_reply") else "No",
 			"Yes" if row.already_exists else "No",
 		])
 

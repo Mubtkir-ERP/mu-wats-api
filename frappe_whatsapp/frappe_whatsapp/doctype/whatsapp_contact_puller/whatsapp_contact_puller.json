@@ -17,11 +17,14 @@
   "min_inbound_count",
   "column_break_filter",
   "engagement_status",
+  "winback_preset",
   "keyword_filter",
   "verify_whatsapp",
   "results_section",
   "pulled_count",
   "selected_count",
+  "tier_summary",
+  "quality_score",
   "select_all",
   "pulled_numbers",
   "destination_section",
@@ -197,6 +200,27 @@
    "fieldname": "export_button",
    "fieldtype": "Button",
    "label": "Export to Excel"
+  },
+  {
+   "fieldname": "quality_score",
+   "fieldtype": "Percent",
+   "label": "List Quality Score",
+   "read_only": 1,
+   "description": "Share of pulled numbers that are engaged (Active/B-tier or better). Higher = healthier list."
+  },
+  {
+   "fieldname": "tier_summary",
+   "fieldtype": "Data",
+   "label": "Tier Summary",
+   "read_only": 1,
+   "description": "Count of A / B / C numbers in this pull."
+  },
+  {
+   "fieldname": "winback_preset",
+   "fieldtype": "Check",
+   "label": "Win-back Preset (90d dormant)",
+   "default": "0",
+   "description": "Quick preset: pull only Dead numbers (90+ days) for a re-engagement campaign."
   }
  ],
  "index_web_pages_for_search": 1,

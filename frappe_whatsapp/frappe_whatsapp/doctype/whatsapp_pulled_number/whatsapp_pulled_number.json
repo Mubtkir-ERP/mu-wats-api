@@ -10,7 +10,10 @@
   "contact_name",
   "last_interaction",
   "inbound_count",
+  "tier",
   "already_exists",
+  "best_send_hour",
+  "read_no_reply",
   "exists_in"
  ],
  "fields": [
@@ -57,6 +60,28 @@
    "fieldname": "exists_in",
    "fieldtype": "Data",
    "label": "Exists In"
+  },
+  {
+   "fieldname": "tier",
+   "fieldtype": "Select",
+   "label": "Tier",
+   "options": "\nA\nB\nC",
+   "in_list_view": 1,
+   "description": "Auto A/B/C by engagement: A=highly engaged, B=moderate, C=dormant/low."
+  },
+  {
+   "fieldname": "best_send_hour",
+   "fieldtype": "Data",
+   "label": "Best Hour",
+   "in_list_view": 1,
+   "description": "Hour of day this contact most often replies (from inbound history)."
+  },
+  {
+   "fieldname": "read_no_reply",
+   "fieldtype": "Check",
+   "label": "Read / No Reply",
+   "default": "0",
+   "description": "Last outbound was delivered/read but no inbound reply after it."
   }
  ],
  "index_web_pages_for_search": 1,

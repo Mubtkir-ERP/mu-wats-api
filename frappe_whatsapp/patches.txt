@@ -6,3 +6,5 @@
 frappe_whatsapp.patches.set_default_in_whatsapp_settings #1
 frappe_whatsapp.patches.resync_workspace_and_cards #2
 frappe_whatsapp.patches.add_channel_fields
+frappe_whatsapp.patches.resync_workspace_puller
+frappe_whatsapp.patches.reload_puller_doctypes
