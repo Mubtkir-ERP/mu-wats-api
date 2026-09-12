@@ -234,19 +234,69 @@ def evolution_webhook():
 		"meta_data": json.dumps(data),
 	}).insert(ignore_permissions=True)
 
-	event = data.get("event") or ""
-	if event and event.replace(".", "_").lower() != "messages_upsert":
-		# Only messages.upsert carries inbound messages; ignore others quietly.
-		return Response("OK", status=200)
+	event = (data.get("event") or "").replace(".", "_").lower()
 
 	payload = data.get("data") or {}
 	# Evolution may send a single object or a list.
 	items = payload if isinstance(payload, list) else [payload]
 
+	if event == "messages_update":
+		# Status changes (sent/delivered/read) for our outbound messages.
+		for item in items:
+			_process_evolution_status(item)
+		return Response("OK", status=200)
+
+	if event and event != "messages_upsert":
+		# Any other event carries no inbound message; ignore quietly.
+		return Response("OK", status=200)
+
 	for item in items:
 		_process_evolution_message(item)
 
 	return Response("OK", status=200)
+
+
+def _process_evolution_status(item):
+	"""Update a WhatsApp Message status from an Evolution messages.update event.
+
+	Evolution reports a numeric/string status per message id. Map it to the
+	doctype's status options (Sent / Delivered / Read).
+	"""
+	if not isinstance(item, dict):
+		return
+
+	key = item.get("key", {}) or {}
+	message_id = key.get("id") or item.get("keyId") or item.get("id")
+	if not message_id:
+		return
+
+	raw_status = item.get("status")
+	if raw_status is None:
+		update = item.get("update") or {}
+		raw_status = update.get("status")
+	if raw_status is None:
+		return
+
+	# Evolution/Baileys statuses come as strings or numbers.
+	mapping = {
+		"1": "Sent", "pending": "Pending", "server_ack": "Sent", "sent": "Sent",
+		"2": "Delivered", "delivery_ack": "Delivered", "delivered": "Delivered",
+		"3": "Read", "read": "Read", "played": "Read",
+		"4": "Read",
+		"error": "Failed", "failed": "Failed",
+	}
+	status = mapping.get(str(raw_status).lower())
+	if not status:
+		return
+
+	name = frappe.db.get_value("WhatsApp Message", {"message_id": message_id}, "name")
+	if not name:
+		return
+	# Never downgrade a stronger status (Read shouldn't drop back to Sent).
+	rank = {"Pending": 0, "Sent": 1, "Delivered": 2, "Read": 3, "Failed": 1, "Received": 1}
+	current = frappe.db.get_value("WhatsApp Message", name, "status")
+	if rank.get(status, 0) >= rank.get(current, 0):
+		frappe.db.set_value("WhatsApp Message", name, "status", status)
 
 
 def _process_evolution_message(item):

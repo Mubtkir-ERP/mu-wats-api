@@ -8,8 +8,7 @@
   "recipient_code",
   "mobile_number",
   "recipient_name",
-  "recipient_data",
-  "company"
+  "recipient_data"
  ],
  "fields": [
   {
@@ -41,13 +40,6 @@
    "fieldtype": "Code",
    "label": "Recipient Data",
    "options": "JSON"
-  },
-  {
-   "fieldname": "company",
-   "fieldtype": "Link",
-   "label": "Company",
-   "options": "Company",
-   "in_list_view": 0
   }
  ],
  "index_web_pages_for_search": 1,

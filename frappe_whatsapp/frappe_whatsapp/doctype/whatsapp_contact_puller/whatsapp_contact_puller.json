@@ -34,7 +34,6 @@
   "pulled_numbers",
   "destination_section",
   "destination",
-  "company",
   "column_break_dest",
   "target_recipient_list",
   "new_list_name",
@@ -263,13 +262,6 @@
    "label": "Idle window (days)",
    "default": "90",
    "description": "Between Active window and this = Idle. Beyond this = Dead."
-  },
-  {
-   "fieldname": "company",
-   "fieldtype": "Link",
-   "label": "Company",
-   "options": "Company",
-   "description": "Tag pulled numbers with this company (useful when managing several companies)."
   }
  ],
  "index_web_pages_for_search": 1,

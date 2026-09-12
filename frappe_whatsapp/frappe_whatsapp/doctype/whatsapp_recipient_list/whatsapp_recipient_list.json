@@ -7,6 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "list_name",
+  "company",
   "description",
   "section_recipients",
   "recipients",
@@ -106,6 +107,13 @@
    "fieldtype": "Code",
    "label": "Data fields",
    "options": "JSON"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "description": "Company this recipient list belongs to (useful when managing several companies)."
   }
  ],
  "index_web_pages_for_search": 1,

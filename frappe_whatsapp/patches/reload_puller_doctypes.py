@@ -9,7 +9,7 @@ import frappe
 
 
 def execute():
-	for dt in ("whatsapp_contact_puller", "whatsapp_pulled_number", "whatsapp_recipient"):
+	for dt in ("whatsapp_contact_puller", "whatsapp_pulled_number", "whatsapp_recipient", "whatsapp_recipient_list", "whatsapp_message"):
 		try:
 			frappe.reload_doc("frappe_whatsapp", "doctype", dt, force=True)
 		except Exception:

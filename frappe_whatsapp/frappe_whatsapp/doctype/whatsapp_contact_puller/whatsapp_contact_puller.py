@@ -28,6 +28,28 @@ class WhatsAppContactPuller(Document):
 # Helpers
 # ---------------------------------------------------------------------------
 
+import re as _re
+
+def _normalize_text(t):
+	"""Normalise text for keyword matching (Arabic-aware).
+
+	Lowercases, strips Arabic diacritics/tatweel, unifies alef/ya/ta-marbuta,
+	and collapses whitespace so a keyword matches despite formatting.
+	"""
+	if not t:
+		return ""
+	t = str(t).lower()
+	# remove Arabic diacritics (harakat) and tatweel
+	t = _re.sub(r"[\u0617-\u061A\u064B-\u0652\u0640]", "", t)
+	# unify common Arabic letter variants
+	t = t.replace("\u0623", "\u0627").replace("\u0625", "\u0627").replace("\u0622", "\u0627")  # hamza-alef -> alef
+	t = t.replace("\u0649", "\u064a")  # alef maqsura -> ya
+	t = t.replace("\u0629", "\u0647")  # ta marbuta -> ha
+	# collapse whitespace
+	t = _re.sub(r"\s+", " ", t).strip()
+	return t
+
+
 def _clean_number(jid_or_number):
 	"""Reduce an Evolution JID or raw number to bare digits."""
 	value = (jid_or_number or "").split("@")[0]
@@ -74,6 +96,60 @@ def _fetch_from_evolution(base_url, api_key, instance_name, source_type):
 	return out
 
 
+def _dig_records(resp):
+	"""Find the message list inside any Evolution findMessages response shape.
+
+	Different Evolution versions nest differently:
+	  resp -> list
+	  resp.messages.records -> list
+	  resp.data -> list
+	  resp.data.messages.records -> list
+	This walks common containers and returns the first list of dicts found.
+	"""
+	def first_list(node, depth=0):
+		if depth > 6:
+			return None
+		if isinstance(node, list):
+			return node
+		if isinstance(node, dict):
+			# Prefer known keys first.
+			for k in ("records", "messages", "data", "result", "rows"):
+				if k in node:
+					found = first_list(node[k], depth + 1)
+					if found is not None:
+						return found
+			# Otherwise scan any nested value.
+			for v in node.values():
+				found = first_list(v, depth + 1)
+				if found is not None:
+					return found
+		return None
+	return first_list(resp) or []
+
+
+def _extract_msg_text(msg):
+	"""Pull readable text out of any Evolution/Baileys message object."""
+	if not isinstance(msg, dict):
+		return ""
+	# Unwrap common wrappers.
+	for wrap in ("ephemeralMessage", "viewOnceMessage", "viewOnceMessageV2", "documentWithCaptionMessage"):
+		if wrap in msg and isinstance(msg[wrap], dict):
+			inner = msg[wrap].get("message")
+			if isinstance(inner, dict):
+				msg = inner
+				break
+	return (
+		msg.get("conversation")
+		or (msg.get("extendedTextMessage") or {}).get("text")
+		or (msg.get("imageMessage") or {}).get("caption")
+		or (msg.get("videoMessage") or {}).get("caption")
+		or (msg.get("documentMessage") or {}).get("caption")
+		or (msg.get("buttonsResponseMessage") or {}).get("selectedDisplayText")
+		or ((msg.get("listResponseMessage") or {}).get("title"))
+		or ""
+	)
+
+
 def _fetch_messages_for_number(base_url, api_key, instance_name, number, limit=200):
 	"""Deep history: fetch a number's messages from Evolution (/chat/findMessages).
 
@@ -82,21 +158,20 @@ def _fetch_messages_for_number(base_url, api_key, instance_name, number, limit=2
 	the local WhatsApp Message table can't see those.
 	"""
 	jid = f"{number}@s.whatsapp.net"
-	payload = {"where": {"key": {"remoteJid": jid}}, "limit": limit}
-	try:
-		resp = _request("POST", base_url, f"/chat/findMessages/{instance_name}", api_key, payload)
-	except Exception:
-		return []
-
-	# Evolution may nest the records under data.messages.records / data / messages.
-	records = resp
-	for key in ("messages", "records"):
-		if isinstance(records, dict) and key in records:
-			records = records[key]
-	if isinstance(records, dict):
-		records = records.get("data") or records.get("records") or []
-	if not isinstance(records, list):
-		return []
+	# Try a couple of payload shapes Evolution versions accept.
+	payloads = [
+		{"where": {"key": {"remoteJid": jid}}, "limit": limit},
+		{"where": {"remoteJid": jid}, "limit": limit},
+	]
+	records = []
+	for payload in payloads:
+		try:
+			resp = _request("POST", base_url, f"/chat/findMessages/{instance_name}", api_key, payload)
+		except Exception:
+			continue
+		records = _dig_records(resp)
+		if records:
+			break
 
 	out = []
 	for m in records:
@@ -104,14 +179,10 @@ def _fetch_messages_for_number(base_url, api_key, instance_name, number, limit=2
 			continue
 		key = m.get("key", {}) or {}
 		inbound = not key.get("fromMe", False)
-		msg = m.get("message", {}) or {}
-		text = (
-			msg.get("conversation")
-			or (msg.get("extendedTextMessage") or {}).get("text")
-			or (msg.get("imageMessage") or {}).get("caption")
-			or ""
-		)
+		text = _extract_msg_text(m.get("message", {}) or {})
 		ts = m.get("messageTimestamp")
+		if isinstance(ts, dict):
+			ts = ts.get("low") or ts.get("$numberLong")
 		try:
 			ts = int(ts) if ts else None
 		except (ValueError, TypeError):
@@ -287,7 +358,7 @@ def pull(docname):
 	a_min = int(doc.tier_a_min_msgs or 5)
 	deep = bool(doc.deep_history)
 	hist_limit = int(doc.history_limit or 200)
-	keyword = (doc.keyword_filter or "").strip().lower()
+	keyword = _normalize_text(doc.keyword_filter or "")
 
 	# Local (ERPNext) engagement as fallback when deep history is off.
 	local_eng = {} if deep else _engagement_map(numbers)
@@ -330,7 +401,7 @@ def pull(docname):
 		# Keyword filter (searches deep texts, or local match set).
 		if keyword:
 			if deep:
-				if not any(keyword in (t or "").lower() for t in texts):
+				if not any(keyword in _normalize_text(t) for t in texts):
 					continue
 			else:
 				if number not in (local_kw or set()):
@@ -370,7 +441,6 @@ def pull(docname):
 			"read_no_reply": read_no_reply,
 			"already_exists": 1 if exists_in else 0,
 			"exists_in": exists_in or "",
-			"company": doc.company or "",
 		})
 		kept += 1
 
@@ -490,7 +560,6 @@ def _save_to_recipient_list(doc, selected):
 			"recipient_code": f"recip-num-{seq:03d}",
 			"mobile_number": row.mobile_number,
 			"recipient_name": row.contact_name or "",
-			"company": doc.company or "",
 			"recipient_data": frappe.as_json({
 				"name": row.contact_name or "",
 				"tier": row.get("tier") or "",
@@ -508,6 +577,11 @@ def _save_to_leads(doc, selected):
 	"""Create standard ERPNext Leads for numbers not already a Lead (deduped)."""
 	created, skipped = 0, 0
 	source = doc.lead_source or "WhatsApp Pull"
+	# Company now lives on the Recipient List, not the puller; use the target
+	# list's company when one is selected.
+	company = None
+	if doc.target_recipient_list:
+		company = frappe.db.get_value("WhatsApp Recipient List", doc.target_recipient_list, "company")
 	for row in selected:
 		number = row.mobile_number
 		if frappe.db.exists("Lead", {"mobile_no": number}) or frappe.db.exists("Lead", {"phone": number}):
@@ -518,7 +592,7 @@ def _save_to_leads(doc, selected):
 			"lead_name": row.contact_name or number,
 			"mobile_no": number,
 			"phone": number,
-			"company": doc.company or None,
+			"company": company or None,
 			"source": source if frappe.db.exists("Lead Source", source) else None,
 		})
 		lead.insert(ignore_permissions=True)
