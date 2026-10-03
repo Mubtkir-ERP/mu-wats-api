@@ -17,7 +17,7 @@ def execute():
                     "fieldname": "channel",
                     "label": "Channel",
                     "fieldtype": "Select",
-                    "options": "Meta\nEvolution",
+                    "options": "\nMeta\nEvolution",
                                         "insert_after": "message_type",
                     "in_list_view": 1,
                     "description": "Which platform sends this message. Meta = Cloud API, Evolution = Mubtkir API.",

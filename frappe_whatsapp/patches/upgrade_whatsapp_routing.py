@@ -21,7 +21,7 @@ def execute():
                     "fieldname": "channel",
                     "label": "Channel",
                     "fieldtype": "Select",
-                    "options": "Meta\nEvolution",
+                    "options": "\nMeta\nEvolution",
                     "insert_after": "message_type",
                     "in_list_view": 1,
                     "description": "Blank uses WhatsApp Settings -> Default Channel.",
