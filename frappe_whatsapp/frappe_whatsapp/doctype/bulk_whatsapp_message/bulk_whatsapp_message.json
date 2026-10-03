@@ -145,7 +145,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "Draft\nQueued\nIn Progress\nCompleted\nPartially Failed",
+   "options": "Draft\nQueued\nIn Progress\nCompleted\nPartially Failed\nFailed",
    "read_only": 1
   },
   {
@@ -153,7 +153,8 @@
    "fieldname": "sent_count",
    "fieldtype": "Int",
    "label": "Sent Count",
-   "read_only": 1
+   "read_only": 1,
+   "description": "Number of successfully accepted messages, not total attempts."
   },
   {
    "fieldname": "send_log",
@@ -164,7 +165,7 @@
    "description": "Per-recipient diagnostics: endpoint, HTTP status and the raw Evolution response. Use it to trace why a message did not arrive."
   },
   {
-   "description": "Leave empty to send immediately after submission",
+   "description": "Leave empty to queue immediately after submission. Future times are picked up automatically by the scheduler.",
    "fieldname": "scheduled_time",
    "fieldtype": "Datetime",
    "label": "Scheduled Time"
@@ -197,7 +198,7 @@
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-08-24 11:05:07.017547",
+ "modified": "2026-10-03 16:51:00.000000",
  "modified_by": "Administrator",
  "module": "Frappe Whatsapp",
  "name": "Bulk WhatsApp Message",

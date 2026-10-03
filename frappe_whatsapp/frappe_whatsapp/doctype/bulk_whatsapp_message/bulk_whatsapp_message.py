@@ -1,200 +1,209 @@
-# Bulk WhatsApp Messaging for Frappe WhatsApp
-# bulk_whatsapp_messaging.py
+# Copyright (c) 2025, Shridhar Patil and contributors
+# For license information, please see license.txt
 
+import json
+import random
+import time
 import frappe
 from frappe import _
-import json
-import time
-import random
-import requests
-from frappe.utils import cint, get_datetime, now
 from frappe.model.document import Document
 from frappe.model.naming import make_autoname
+from frappe.utils import cint, get_datetime, now_datetime
 
-# Add these files to your frappe_whatsapp app
+from frappe_whatsapp.utils.messaging import ensure_enabled, get_default_channel, normalize_number
 
-# 1. First, create a new DocType for Bulk WhatsApp Messaging
-# Save this as a Python file in your app's folder: 
-# frappe_whatsapp/frappe_whatsapp/doctype/bulk_whatsapp_message/bulk_whatsapp_message.py
 
 class BulkWhatsAppMessage(Document):
     def autoname(self):
         self.name = make_autoname("BULK-WA-.YYYY.-.#####")
-    
+
     def validate(self):
-        # self.validate_message()
         self.validate_recipients()
+        self.validate_message()
         self.validate_attachment()
 
     def validate_message(self):
-        if not self.message_content:
-            frappe.throw(_("Message content is required"))
+        if self.use_template and not self.template:
+            frappe.throw(_("Select a WhatsApp Template or disable Use Template."))
+        if not self.use_template and not (self.message_content or self.attach):
+            frappe.throw(_("Message Content or an attachment is required."))
+        if cint(self.message_delay) < 0 or cint(self.max_delay) < 0:
+            frappe.throw(_("Message delay cannot be negative."))
+        if cint(self.max_delay) and cint(self.message_delay) > cint(self.max_delay):
+            frappe.throw(_("Max Delay must be greater than or equal to Min Delay."))
 
     def validate_attachment(self):
-        """Block over-sized media before submit so the send doesn't silently fail.
-
-        WhatsApp rejects large media (videos over ~16 MB) even when Evolution
-        accepts the request and reports success, which otherwise leaves the
-        campaign marked "Completed" while nothing is delivered.
-        """
         if not self.attach:
             return
         max_mb = frappe.db.get_single_value("WhatsApp Settings", "max_attachment_size") or 16
         file_size = frappe.db.get_value("File", {"file_url": self.attach}, "file_size")
-        if file_size and file_size > max_mb * 1024 * 1024:
+        if file_size and file_size > cint(max_mb) * 1024 * 1024:
             frappe.throw(
-                _(
-                    "The attachment is {0} MB, over the {1} MB limit. WhatsApp rejects "
-                    "large media (videos above ~16 MB) even if the send looks successful. "
-                    "Use a smaller file."
-                ).format(round(file_size / (1024 * 1024), 1), max_mb),
+                _("The attachment is {0} MB, over the configured {1} MB limit.").format(
+                    round(file_size / (1024 * 1024), 1), max_mb
+                ),
                 title=_("Attachment Too Large"),
             )
-    
+
     def validate_recipients(self):
         if not self.recipients and not self.recipient_list:
             frappe.throw(_("At least one recipient or a recipient list is required"))
-        
-        # If recipient list is provided, count recipients
-        if self.recipient_type == 'Recipient List' and self.recipient_list:
-            recipient_count = frappe.db.count("WhatsApp Recipient", {"parent": self.recipient_list})
-            if recipient_count == 0:
+        if self.recipient_type == "Recipient List" and self.recipient_list:
+            count = frappe.db.count("WhatsApp Recipient", {"parent": self.recipient_list})
+            if not count:
                 frappe.throw(_("Selected recipient list has no recipients"))
-            self.recipient_count = recipient_count
-        # If individual recipients are provided
-        elif self.recipients:
-            self.recipient_count = len(self.recipients)
-    
+            self.recipient_count = count
+        else:
+            self.recipient_count = len(self.recipients or [])
+
     def on_submit(self):
+        ensure_enabled()
+        if self.scheduled_time and get_datetime(self.scheduled_time) > now_datetime():
+            self.db_set("status", "Queued")
+            return
+        self.enqueue_send()
+
+    def enqueue_send(self, retry_failed_only=False):
+        """Queue a campaign on Frappe's long worker; never block the web request."""
+        ensure_enabled()
         self.db_set("status", "In Progress")
-        self.send_messages()
-    
+        try:
+            frappe.enqueue(
+                "frappe_whatsapp.frappe_whatsapp.doctype.bulk_whatsapp_message.bulk_whatsapp_message.process_bulk_message",
+                queue="long",
+                enqueue_after_commit=True,
+                job_name=f"whatsapp-bulk-{self.name}{'-retry' if retry_failed_only else ''}",
+                bulk_name=self.name,
+                retry_failed_only=retry_failed_only,
+            )
+        except Exception:
+            self.db_set("status", "Queued" if not retry_failed_only else "Partially Failed")
+            raise
+
     def _resolve_sender(self):
-        """Resolve (base_url, api_key, instance_name) of the sending instance.
+        from frappe_whatsapp.utils import evolution
 
-        Uses the selected 'Send From Instance', falling back to the current
-        user's own WhatsApp instance. Cached on the doc for the whole run.
-        """
-        from frappe_whatsapp.api import _server_credentials
-
-        instance_name = self.sender_number or frappe.db.get_value(
-            "Whatsapp Instance", {"linked_user": frappe.session.user}, "name"
+        base_url, api_key, instance_name = evolution.resolve_instance(
+            self.sender_number or None,
+            user=self.owner,
         )
-        if not instance_name:
-            frappe.throw(_("No WhatsApp instance to send from. Set 'Send From Instance'."))
-
-        server = frappe.db.get_value("Whatsapp Instance", instance_name, "evolution_server")
-        base_url, api_key = _server_credentials(server)
-
         self._sender_base = base_url
         self._sender_key = api_key
         self._sender_instance = instance_name
+        if not self.sender_number:
+            self.db_set("sender_number", instance_name, update_modified=False)
 
-    def send_messages(self):
-        """Send messages directly (synchronously) with progress updates"""
-        # Resolve the sending instance up-front (aborts the run if unavailable).
-        self._resolve_sender()
+    def _delay_between_messages(self):
+        minimum = cint(self.message_delay)
+        maximum = cint(self.max_delay)
+        if maximum < minimum:
+            maximum = minimum
+        if maximum <= 0:
+            return
+        time.sleep(random.randint(minimum, maximum))
+
+    def send_messages(self, retry_failed_only=False):
+        """Worker-side campaign processor."""
+        ensure_enabled()
+        self._channel = get_default_channel()
+        self._sender_instance = None
+        self._sender_base = None
+        self._sender_key = None
+        if self._channel == "Evolution":
+            self._resolve_sender()
         self._send_errors = []
         self._log_lines = []
 
-        recipients_list = self._gather_recipients()
+        if retry_failed_only:
+            return self._retry_failed_messages()
 
-        total = len(recipients_list)
+        recipients = self._gather_recipients()
+        total = len(recipients)
         sent = 0
         failed = 0
-        
-        for i, recipient in enumerate(recipients_list):
-            # Show progress to user
-            frappe.publish_progress(
-                percent=int((i / total) * 100),
-                title=_("Sending WhatsApp Messages"),
-                description=_("Sending message {0} of {1} to {2}").format(
-                    i + 1, total, recipient.get("recipient_name") or recipient.get("mobile_number")
+        self.db_set("sent_count", 0, update_modified=False)
+
+        try:
+            for i, recipient in enumerate(recipients):
+                if i:
+                    self._delay_between_messages()
+                frappe.publish_progress(
+                    percent=int((i / total) * 100) if total else 100,
+                    title=_("Sending WhatsApp Messages"),
+                    description=_("Sending message {0} of {1} to {2}").format(
+                        i + 1,
+                        total,
+                        recipient.get("recipient_name") or recipient.get("mobile_number"),
+                    ),
                 )
-            )
-            
-            success = self.send_single_message(recipient)
-            if success:
-                sent += 1
-            else:
-                failed += 1
-        
-        # Final progress update
+                if self.send_single_message(recipient):
+                    sent += 1
+                    self.db_set("sent_count", sent, update_modified=False)
+                else:
+                    failed += 1
+
+            self._finish(sent, failed)
+            return {"sent": sent, "failed": failed}
+        except Exception:
+            self.db_set("status", "Failed")
+            self._log(f"FATAL: {frappe.get_traceback()[-2000:]}")
+            self._persist_log()
+            raise
+
+    def _finish(self, sent, failed):
+        if failed == 0:
+            status = "Completed"
+        elif sent == 0:
+            status = "Failed"
+        else:
+            status = "Partially Failed"
+        self.db_set("status", status)
+        self.db_set("sent_count", sent, update_modified=False)
+        self._persist_log()
         frappe.publish_progress(
             percent=100,
             title=_("Sending WhatsApp Messages"),
-            description=_("Completed: {0} sent, {1} failed").format(sent, failed)
+            description=_("Completed: {0} sent, {1} failed").format(sent, failed),
         )
-        
-        # Update final status
-        if failed == 0:
-            self.db_set("status", "Completed")
-        elif sent == 0:
-            self.db_set("status", "Failed")
-        else:
-            self.db_set("status", "Partially Failed")
 
-        # Persist the diagnostics log so failures can be traced from the form.
-        if getattr(self, "_log_lines", None):
-            self.db_set("send_log", "\n".join(self._log_lines)[:50000])
+    def _persist_log(self):
+        if self._log_lines:
+            self.db_set("send_log", "\n".join(self._log_lines)[-50000:], update_modified=False)
 
-        msg = _("Bulk WhatsApp Message completed: {0} sent, {1} failed").format(sent, failed)
-        if getattr(self, "_send_errors", None):
-            msg += "<br><br><b>" + _("Last error") + ":</b> " + frappe.utils.escape_html(
-                self._send_errors[-1]
-            )
-        frappe.msgprint(
-            msg,
-            indicator="green" if failed == 0 else "orange",
-            title=_("Bulk Send Result"),
-        )
-    
     def _build_message_text(self, recipient):
-        """Resolve the final message text for one recipient.
+        if not (self.use_template and self.template):
+            return self.message_content or ""
 
-        Returns the template body with its {{1}}, {{2}}... placeholders filled
-        (from the recipient's own data for Unique, or the shared Template
-        Variables for Common), or the plain Message Content. Returns None when a
-        template is configured but cannot be found.
-        """
-        if self.use_template and self.template:
-            template = frappe.db.get_value("WhatsApp Templates", self.template, fieldname="*")
-            if not template:
-                frappe.log_error(f"Template {self.template} not found", "WhatsApp Bulk Messaging")
-                return None
+        template = frappe.db.get_value("WhatsApp Templates", self.template, fieldname="*")
+        if not template:
+            frappe.throw(_("Template {0} not found").format(self.template))
 
-            parameters = []
-            if recipient.get("recipient_data") and self.variable_type == "Unique":
-                try:
-                    parameters = list(json.loads(recipient.get("recipient_data", "{}")).values())
-                except Exception:
-                    pass
-            elif self.template_variables and self.variable_type == "Common":
-                try:
-                    parameters = list(json.loads(self.template_variables).values())
-                except Exception:
-                    pass
+        parameters = []
+        if recipient.get("recipient_data") and self.variable_type == "Unique":
+            try:
+                values = json.loads(recipient.get("recipient_data") or "{}")
+                parameters = list(values.values()) if isinstance(values, dict) else list(values)
+            except Exception:
+                parameters = []
+        elif self.template_variables and self.variable_type == "Common":
+            try:
+                values = json.loads(self.template_variables)
+                parameters = list(values.values()) if isinstance(values, dict) else list(values)
+            except Exception:
+                parameters = []
 
-            message_text = (
-                template.get("template")
-                or template.get("message_content")
-                or template.get("body")
-                or template.get("message")
-                or ""
-            )
-            for i, param in enumerate(parameters, 1):
-                message_text = message_text.replace(f"{{{{{i}}}}}", str(param))
-            return message_text
-
-        return self.message_content or ""
+        text = template.get("template") or ""
+        for i, value in enumerate(parameters, 1):
+            text = text.replace("{{%s}}" % i, str(value or ""))
+        return text
 
     def _gather_recipients(self):
-        """Return the recipient list (mobile_number, recipient_name, recipient_data)."""
         if self.recipient_type == "Recipient List" and self.recipient_list:
             return frappe.get_all(
                 "WhatsApp Recipient",
                 filters={"parent": self.recipient_list},
                 fields=["mobile_number", "name", "recipient_name", "recipient_data"],
+                order_by="idx asc",
             )
         return [
             {
@@ -207,265 +216,201 @@ class BulkWhatsAppMessage(Document):
 
     @frappe.whitelist()
     def preview_messages(self, limit=25):
-        """Return the resolved message for the first ``limit`` recipients (no send)."""
-        limit = int(limit or 25)
-        out = []
-        for r in self._gather_recipients()[:limit]:
-            text = self._build_message_text(r)
-            out.append(
-                {
-                    "mobile": r.get("mobile_number"),
-                    "name": r.get("recipient_name"),
-                    "message": text if text is not None else _("(template not found)"),
-                }
-            )
-        return out
+        limit = max(1, min(int(limit or 25), 100))
+        return [
+            {
+                "mobile": r.get("mobile_number"),
+                "name": r.get("recipient_name"),
+                "message": self._build_message_text(r),
+            }
+            for r in self._gather_recipients()[:limit]
+        ]
+
+    def _message_parameters(self, recipient):
+        if not self.use_template:
+            return None
+        if self.variable_type == "Unique":
+            return recipient.get("recipient_data") or "{}"
+        return self.template_variables or "{}"
 
     def send_single_message(self, recipient):
-        """Send a single message via Mubtkir API. Returns True on success, False on failure."""
-        
-        # Add random delay between messages to prevent blocking
-        min_delay = cint(self.message_delay) or 20
-        max_delay = cint(self.max_delay) or 60
-        if max_delay < min_delay:
-            max_delay = min_delay
-        delay = random.randint(min_delay, max_delay)
-        time.sleep(delay)
-        
-        # Get phone number
-        phone_number = recipient.get("mobile_number")
+        """Send one campaign recipient through the global channel router."""
+        phone_number = normalize_number(recipient.get("mobile_number"))
         if not phone_number:
-            frappe.log_error("No phone number for recipient", "WhatsApp Bulk Messaging")
-            self._log("✗ (recipient has no mobile number)")
+            self._record_failure("", "", _("Recipient has no mobile number"), recipient=recipient)
             return False
-        
-        # Format phone number
-        phone_number = self.format_number(phone_number)
-        
-        # Parse recipient data for template variables
-        recipient_data = {}
-        if recipient.get("recipient_data"):
-            try:
-                recipient_data = json.loads(recipient.get("recipient_data", "{}"))
-            except Exception as e:
-                frappe.log_error(f"Error parsing recipient data: {str(e)}", "WhatsApp Bulk Messaging")
-        
-        # The sending instance was resolved once in send_messages(); guard in
-        # case send_single_message is ever called on its own.
-        if not getattr(self, "_sender_instance", None):
-            self._resolve_sender()
 
-        headers = {
-            "Content-Type": "application/json",
-            "apikey": self._sender_key,
+        message_text = self._build_message_text(recipient)
+        filename = self.attach.rsplit("/", 1)[-1] if self.attach else None
+        content_type = _media_kind(filename)[0] if filename else "text"
+        data = {
+            "doctype": "WhatsApp Message",
+            "type": "Outgoing",
+            "message": message_text,
+            "to": phone_number,
+            "message_type": "Template" if self.use_template else "Manual",
+            "content_type": content_type,
+            "bulk_message_reference": self.name,
+            "channel": self._channel,
         }
-        
-        success = False
-        response_data = None
-        error_message = None
-        message_text = None
-        
-        try:
-            # 1) Resolve the message text — from a template, or the plain body.
-            message_text = self._build_message_text(recipient)
-            if message_text is None:
-                # Template configured but not found (already logged) — skip.
-                return
-
-            # 2) Resolve the attachment URL (device upload or ERPNext file).
-            attachment_url = None
-            filename = None
-            if self.attach:
-                filename = self.attach.split("/")[-1] if "/" in self.attach else self.attach
-                if self.attach.startswith(("http://", "https://")):
-                    attachment_url = self.attach
-                else:
-                    from urllib.parse import quote
-
-                    path = self.attach if self.attach.startswith("/") else "/" + self.attach
-                    # Percent-encode so Arabic names / spaces in the path are valid
-                    # for the Evolution server to fetch (keep the path slashes).
-                    attachment_url = frappe.utils.get_url() + quote(path, safe="/")
-
-            # 3) Build the payload — media (image / PDF / video / audio) or text.
-            if attachment_url:
-                mediatype, mimetype = _media_kind(filename)
-                url = f"{self._sender_base}/message/sendMedia/{self._sender_instance}"
-                payload = {
-                    "number": phone_number,
-                    "mediatype": mediatype,
-                    "media": attachment_url,
+        if self.attach:
+            data["attach"] = self.attach
+        if self._channel == "Evolution" and self._sender_instance:
+            data["send_from_instance"] = self._sender_instance
+        if self.use_template:
+            data.update(
+                {
+                    "use_template": 1,
+                    "template": self.template,
+                    "template_parameters": self._message_parameters(recipient),
                 }
-                if message_text:
-                    payload["caption"] = message_text
-                if mediatype == "document":
-                    payload["fileName"] = filename
-                    payload["mimetype"] = mimetype or "application/octet-stream"
-                content_type = mediatype
-            else:
-                if not message_text:
-                    message_text = "No Text"
-                url = f"{self._sender_base}/message/sendText/{self._sender_instance}"
-                payload = {"number": phone_number, "text": message_text}
-                content_type = "text"
-
-            # Make request to Mubtkir API
-            endpoint = url.rsplit("/message/", 1)[-1].split("/")[0] if "/message/" in url else url
-            response = requests.post(url, headers=headers, json=payload, timeout=30)
-            try:
-                response_data = response.json()
-            except Exception:
-                response_data = {}
-            self._log(
-                f"→ {phone_number} | {content_type} via {endpoint} | HTTP {response.status_code} | {response.text[:600]}"
             )
 
-            if response.status_code in [200, 201]:
-                success = True
-                
-                # Extract message ID from response
-                message_id = response_data.get("key", {}).get("id", "")
-                if not message_id:
-                    message_id = response_data.get("message", {}).get("key", {}).get("id", "")
-                
-                # Create WhatsApp Message record for tracking
-                new_doc = {
-                    "doctype": "WhatsApp Message",
-                    "type": "Outgoing",
-                    "message": message_text,
-                    "to": phone_number,
-                    "message_type": "Template" if self.use_template else "Manual",
-                    "message_id": message_id,
-                    "content_type": content_type,
-                    "status": "Sent",
-                    "bulk_message_reference": self.name
-                }
+        try:
+            msg = frappe.get_doc(data)
+            msg.insert(ignore_permissions=True)
+            self._log(
+                f"✓ {phone_number} | {msg.channel} | {msg.content_type or content_type} | "
+                f"{msg.message_id or 'accepted'}"
+            )
+            return True
+        except Exception as exc:
+            self._record_failure(phone_number, message_text, str(exc), recipient=recipient)
+            return False
 
-                if self.use_template:
-                    new_doc.update({
-                        "use_template": 1,
-                        "template": self.template,
-                        "template_parameters": recipient.get("recipient_data") if self.variable_type == 'Unique' else self.template_variables
-                    })
-
-                # Already sent via Evolution — don't let the doctype re-send via Meta.
-                msg_doc = frappe.get_doc(new_doc)
-                msg_doc.flags.skip_meta_send = True
-                msg_doc.insert(ignore_permissions=True)
-            else:
-                self._record_failure(phone_number, message_text, _extract_error(response_data))
-
-        except requests.exceptions.RequestException as e:
-            self._record_failure(phone_number, message_text, f"Connection error: {e}")
-        except Exception as e:
-            self._record_failure(phone_number, message_text, str(e))
-        finally:
-            # Update sent count
-            self.db_set("sent_count", cint(self.sent_count) + 1)
-
-        return success
-
-    def _log(self, line):
-        """Append a line to the in-memory send log (persisted after the run)."""
-        if not hasattr(self, "_log_lines"):
-            self._log_lines = []
-        self._log_lines.append(line)
-
-    def _record_failure(self, phone_number, message_text, error_message):
-        """Log a send failure, keep it for the result popup, and store it on a
-        Failed WhatsApp Message so the reason is visible on the record."""
-        error_message = (error_message or "Unknown error")[:500]
-        if not hasattr(self, "_send_errors"):
-            self._send_errors = []
+    def _record_failure(self, phone_number, message_text, error_message, recipient=None):
+        error_message = (error_message or _("Unknown error"))[:1000]
         self._send_errors.append(error_message)
-        self._log(f"✗ {phone_number} | FAILED: {error_message}")
+        self._log(f"✗ {phone_number or '(no number)'} | {self._channel} | FAILED: {error_message}")
         frappe.log_error(
             f"Failed to send WhatsApp message to {phone_number}: {error_message}",
             "WhatsApp Bulk Messaging",
         )
         try:
-            fail_doc = frappe.get_doc(
-                {
-                    "doctype": "WhatsApp Message",
-                    "type": "Outgoing",
-                    "message": f"{message_text or ''}\n\n[ERROR] {error_message}".strip(),
-                    "to": phone_number,
-                    "message_type": "Template" if self.use_template else "Manual",
-                    "status": "Failed",
-                    "bulk_message_reference": self.name,
-                }
-            )
-            fail_doc.flags.skip_meta_send = True
-            fail_doc.insert(ignore_permissions=True)
-        except Exception:
-            pass
-    
-    def format_number(self, number):
-        """Normalise a phone number to WhatsApp's international digits-only form.
-
-        Strips spaces, dashes, parentheses and a leading ``+``/``00``. As a
-        convenience for Saudi numbers, a local ``05XXXXXXXX`` (10 digits) is
-        converted to ``9665XXXXXXXX``. Numbers must otherwise already include
-        their country code.
-        """
-        if not number:
-            return number
-        import re
-
-        digits = re.sub(r"\D", "", str(number))
-        if digits.startswith("00"):
-            digits = digits[2:]
-        # Local Saudi mobile (05XXXXXXXX) -> 9665XXXXXXXX.
-        if len(digits) == 10 and digits.startswith("05"):
-            digits = "966" + digits[1:]
-        return digits
-
-    def retry_failed(self):
-        """Retry failed messages"""
-        failed_messages = frappe.get_all(
-            "WhatsApp Message",
-            filters={
+            filename = self.attach.rsplit("/", 1)[-1] if self.attach else None
+            content_type = _media_kind(filename)[0] if filename else "text"
+            data = {
+                "doctype": "WhatsApp Message",
+                "type": "Outgoing",
+                "message": message_text or "",
+                "to": phone_number,
+                "message_type": "Template" if self.use_template else "Manual",
+                "content_type": content_type,
+                "status": "Failed",
+                "failure_reason": error_message,
                 "bulk_message_reference": self.name,
-                "status": "Failed"
-            },
-            fields=["name"]
+                "channel": self._channel,
+            }
+            if self.attach:
+                data["attach"] = self.attach
+            if self._channel == "Evolution" and self._sender_instance:
+                data["send_from_instance"] = self._sender_instance
+            if self.use_template:
+                data.update(
+                    {
+                        "use_template": 1,
+                        "template": self.template,
+                        "template_parameters": self._message_parameters(recipient or {}),
+                    }
+                )
+            msg = frappe.get_doc(data)
+            msg.flags.skip_meta_send = True
+            msg.insert(ignore_permissions=True)
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), "Could not store failed WhatsApp Message")
+
+    def _log(self, line):
+        self._log_lines.append(str(line))
+
+    def format_number(self, number):
+        return normalize_number(number)
+
+    @frappe.whitelist()
+    def retry_failed(self):
+        """Retry this campaign's failed messages on the long worker."""
+        failed = frappe.db.count(
+            "WhatsApp Message", {"bulk_message_reference": self.name, "status": "Failed"}
         )
-        
-        count = 0
-        for msg in failed_messages:
-            message_doc = frappe.get_doc("WhatsApp Message", msg.name)
-            message_doc.status = "Queued"
-            message_doc.save(ignore_permissions=True)
-            count += 1
-        
-        frappe.msgprint(_("{0} messages have been requeued for sending").format(count))
-        
+        if not failed:
+            return {"queued": 0}
+        self.enqueue_send(retry_failed_only=True)
+        return {"queued": failed}
+
+    def _retry_failed_messages(self):
+        names = frappe.get_all(
+            "WhatsApp Message",
+            filters={"bulk_message_reference": self.name, "status": "Failed"},
+            pluck="name",
+            order_by="creation asc",
+        )
+        sent = 0
+        failed = 0
+        for i, name in enumerate(names):
+            if i:
+                self._delay_between_messages()
+            try:
+                msg = frappe.get_doc("WhatsApp Message", name)
+                msg.to = normalize_number(msg.to)
+                msg.channel = self._channel
+                msg.send_from_instance = self._sender_instance if self._channel == "Evolution" else None
+                msg.message_id = None
+                msg.failure_reason = ""
+
+                if self._channel == "Evolution":
+                    if msg.message_type == "Template" and not msg.message:
+                        msg.message = msg._render_evolution_template()
+                    msg._send_via_evolution()
+                else:
+                    msg._send_via_meta()
+
+                frappe.db.set_value(
+                    "WhatsApp Message",
+                    name,
+                    {
+                        "status": msg.status or "Sent",
+                        "message_id": msg.message_id,
+                        "content_type": msg.content_type,
+                        "channel": self._channel,
+                        "send_from_instance": msg.send_from_instance,
+                        "failure_reason": "",
+                    },
+                )
+                sent += 1
+                self._log(f"✓ RETRY {msg.to} | {self._channel} | {msg.message_id or 'accepted'}")
+            except Exception as exc:
+                failed += 1
+                frappe.db.set_value("WhatsApp Message", name, "failure_reason", str(exc)[:1000])
+                self._log(f"✗ RETRY {name} | {self._channel} | {exc}")
+
+        total_sent = frappe.db.count(
+            "WhatsApp Message",
+            {"bulk_message_reference": self.name, "status": ["in", ["Sent", "Delivered", "Read"]]},
+        )
+        remaining_failed = frappe.db.count(
+            "WhatsApp Message", {"bulk_message_reference": self.name, "status": "Failed"}
+        )
+        self._finish(total_sent, remaining_failed)
+        return {"retried": len(names), "sent": sent, "failed": failed}
+
+    @frappe.whitelist()
     def get_progress(self):
-        """Get sending progress for this bulk message"""
-        total = self.recipient_count
-        sent = frappe.db.count("WhatsApp Message", {
-            "bulk_message_reference": self.name,
-            "status": ["in", ["sent","delivered", "Success", "read"]]
-        })
-        failed = frappe.db.count("WhatsApp Message", {
-            "bulk_message_reference": self.name,
-            "status": "Failed"
-        })
-        queued = frappe.db.count("WhatsApp Message", {
-            "bulk_message_reference": self.name,
-            "status": "Queued"
-        })
-        
+        total = cint(self.recipient_count)
+        sent = frappe.db.count(
+            "WhatsApp Message",
+            {"bulk_message_reference": self.name, "status": ["in", ["Sent", "Delivered", "Read"]]},
+        )
+        failed = frappe.db.count(
+            "WhatsApp Message", {"bulk_message_reference": self.name, "status": "Failed"}
+        )
         return {
             "total": total,
             "sent": sent,
             "failed": failed,
-            "queued": queued,
-            "percent": (sent / total * 100) if total else 0
+            "queued": max(total - sent - failed, 0),
+            "percent": (sent / total * 100) if total else 0,
         }
 
 
-# Map a file extension to an Evolution ``mediatype`` and (for documents) a mime.
 _MEDIA_EXT = {
     "image": {"jpg", "jpeg", "png", "gif", "webp", "bmp"},
     "video": {"mp4", "3gp", "mov", "mkv", "webm"},
@@ -483,65 +428,72 @@ _DOC_MIME = {
 }
 
 
-def _extract_error(response_data):
-    """Pull a human-readable error string out of Evolution's varied error shapes."""
-    if isinstance(response_data, dict):
-        resp = response_data.get("response")
-        if isinstance(resp, dict):
-            msg = resp.get("message")
-            if isinstance(msg, list):
-                return ", ".join(str(m) for m in msg)
-            if msg:
-                return str(msg)
-        return str(response_data.get("message") or response_data)
-    return str(response_data)
-
-
 def _media_kind(filename):
-    """Return ``(mediatype, mimetype)`` for a filename.
-
-    ``mediatype`` is one of image / video / audio / document (Evolution's
-    sendMedia types). ``mimetype`` is only meaningful for documents; it is
-    ``None`` for image/video/audio.
-    """
     ext = filename.rsplit(".", 1)[-1].lower() if filename and "." in filename else ""
     for kind, exts in _MEDIA_EXT.items():
         if ext in exts:
             return kind, None
-    return "document", _DOC_MIME.get(ext)
+    return "document", _DOC_MIME.get(ext) or "application/octet-stream"
 
 
-# ---------------------------------------------------------------------------
-# Interactive (buttons / list) bulk send — additive helper, does not alter the
-# existing text/media bulk flow above. Uses the unified Evolution layer.
-# ---------------------------------------------------------------------------
+def process_bulk_message(bulk_name, retry_failed_only=False):
+    """Background-worker entry point with a durable failure state."""
+    try:
+        doc = frappe.get_doc("Bulk WhatsApp Message", bulk_name)
+        if doc.docstatus != 1:
+            return
+        return doc.send_messages(retry_failed_only=bool(retry_failed_only))
+    except Exception:
+        # Background jobs are transactional. Roll back the failed send work,
+        # then persist a visible campaign failure before re-raising so the job
+        # is still marked failed in the worker dashboard.
+        frappe.db.rollback()
+        if frappe.db.exists("Bulk WhatsApp Message", bulk_name):
+            frappe.db.set_value("Bulk WhatsApp Message", bulk_name, "status", "Failed")
+            frappe.db.commit()
+        frappe.log_error(frappe.get_traceback(), f"WhatsApp bulk worker failed: {bulk_name}")
+        raise
+
+
+def trigger_scheduled_bulk_messages():
+    """Queue submitted campaigns whose Scheduled Time has arrived."""
+    if frappe.flags.in_import or frappe.flags.in_patch:
+        return
+    names = frappe.get_all(
+        "Bulk WhatsApp Message",
+        filters={
+            "docstatus": 1,
+            "status": "Queued",
+            "scheduled_time": ["<=", now_datetime()],
+        },
+        pluck="name",
+    )
+    for name in names:
+        try:
+            doc = frappe.get_doc("Bulk WhatsApp Message", name)
+            doc.enqueue_send()
+        except Exception:
+            frappe.log_error(frappe.get_traceback(), f"Could not queue WhatsApp bulk campaign: {name}")
+
 
 @frappe.whitelist()
 def send_bulk_interactive(recipients, payload, instance_name=None):
-    """Send the same interactive buttons/list message to many recipients.
-
-    recipients: JSON list of numbers, or list of {"mobile_number": "..."} dicts.
-    payload: JSON with either "buttons" (<=3) or "sections" (list), plus
-             optional title/description/footer/button_text.
-    Returns {"sent": n, "failed": m, "errors": [...]}.
-    """
+    """Send one buttons/list payload to many recipients through Evolution."""
     from frappe_whatsapp.utils import evolution
 
     frappe.has_permission("Bulk WhatsApp Message", "create", throw=True)
-
+    ensure_enabled()
     if isinstance(recipients, str):
         recipients = frappe.parse_json(recipients)
     if isinstance(payload, str):
         payload = frappe.parse_json(payload)
 
     base_url, api_key, instance_name = evolution.resolve_instance(instance_name)
-
-    numbers = []
-    for r in recipients:
-        numbers.append(r.get("mobile_number") if isinstance(r, dict) else r)
-
+    numbers = [r.get("mobile_number") if isinstance(r, dict) else r for r in recipients]
     sent, failed, errors = 0, 0, []
+
     for number in numbers:
+        number = normalize_number(number)
         if not number:
             continue
         try:
@@ -552,7 +504,9 @@ def send_bulk_interactive(recipients, payload, instance_name=None):
                     description=payload.get("description", ""),
                     buttons=payload.get("buttons", []),
                     footer=payload.get("footer"),
-                    base_url=base_url, api_key=api_key, instance_name=instance_name,
+                    base_url=base_url,
+                    api_key=api_key,
+                    instance_name=instance_name,
                 )
                 ctype = "button"
             else:
@@ -563,26 +517,31 @@ def send_bulk_interactive(recipients, payload, instance_name=None):
                     button_text=payload.get("button_text") or payload.get("buttonText") or "Select",
                     sections=payload.get("sections", []),
                     footer=payload.get("footer"),
-                    base_url=base_url, api_key=api_key, instance_name=instance_name,
+                    base_url=base_url,
+                    api_key=api_key,
+                    instance_name=instance_name,
                 )
                 ctype = "flow"
 
-            _log = frappe.get_doc({
-                "doctype": "WhatsApp Message",
-                "type": "Outgoing",
-                "status": "Sent",
-                "to": number,
-                "message": payload.get("description", ""),
-                "message_id": mid,
-                "content_type": ctype,
-                "channel": "Evolution",
-            })
-            _log.flags.skip_meta_send = True
-            _log.insert(ignore_permissions=True)
+            log = frappe.get_doc(
+                {
+                    "doctype": "WhatsApp Message",
+                    "type": "Outgoing",
+                    "status": "Sent",
+                    "to": number,
+                    "message": payload.get("description", ""),
+                    "message_id": mid,
+                    "content_type": ctype,
+                    "channel": "Evolution",
+                    "send_from_instance": instance_name,
+                }
+            )
+            log.flags.skip_meta_send = True
+            log.insert(ignore_permissions=True)
             sent += 1
-        except Exception as e:
+        except Exception as exc:
             failed += 1
-            errors.append(f"{number}: {e}")
+            errors.append(f"{number}: {exc}")
             frappe.log_error(f"{number}\n{frappe.get_traceback()}", "Bulk Interactive Send")
 
     return {"sent": sent, "failed": failed, "errors": errors}

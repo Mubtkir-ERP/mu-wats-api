@@ -8,3 +8,4 @@ frappe_whatsapp.patches.resync_workspace_and_cards #2
 frappe_whatsapp.patches.add_channel_fields
 frappe_whatsapp.patches.resync_workspace_puller
 frappe_whatsapp.patches.reload_puller_doctypes
+frappe_whatsapp.patches.upgrade_whatsapp_routing

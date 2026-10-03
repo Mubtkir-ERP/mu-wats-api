@@ -1,7 +1,8 @@
 """Add channel routing + interactive fields to WhatsApp Message.
 
-Meta remains the default so every existing screen and flow keeps working
-exactly as before; Evolution is opt-in per message.
+The channel is intentionally left blank on new messages so the global Default
+Channel in WhatsApp Settings controls routing. Existing messages keep their
+stored channel value.
 """
 
 import frappe
@@ -17,8 +18,7 @@ def execute():
                     "label": "Channel",
                     "fieldtype": "Select",
                     "options": "Meta\nEvolution",
-                    "default": "Meta",
-                    "insert_after": "message_type",
+                                        "insert_after": "message_type",
                     "in_list_view": 1,
                     "description": "Which platform sends this message. Meta = Cloud API, Evolution = Mubtkir API.",
                 },
@@ -30,6 +30,23 @@ def execute():
                     "insert_after": "channel",
                     "depends_on": "eval:doc.channel=='Evolution'",
                     "description": "Evolution instance used to send. Defaults to the user's linked instance.",
+                },
+                {
+                    "fieldname": "failure_reason",
+                    "label": "Failure Reason",
+                    "fieldtype": "Small Text",
+                    "insert_after": "message_id",
+                    "read_only": 1,
+                    "description": "Last sending error, when the message failed.",
+                },
+                {
+                    "fieldname": "read_receipt_sent",
+                    "label": "Read Receipt Sent",
+                    "fieldtype": "Check",
+                    "default": "0",
+                    "hidden": 1,
+                    "read_only": 1,
+                    "insert_after": "reply_to_message_id",
                 },
                 {
                     "fieldname": "interactive_payload",

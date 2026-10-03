@@ -93,8 +93,8 @@ frappe.ui.form.on('Bulk WhatsApp Message', {
             return false;
         }
         
-        if(!frm.doc.use_template && !frm.doc.message_content) {
-            frappe.throw(__('Please enter message content'));
+        if(!frm.doc.use_template && !frm.doc.message_content && !frm.doc.attach) {
+            frappe.throw(__('Please enter message content or attach a file'));
             return false;
         }
         

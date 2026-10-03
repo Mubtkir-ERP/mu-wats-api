@@ -18,6 +18,7 @@ import frappe
 from frappe import _
 
 from frappe_whatsapp.api import _request, _server_credentials
+from frappe_whatsapp.utils.messaging import normalize_number, resolve_instance_name
 
 
 def resolve_instance(instance_name=None, user=None):
@@ -27,25 +28,18 @@ def resolve_instance(instance_name=None, user=None):
       1. explicit instance_name argument
       2. the Whatsapp Instance linked to `user` (defaults to session user)
     """
-    if not instance_name:
-        user = user or frappe.session.user
-        instance_name = frappe.db.get_value(
-            "Whatsapp Instance", {"linked_user": user}, "name"
-        )
-    if not instance_name:
-        frappe.throw(_("No WhatsApp instance to send from. Set the sending instance."))
+    instance_name = resolve_instance_name(instance_name=instance_name, user=user)
 
     server = frappe.db.get_value("Whatsapp Instance", instance_name, "evolution_server")
+    if not server:
+        frappe.throw(_("WhatsApp instance {0} has no Evolution Server configured.").format(instance_name))
     base_url, api_key = _server_credentials(server)
     return base_url, api_key, instance_name
 
 
 def _clean_number(number):
-    """Strip a leading + so Evolution accepts the MSISDN."""
-    number = (number or "").strip()
-    if number.startswith("+"):
-        number = number[1:]
-    return number
+    """Backward-compatible wrapper around the shared number normaliser."""
+    return normalize_number(number)
 
 
 def _extract_message_id(response):
@@ -62,7 +56,12 @@ def send_text(number, text, instance_name=None, base_url=None, api_key=None):
     """Send a plain text message. Returns the message id."""
     if not base_url:
         base_url, api_key, instance_name = resolve_instance(instance_name)
-    payload = {"number": _clean_number(number), "text": text or "No Text"}
+    clean_number = _clean_number(number)
+    if not clean_number:
+        frappe.throw(_("Recipient mobile number is required."))
+    if text is None or str(text).strip() == "":
+        frappe.throw(_("Message text is required for an Evolution text message."))
+    payload = {"number": clean_number, "text": str(text)}
     response = _request(
         "POST", base_url, f"/message/sendText/{instance_name}", api_key, payload
     )
@@ -77,8 +76,13 @@ def send_media(number, media_url, mediatype="image", caption=None, filename=None
     """
     if not base_url:
         base_url, api_key, instance_name = resolve_instance(instance_name)
+    clean_number = _clean_number(number)
+    if not clean_number:
+        frappe.throw(_("Recipient mobile number is required."))
+    if not media_url:
+        frappe.throw(_("Media URL/content is required."))
     payload = {
-        "number": _clean_number(number),
+        "number": clean_number,
         "mediatype": mediatype,
         "media": media_url,
     }
@@ -111,8 +115,11 @@ def send_buttons(number, title, description, buttons, footer=None,
             "id": str(b.get("id") or i + 1),
         })
 
+    clean_number = _clean_number(number)
+    if not clean_number:
+        frappe.throw(_("Recipient mobile number is required."))
     payload = {
-        "number": _clean_number(number),
+        "number": clean_number,
         "title": title or "",
         "description": description or "",
         "buttons": formatted,
@@ -152,8 +159,11 @@ def send_list(number, title, description, button_text, sections,
             "rows": rows,
         })
 
+    clean_number = _clean_number(number)
+    if not clean_number:
+        frappe.throw(_("Recipient mobile number is required."))
     payload = {
-        "number": _clean_number(number),
+        "number": clean_number,
         "title": title or "",
         "description": description or "",
         "buttonText": button_text or "Select",

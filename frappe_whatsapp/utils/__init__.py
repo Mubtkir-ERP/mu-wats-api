@@ -18,6 +18,12 @@ def run_server_script_for_doc_event(doc, event):
     if frappe.flags.in_uninstall:
         return
 
+    try:
+        if not frappe.get_cached_doc("WhatsApp Settings").enabled:
+            return
+    except Exception:
+        return
+
     notification = get_notifications_map().get(
         doc.doctype, {}
     ).get(EVENT_MAP[event], None)
@@ -32,9 +38,14 @@ def run_server_script_for_doc_event(doc, event):
 
 
 def get_notifications_map():
-    """Get mapping."""
+    """Get the DocType-event notification map, using Redis cache when possible."""
     if frappe.flags.in_patch and not frappe.db.table_exists("WhatsApp Notification"):
         return {}
+
+    cache = frappe.cache()
+    cached = cache.get_value("whatsapp_notification_map")
+    if cached is not None:
+        return cached
 
     notification_map = {}
     enabled_whatsapp_notifications = frappe.get_all(
@@ -44,14 +55,13 @@ def get_notifications_map():
     )
     for notification in enabled_whatsapp_notifications:
         if notification.notification_type == "DocType Event":
-            notification_map.setdefault(
-                notification.reference_doctype, {}
-            ).setdefault(
+            notification_map.setdefault(notification.reference_doctype, {}).setdefault(
                 notification.doctype_event, []
             ).append(notification.name)
 
-    frappe.cache().set_value("whatsapp_notification_map", notification_map)
-
+    # Cache even an empty map so a site with no DocType WhatsApp notifications
+    # does not query the database on every document event.
+    cache.set_value("whatsapp_notification_map", notification_map)
     return notification_map
 
 

@@ -1,8 +1,8 @@
 """Webhook."""
 import frappe
 import json
+import hmac
 import requests
-import time
 from werkzeug.wrappers import Response
 import frappe.utils
 
@@ -195,132 +195,173 @@ def update_template_status(data):
 	)
 
 def update_message_status(data):
-	"""Update message status."""
-	id = data['statuses'][0]['id']
-	status = data['statuses'][0]['status']
-	conversation = data['statuses'][0].get('conversation', {}).get('id')
-	name = frappe.db.get_value("WhatsApp Message", filters={"message_id": id})
+	"""Update a Meta outbound message status without storing lowercase values."""
+	from frappe_whatsapp.utils.messaging import can_advance_status, normalise_message_status
 
-	doc = frappe.get_doc("WhatsApp Message", name)
-	doc.status = status
+	statuses = data.get("statuses") or []
+	if not statuses:
+		return
+	item = statuses[0]
+	message_id = item.get("id")
+	status = normalise_message_status(item.get("status"))
+	conversation = item.get("conversation", {}).get("id")
+	if not message_id or not status:
+		return
+
+	name = frappe.db.get_value("WhatsApp Message", {"message_id": message_id}, "name")
+	if not name:
+		return
+	current = frappe.db.get_value("WhatsApp Message", name, "status")
+	if not can_advance_status(current, status):
+		return
+	values = {"status": status}
 	if conversation:
-		doc.conversation_id = conversation
-	doc.save(ignore_permissions=True)
+		values["conversation_id"] = conversation
+	frappe.db.set_value("WhatsApp Message", name, values)
 
 # ---------------------------------------------------------------------------
-# Evolution (Mubtkir API) inbound webhook — separate endpoint, does not touch
-# the Meta webhook() above. Configure the Evolution instance to POST events to:
-#   /api/method/frappe_whatsapp.utils.webhook.evolution_webhook
+# Evolution (Mubtkir API) inbound webhook
 # ---------------------------------------------------------------------------
+
+
+def _request_header(name):
+	try:
+		return frappe.get_request_header(name) or ""
+	except Exception:
+		return (getattr(frappe.local, "request", None).headers.get(name, "") if getattr(frappe.local, "request", None) else "")
+
+
+def _configured_evolution_secret():
+	settings = frappe.get_doc("WhatsApp Settings", "WhatsApp Settings")
+	try:
+		return settings.get_password("evolution_webhook_secret", raise_exception=False) or ""
+	except TypeError:
+		try:
+			return settings.get_password("evolution_webhook_secret") or ""
+		except Exception:
+			return ""
+	except Exception:
+		return ""
+
+
+def _evolution_instance_name(data, item=None):
+	"""Extract the local instance name from common Evolution v2 payload shapes."""
+	candidates = [
+		data.get("instance"),
+		(data.get("data") or {}).get("instance") if isinstance(data.get("data"), dict) else None,
+		item.get("instance") if isinstance(item, dict) else None,
+	]
+	for value in candidates:
+		if isinstance(value, dict):
+			value = value.get("instanceName") or value.get("name")
+		if value:
+			return str(value)
+	return ""
+
+
+def _validate_evolution_webhook(data):
+	"""Authenticate the webhook when a shared secret is configured.
+
+	The endpoint accepts the secret through an HTTP header, Bearer token or query
+	parameter so it works with different Evolution deployments. Even without a
+	secret, an event must identify an instance that exists on this ERPNext site;
+	unknown-instance payloads are rejected instead of being stored blindly.
+	"""
+	secret = _configured_evolution_secret()
+	if secret:
+		authorization = _request_header("Authorization")
+		bearer = authorization[7:].strip() if authorization.lower().startswith("bearer ") else ""
+		provided = (
+			_request_header("X-Webhook-Secret")
+			or _request_header("X-Evolution-Webhook-Secret")
+			or bearer
+			or str(frappe.form_dict.get("secret") or "")
+		)
+		if not provided or not hmac.compare_digest(str(secret), str(provided)):
+			frappe.throw("Invalid Evolution webhook secret", frappe.PermissionError)
+
+	instance_name = _evolution_instance_name(data)
+	if not instance_name or not frappe.db.exists("Whatsapp Instance", instance_name):
+		frappe.throw("Unknown Evolution webhook instance", frappe.PermissionError)
+	return instance_name
+
 
 @frappe.whitelist(allow_guest=True)
 def evolution_webhook():
-	"""Receive Evolution API events and store incoming messages.
-
-	Handles the messages.upsert event for text, media, buttons and list
-	replies. Each inbound message becomes a WhatsApp Message (type=Incoming)
-	so downstream doc_events hooks (e.g. the challenge engine) can react.
-	Outbound echoes (fromMe) and duplicates (by message id) are ignored.
-	"""
+	"""Receive authenticated Evolution message/status events."""
 	if frappe.request.method == "GET":
 		return Response("OK", status=200)
+	if frappe.request.method != "POST":
+		return Response("Method Not Allowed", status=405)
 
 	data = frappe.local.form_dict
+	instance_name = _validate_evolution_webhook(data)
 
-	# Log the raw event for debugging/audit.
+	# Only authenticated / known-instance payloads are persisted to the audit log.
+	audit_data = dict(data)
+	audit_data.pop("secret", None)
 	frappe.get_doc({
 		"doctype": "WhatsApp Notification Log",
-		"template": "Webhook",
-		"meta_data": json.dumps(data),
+		"template": "Evolution Webhook",
+		"meta_data": json.dumps(audit_data, default=str),
 	}).insert(ignore_permissions=True)
 
 	event = (data.get("event") or "").replace(".", "_").lower()
-
 	payload = data.get("data") or {}
-	# Evolution may send a single object or a list.
 	items = payload if isinstance(payload, list) else [payload]
 
 	if event == "messages_update":
-		# Status changes (sent/delivered/read) for our outbound messages.
 		for item in items:
 			_process_evolution_status(item)
 		return Response("OK", status=200)
 
 	if event and event != "messages_upsert":
-		# Any other event carries no inbound message; ignore quietly.
 		return Response("OK", status=200)
 
 	for item in items:
-		_process_evolution_message(item)
+		_process_evolution_message(item, instance_name=instance_name)
 
 	return Response("OK", status=200)
 
 
 def _process_evolution_status(item):
-	"""Update a WhatsApp Message status from an Evolution messages.update event.
+	from frappe_whatsapp.utils.messaging import can_advance_status, normalise_message_status
 
-	Evolution reports a numeric/string status per message id. Map it to the
-	doctype's status options (Sent / Delivered / Read).
-	"""
 	if not isinstance(item, dict):
 		return
-
 	key = item.get("key", {}) or {}
 	message_id = key.get("id") or item.get("keyId") or item.get("id")
 	if not message_id:
 		return
-
-	raw_status = item.get("status")
-	if raw_status is None:
-		update = item.get("update") or {}
-		raw_status = update.get("status")
-	if raw_status is None:
-		return
-
-	# Evolution/Baileys statuses come as strings or numbers.
-	mapping = {
-		"1": "Sent", "pending": "Pending", "server_ack": "Sent", "sent": "Sent",
-		"2": "Delivered", "delivery_ack": "Delivered", "delivered": "Delivered",
-		"3": "Read", "read": "Read", "played": "Read",
-		"4": "Read",
-		"error": "Failed", "failed": "Failed",
-	}
-	status = mapping.get(str(raw_status).lower())
+	status = normalise_message_status(item.get("status"))
+	if status is None:
+		status = normalise_message_status((item.get("update") or {}).get("status"))
 	if not status:
 		return
 
 	name = frappe.db.get_value("WhatsApp Message", {"message_id": message_id}, "name")
 	if not name:
 		return
-	# Never downgrade a stronger status (Read shouldn't drop back to Sent).
-	rank = {"Pending": 0, "Sent": 1, "Delivered": 2, "Read": 3, "Failed": 1, "Received": 1}
 	current = frappe.db.get_value("WhatsApp Message", name, "status")
-	if rank.get(status, 0) >= rank.get(current, 0):
+	if can_advance_status(current, status):
 		frappe.db.set_value("WhatsApp Message", name, "status", status)
 
 
-def _process_evolution_message(item):
-	"""Parse one Evolution message object and save it as Incoming."""
+def _process_evolution_message(item, instance_name=None):
+	"""Parse one inbound Evolution message and preserve its source instance."""
 	if not isinstance(item, dict):
 		return
 
 	key = item.get("key", {}) or {}
-	# Skip our own outgoing echoes.
 	if key.get("fromMe"):
 		return
-
 	message_id = key.get("id")
-	if not message_id:
-		return
-
-	# Deduplicate: if we already stored this id, stop.
-	if frappe.db.exists("WhatsApp Message", {"message_id": message_id}):
+	if not message_id or frappe.db.exists("WhatsApp Message", {"message_id": message_id}):
 		return
 
 	remote_jid = key.get("remoteJid", "") or ""
 	sender = remote_jid.split("@")[0] if "@" in remote_jid else remote_jid
 	profile_name = item.get("pushName")
-
 	msg = item.get("message", {}) or {}
 	text, content_type, interactive = _extract_evolution_content(msg)
 	if text is None and content_type is None:
@@ -329,40 +370,34 @@ def _process_evolution_message(item):
 	doc = {
 		"doctype": "WhatsApp Message",
 		"type": "Incoming",
+		"status": "Received",
 		"from": sender,
 		"message_id": message_id,
 		"message": text or "",
 		"content_type": content_type or "text",
 		"profile_name": profile_name,
 		"channel": "Evolution",
+		"send_from_instance": instance_name,
 	}
 	if interactive:
-		# Store the visible option text alongside the id (which is in message).
-		doc["interactive_payload"] = json.dumps(interactive)
+		doc["interactive_payload"] = json.dumps(interactive, ensure_ascii=False)
 
 	frappe.get_doc(doc).insert(ignore_permissions=True)
 
 
 def _extract_evolution_content(msg):
-	"""Return (message_value, content_type, interactive_dict|None).
-
-	For button/list replies the selected option id goes into message_value and
-	the visible title is returned in the interactive dict as {"id","text"}.
-	"""
-	# Plain text
+	"""Return (message_value, content_type, interactive_dict|None)."""
 	if msg.get("conversation"):
 		return msg["conversation"], "text", None
 	if msg.get("extendedTextMessage"):
 		return msg["extendedTextMessage"].get("text", ""), "text", None
 
-	# Button reply (templateButtonReply / buttonsResponseMessage)
 	btn = msg.get("buttonsResponseMessage") or msg.get("templateButtonReplyMessage")
 	if btn:
 		selected_id = btn.get("selectedButtonId") or btn.get("selectedId") or ""
 		display = btn.get("selectedDisplayText") or btn.get("selectedButtonText") or ""
 		return selected_id, "button", {"id": selected_id, "text": display}
 
-	# List reply
 	lst = msg.get("listResponseMessage")
 	if lst:
 		row = lst.get("singleSelectReply", {}) or {}
@@ -370,7 +405,6 @@ def _extract_evolution_content(msg):
 		display = lst.get("title", "")
 		return selected_id, "flow", {"id": selected_id, "text": display}
 
-	# Media types
 	for mtype, ctype in (
 		("imageMessage", "image"),
 		("documentMessage", "document"),
@@ -382,3 +416,4 @@ def _extract_evolution_content(msg):
 			return caption, ctype, None
 
 	return None, None, None
+

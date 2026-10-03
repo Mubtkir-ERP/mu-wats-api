@@ -224,7 +224,7 @@ frappe.router.on("change", () => {
 							dialog.set_value('mobile_no', '');
 						}
 					}},
-							{ 'label': 'Mobile no', 'fieldname': 'mobile_no', 'fieldtype': 'Data' },
+							{ 'label': 'Mobile no', 'fieldname': 'mobile_no', 'fieldtype': 'Data', 'reqd': 1 },
 
 						],
 						'primary_action_label': 'Send',
@@ -244,21 +244,23 @@ frappe.router.on("change", () => {
 									},
 									freeze: true,
 									callback: (r) => {
-										frappe.msgprint(__("Successfully Sent to: " + values.mobile_no));
+										if (!r.message) return;
+										const channel = r.message.channel || "WhatsApp";
+										frappe.msgprint(__("Successfully sent to {0} via {1}", [values.mobile_no, channel]));
+										var comment_message = 'To : ' + values.mobile_no + space +
+											"Whatsapp Template: " + values.template + space + "Channel: " + channel;
+										frappe.call({
+											method: "frappe.desk.form.utils.add_comment",
+											args: {
+												reference_doctype: reference_doctype,
+												reference_name: reference_name,
+												content: comment_message,
+												comment_by: frappe.session.user_fullname,
+												comment_email: frappe.session.user
+											}
+										});
 										dialog.hide();
 									}
-								});
-
-								var comment_message = 'To : ' + values.mobile_no + space + "Whatsapp Template:" + values.template;
-								frappe.call({
-									method: "frappe.desk.form.utils.add_comment",
-									args: {
-										reference_doctype: reference_doctype,
-										reference_name: reference_name,
-										content: comment_message,
-										comment_by: frappe.session.user_fullname,
-										comment_email: frappe.session.user
-									},
 								});
 							}
 

@@ -133,11 +133,17 @@ class WhatsAppScheduledReport(Document):
 		)
 
 	def _save_file(self, filename, content):
-		"""Persist the rendered content as a File and return its URL."""
+		"""Persist a short-lived public file and return its URL.
+
+		Meta/Evolution must fetch the file over HTTP, so it cannot be private.
+		The ``wa-temp-`` prefix is cleaned automatically after 48 hours.
+		"""
+		safe_name = filename.replace("/", "-")
+		temp_name = f"wa-temp-{frappe.generate_hash(length=8)}-{safe_name}"
 		f = frappe.get_doc(
 			{
 				"doctype": "File",
-				"file_name": filename,
+				"file_name": temp_name,
 				"content": content,
 				"is_private": 0,
 			}
@@ -182,17 +188,12 @@ class WhatsAppScheduledReport(Document):
 			frappe.throw(
 				_("Could not resolve a recipient mobile number. Set a Party with a contact, or a mobile override.")
 			)
-		return str(number).strip().lstrip("+")
+		from frappe_whatsapp.utils.messaging import normalize_number
+		return normalize_number(number)
 
 	def _resolve_instance(self):
-		name = self.whatsapp_instance
-		if not name:
-			name = frappe.db.get_value("Whatsapp Instance", {"linked_user": frappe.session.user}, "name")
-		if not name:
-			name = frappe.db.get_value("Whatsapp Instance", {"connection_status": "Connected"}, "name")
-		if not name:
-			frappe.throw(_("No WhatsApp instance available to send from. Set 'Send From Instance'."))
-		return name
+		from frappe_whatsapp.utils.messaging import resolve_instance_name
+		return resolve_instance_name(self.whatsapp_instance or None, user=self.owner)
 
 	def _caption(self):
 		"""Accompanying message text: from a WhatsApp Template or the free-text caption."""
@@ -209,24 +210,25 @@ class WhatsAppScheduledReport(Document):
 		return self.caption or ""
 
 	def _send_file(self, file_url, filename, mimetype):
-		from frappe_whatsapp.api import _request, _server_credentials
+		"""Send the report through the global default channel and log it."""
+		from frappe_whatsapp.utils.messaging import get_default_channel
 
-		instance_name = self._resolve_instance()
-		server = frappe.db.get_value("Whatsapp Instance", instance_name, "evolution_server")
-		base_url, api_key = _server_credentials(server)
-
-		payload = {
-			"number": self._recipient_mobile(),
-			"mediatype": "document",
-			"media": get_url() + file_url,
-			"fileName": filename,
-			"mimetype": mimetype,
+		channel = get_default_channel()
+		data = {
+			"doctype": "WhatsApp Message",
+			"type": "Outgoing",
+			"to": self._recipient_mobile(),
+			"message": self._caption(),
+			"message_type": "Manual",
+			"content_type": "document",
+			"attach": file_url,
+			"channel": channel,
 		}
-		caption = self._caption()
-		if caption:
-			payload["caption"] = caption
-
-		_request("POST", base_url, f"/message/sendMedia/{instance_name}", api_key, payload)
+		if channel == "Evolution":
+			data["send_from_instance"] = self._resolve_instance()
+		msg = frappe.get_doc(data)
+		msg.insert(ignore_permissions=True)
+		return msg
 
 	# ---- public actions ----------------------------------------------------
 	@frappe.whitelist()

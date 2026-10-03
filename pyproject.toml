@@ -3,10 +3,10 @@ name = "frappe_whatsapp"
 authors = [
     { name = "Shridhar Patil", email = "shrip.dev@gmail.com"}
 ]
-description = "WhatsApp integration for frappe. Use directly meta API's without any 3rd party integration."
+description = "WhatsApp integration for Frappe with Meta Cloud API and Evolution/Mubtkir API routing."
 requires-python = ">=3.10"
 readme = "README.md"
-version = "1.0.7"
+version = "1.1.0"
 dependencies = [
     "python-magic~=0.4.24",
 ]

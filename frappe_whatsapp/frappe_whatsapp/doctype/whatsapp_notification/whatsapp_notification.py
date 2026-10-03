@@ -3,8 +3,6 @@
 import base64
 import json
 
-import requests
-
 import frappe
 
 from frappe import _dict, _
@@ -63,22 +61,16 @@ class WhatsAppNotification(Document):
 
 
     def send_simple_template(self, template):
-        """ send simple template without a doc to get field data """
+        """Send a template to a contact list through the configured default channel."""
+        body = template.get("template") or ""
         for contact in self._contact_list:
-            data = {
-                "messaging_product": "whatsapp",
-                "to": self.format_number(contact),
-                "type": "template",
-                "template": {
-                    "name": template.actual_name,
-                    "language": {
-                        "code": template.language_code
-                    },
-                    "components": []
-                }
-            }
-            self.content_type = template.get("header_type", "text").lower()
-            self.notify(data)
+            self.notify_routed(
+                phone_number=contact,
+                message_text=body,
+                template=template,
+                doc_data=None,
+                parameters=None,
+            )
 
 
     def resolve_phone(self, doc, doc_data):
@@ -271,8 +263,8 @@ class WhatsAppNotification(Document):
             else:
                 attachment_url = f'{frappe.utils.get_url()}{file_url}'
 
-        # Send message using Mubtkir API
-        self.notify_evolution(
+        # Send through the globally configured channel (Meta or Evolution).
+        self.notify_routed(
             phone_number=phone_number,
             message_text=message_text,
             attachment_url=attachment_url,
@@ -282,244 +274,157 @@ class WhatsAppNotification(Document):
             parameters=parameters if self.fields else None
         )
 
-    def notify_evolution(self, phone_number, message_text, attachment_url=None,
-                         filename=None, template=None, doc_data=None, parameters=None):
-        """Send message via Mubtkir API."""
+    def _temporary_attachment_url(self, attachment_url, filename):
+        """Turn generated base64 content into a short-lived public File URL.
 
-        # Check if logged-in user has a linked Mubtkir API Phone Settings
-        user_evolution_settings = frappe.db.get_value(
-            "Evolution Phone Settings",
-            {"user": frappe.session.user},
-            "name"
-        )
-        if user_evolution_settings:
-            evolution_settings = frappe.get_doc("Evolution Phone Settings", user_evolution_settings)
-        elif self.whatsapp_instance:
-            # Check linked Whatsapp Instance (new field) and build a compatible
-            # settings object from the instance + its Mubtkir API Server.
-            instance = frappe.get_doc("Whatsapp Instance", self.whatsapp_instance)
-            server = frappe.get_doc("Evolution Server", instance.evolution_server)
-            base_url = server.base_url.strip().rstrip('/')
-            if not base_url.startswith(('http://', 'https://')):
-                base_url = 'https://' + base_url
-            evolution_settings = frappe._dict({
-                "base_url": base_url,
-                "instance_name": instance.instance_name,
-                "global_api_key": server.get_password("api_key", raise_exception=False) or server.api_key,
-            })
-        else:
-            # WhatsApp Instance is mandatory, so this should never happen.
-            frappe.throw(_("WhatsApp Instance is required to send messages."))
-
-        if not evolution_settings.base_url or not evolution_settings.instance_name:
-            frappe.throw("Mubtkir API Phone Settings not configured")
-
-        headers = {
-            "Content-Type": "application/json",
-            "apikey": evolution_settings.global_api_key
-        }
-
-        success = False
-        response_data = None
-        error_message = None
+        Evolution/Meta need an HTTP-fetchable URL. Files created here are named
+        with ``wa-temp-`` and removed by the daily maintenance job.
+        """
+        if not attachment_url:
+            return None
+        value = str(attachment_url)
+        if value.startswith(("http://", "https://", "/files/", "/private/files/")):
+            return value
 
         try:
-            # Determine content type and endpoint
-            if attachment_url:
-                # Check if it's a document (PDF) or image
-                if filename and filename.lower().endswith('.pdf'):
-                    # Send document
-                    url = f"{evolution_settings.base_url}/message/sendMedia/{evolution_settings.instance_name}"
-                    payload = {
-                        "number": phone_number,
-                        "mediatype": "document",
-                        "mimetype": "application/pdf",
-                        "caption": message_text,
-                        "media": attachment_url,
-                        "fileName": filename
-                    }
-                    content_type = 'document'
-                else:
-                    # Send image
-                    url = f"{evolution_settings.base_url}/message/sendMedia/{evolution_settings.instance_name}"
-                    payload = {
-                        "number": phone_number,
-                        "mediatype": "image",
-                        "caption": message_text,
-                        "media": attachment_url
-                    }
-                    content_type = 'image'
-            else:
-                if message_text is None:
-                    message_text = 'No Text'
-                # Send text message
-                url = f"{evolution_settings.base_url}/message/sendText/{evolution_settings.instance_name}"
-                payload = {
-                    "number": phone_number,
-                    "text": message_text
-                }
-                content_type = 'text'
+            encoded = value.split(",", 1)[1] if value.startswith("data:") and "," in value else value
+            content = base64.b64decode(encoded)
+        except Exception:
+            return value
 
-            # Make request to Mubtkir API
-            response = requests.post(url, headers=headers, json=payload, timeout=30)
-            response_data = response.json()
-
-            if response.status_code in [200, 201]:
-                success = True
-
-                # Extract message ID from response
-                message_id = response_data.get("key", {}).get("id", "")
-                if not message_id:
-                    message_id = response_data.get("message", {}).get("key", {}).get("id", "")
-
-                # Create WhatsApp Message record
-                new_doc = {
-                    "doctype": "WhatsApp Message",
-                    "type": "Outgoing",
-                    "status": "Sent",
-                    "message": message_text,
-                    "to": phone_number,
-                    "message_type": "Template",
-                    "message_id": message_id,
-                    "content_type": content_type,
-                    "use_template": 1,
-                    "template": self.template,
-                    "template_parameters": frappe.json.dumps(parameters, default=str) if parameters else None
-                }
-
-                if doc_data:
-                    new_doc.update({
-                        "reference_doctype": doc_data.get("doctype"),
-                        "reference_name": doc_data.get("name"),
-                    })
-
-                _msg = frappe.get_doc(new_doc)
-                _msg.flags.skip_meta_send = True
-                _msg.save(ignore_permissions=True)
-
-                # Update property after alert if configured
-                if doc_data and self.set_property_after_alert and self.property_value:
-                    if doc_data.get("doctype") and doc_data.get("name"):
-                        fieldname = self.set_property_after_alert
-                        value = self.property_value
-                        meta = frappe.get_meta(doc_data.get("doctype"))
-                        df = meta.get_field(fieldname)
-                        if df:
-                            if df.fieldtype in frappe.model.numeric_fieldtypes:
-                                value = frappe.utils.cint(value)
-                            frappe.db.set_value(
-                                doc_data.get("doctype"),
-                                doc_data.get("name"),
-                                fieldname,
-                                value
-                            )
-
-                frappe.msgprint("WhatsApp Message Sent Successfully", indicator="green", alert=True)
-            else:
-                success = False
-                error_message = response_data.get("response", {}).get("message", "Unknown Error")
-
-                # Create failed message record
-                failed_doc = {
-                    "doctype": "WhatsApp Message",
-                    "type": "Outgoing",
-                    "status": "Failed",
-                    "message": message_text,
-                    "to": phone_number,
-                    "message_type": "Template",
-                    "content_type": content_type,
-                    "use_template": 1,
-                    "template": self.template,
-                }
-                if doc_data:
-                    failed_doc.update({
-                        "reference_doctype": doc_data.get("doctype"),
-                        "reference_name": doc_data.get("name"),
-                    })
-                _fmsg = frappe.get_doc(failed_doc)
-                _fmsg.flags.skip_meta_send = True
-                _fmsg.save(ignore_permissions=True)
-
-                frappe.msgprint(
-                    f"Failed to send WhatsApp message: {error_message}",
-                    indicator="red",
-                    alert=True
-                )
-
-        except requests.exceptions.RequestException as e:
-            error_message = f"Connection error: {str(e)}"
-
-            # Create failed message record
-            failed_doc = {
-                "doctype": "WhatsApp Message",
-                "type": "Outgoing",
-                "status": "Failed",
-                "message": message_text,
-                "to": phone_number,
-                "message_type": "Template",
-                "content_type": "text",
-                "use_template": 1,
-                "template": self.template,
+        safe_name = (filename or "attachment.bin").replace("/", "-")
+        if not safe_name.startswith("wa-temp-"):
+            safe_name = f"wa-temp-{frappe.generate_hash(length=8)}-{safe_name}"
+        file_doc = frappe.get_doc(
+            {
+                "doctype": "File",
+                "file_name": safe_name,
+                "content": content,
+                "is_private": 0,
             }
-            if doc_data:
-                failed_doc.update({
-                    "reference_doctype": doc_data.get("doctype"),
-                    "reference_name": doc_data.get("name"),
-                })
-            _fmsg = frappe.get_doc(failed_doc)
-            _fmsg.flags.skip_meta_send = True
-            _fmsg.save(ignore_permissions=True)
+        ).insert(ignore_permissions=True)
+        return file_doc.file_url
 
-            frappe.msgprint(
-                f"Failed to trigger WhatsApp message: {error_message}",
-                indicator="red",
-                alert=True
+    @staticmethod
+    def _attachment_content_type(filename):
+        name = (filename or "").lower()
+        ext = name.rsplit(".", 1)[-1] if "." in name else ""
+        if ext in {"jpg", "jpeg", "png", "gif", "webp", "bmp"}:
+            return "image"
+        if ext in {"mp4", "3gp", "mov", "mkv", "webm"}:
+            return "video"
+        if ext in {"mp3", "ogg", "oga", "opus", "aac", "m4a", "amr", "wav"}:
+            return "audio"
+        return "document"
+
+    def notify_routed(
+        self,
+        phone_number,
+        message_text,
+        attachment_url=None,
+        filename=None,
+        template=None,
+        doc_data=None,
+        parameters=None,
+        force_channel=None,
+    ):
+        """Create one WhatsApp Message and let its central router send it."""
+        from frappe_whatsapp.utils.messaging import get_default_channel, normalize_number
+
+        channel = force_channel or get_default_channel()
+        phone_number = normalize_number(phone_number)
+        if not phone_number:
+            frappe.throw(_("Phone number not found"))
+
+        attach = self._temporary_attachment_url(attachment_url, filename)
+        content_type = self._attachment_content_type(filename) if attach else "text"
+        template_name = self.template or (template.get("name") if template else None)
+
+        data = {
+            "doctype": "WhatsApp Message",
+            "type": "Outgoing",
+            "to": phone_number,
+            "message": message_text or "",
+            "message_type": "Template" if template_name else "Manual",
+            "content_type": content_type,
+            "channel": channel,
+        }
+        if template_name:
+            data.update({"use_template": 1, "template": template_name})
+        if parameters:
+            data["body_param"] = json.dumps(
+                {str(i): value for i, value in enumerate(parameters, 1)},
+                ensure_ascii=False,
+                default=str,
             )
-        except Exception as e:
-            error_message = str(e)
+        if attach:
+            data["attach"] = attach
+        if channel == "Evolution" and self.whatsapp_instance:
+            data["send_from_instance"] = self.whatsapp_instance
+        if doc_data:
+            data["reference_doctype"] = doc_data.get("doctype")
+            data["reference_name"] = doc_data.get("name")
 
-            # Create failed message record
-            failed_doc = {
-                "doctype": "WhatsApp Message",
-                "type": "Outgoing",
-                "status": "Failed",
-                "message": message_text if message_text else "",
-                "to": phone_number if phone_number else "",
-                "message_type": "Template",
-                "content_type": "text",
-                "use_template": 1,
-                "template": self.template,
-            }
+        try:
+            msg = frappe.get_doc(data)
             if doc_data:
-                failed_doc.update({
-                    "reference_doctype": doc_data.get("doctype"),
-                    "reference_name": doc_data.get("name"),
-                })
+                msg.flags.custom_ref_doc = doc_data
+            msg.insert(ignore_permissions=True)
+
+            if doc_data and self.set_property_after_alert and self.property_value:
+                fieldname = self.set_property_after_alert
+                meta = frappe.get_meta(doc_data.get("doctype"))
+                df = meta.get_field(fieldname)
+                if df:
+                    value = self.property_value
+                    if df.fieldtype in frappe.model.numeric_fieldtypes:
+                        value = frappe.utils.cint(value)
+                    frappe.db.set_value(doc_data.get("doctype"), doc_data.get("name"), fieldname, value)
+
+            frappe.get_doc(
+                {
+                    "doctype": "WhatsApp Notification Log",
+                    "template": template_name or "Manual Message",
+                    "meta_data": {
+                        "success": True,
+                        "channel": channel,
+                        "message_id": msg.message_id,
+                        "phone_number": phone_number,
+                    },
+                }
+            ).insert(ignore_permissions=True)
+            return msg
+        except Exception as exc:
             try:
-                _fmsg = frappe.get_doc(failed_doc)
-                _fmsg.flags.skip_meta_send = True
-                _fmsg.save(ignore_permissions=True)
+                frappe.get_doc(
+                    {
+                        "doctype": "WhatsApp Notification Log",
+                        "template": template_name or "Manual Message",
+                        "meta_data": {
+                            "success": False,
+                            "channel": channel,
+                            "error": str(exc),
+                            "phone_number": phone_number,
+                        },
+                    }
+                ).insert(ignore_permissions=True)
             except Exception:
                 pass
+            raise
 
-            frappe.msgprint(
-                f"Failed to trigger WhatsApp message: {error_message}",
-                indicator="red",
-                alert=True
-            )
-        finally:
-            # Log the notification
-            frappe.get_doc({
-                "doctype": "WhatsApp Notification Log",
-                "template": self.template,
-                "meta_data": {
-                    "success": success,
-                    "response": response_data if success else None,
-                    "error": error_message if not success else None,
-                    "phone_number": phone_number,
-                    "message": message_text
-                }
-            }).insert(ignore_permissions=True)
+    def notify_evolution(self, phone_number, message_text, attachment_url=None,
+                         filename=None, template=None, doc_data=None, parameters=None):
+        """Backward-compatible wrapper that explicitly routes through Evolution."""
+        return self.notify_routed(
+            phone_number=phone_number,
+            message_text=message_text,
+            attachment_url=attachment_url,
+            filename=filename,
+            template=template,
+            doc_data=doc_data,
+            parameters=parameters,
+            force_channel="Evolution",
+        )
 
     def notify(self, data, doc_data=None):
         """Notify."""
@@ -558,7 +463,8 @@ class WhatsAppNotification(Document):
                 "content_type": self.content_type,
                 "use_template": 1,
                 "template": self.template,
-                "template_parameters": parameters
+                "template_parameters": parameters,
+                "channel": "Meta",
             }
 
             if doc_data:
@@ -567,7 +473,9 @@ class WhatsAppNotification(Document):
                     "reference_name": doc_data.name,
                 })
 
-            frappe.get_doc(new_doc).save(ignore_permissions=True)
+            _meta_log = frappe.get_doc(new_doc)
+            _meta_log.flags.skip_meta_send = True
+            _meta_log.save(ignore_permissions=True)
 
             if doc_data and self.set_property_after_alert and self.property_value:
                 if doc_data.doctype and doc_data.name:
@@ -607,17 +515,22 @@ class WhatsAppNotification(Document):
             }).insert(ignore_permissions=True)
 
 
+    def after_insert(self):
+        frappe.cache().delete_value("whatsapp_notification_map")
+
+    def on_update(self):
+        frappe.cache().delete_value("whatsapp_notification_map")
+
     def on_trash(self):
         """On delete remove from schedule."""
         frappe.cache().delete_value("whatsapp_notification_map")
 
 
     def format_number(self, number):
-        """Format number."""
-        if (number.startswith("+")):
-            number = number[1:len(number)]
+        """Normalise recipient numbers consistently across every send path."""
+        from frappe_whatsapp.utils.messaging import normalize_number
 
-        return number
+        return normalize_number(number)
 
     def get_documents_for_today(self):
         """get list of documents that will be triggered today"""
@@ -931,8 +844,11 @@ def send_notification_interactive(phone_number, payload, whatsapp_instance=None)
     Returns the sent message id.
     """
     from frappe_whatsapp.utils import evolution
+    from frappe_whatsapp.utils.messaging import ensure_enabled, normalize_number
 
     frappe.has_permission("WhatsApp Notification", "read", throw=True)
+    ensure_enabled()
+    phone_number = normalize_number(phone_number)
 
     if isinstance(payload, str):
         payload = frappe.parse_json(payload)
@@ -970,6 +886,7 @@ def send_notification_interactive(phone_number, payload, whatsapp_instance=None)
         "message_id": mid,
         "content_type": ctype,
         "channel": "Evolution",
+        "send_from_instance": instance_name,
     })
     _msg.flags.skip_meta_send = True
     _msg.save(ignore_permissions=True)

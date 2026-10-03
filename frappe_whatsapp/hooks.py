@@ -3,7 +3,7 @@ from . import __version__ as app_version
 app_name = "frappe_whatsapp"
 app_title = "Frappe Whatsapp"
 app_publisher = "Shridhar Patil"
-app_description = "WhatsApp integration for frappe"
+app_description = "WhatsApp integration for Frappe with Meta and Evolution routing"
 app_email = "shridhar.p@zerodha.com"
 app_license = "MIT"
 
@@ -120,6 +120,9 @@ doctype_js = {"Whatsapp Instance": "public/js/whatsapp_instance.js"}
 scheduler_events = {
     "cron": {
         # Poll instance connectivity every 15 minutes and alert on drops.
+        "*/5 * * * *": [
+            "frappe_whatsapp.frappe_whatsapp.doctype.bulk_whatsapp_message.bulk_whatsapp_message.trigger_scheduled_bulk_messages"
+        ],
         "*/15 * * * *": [
             "frappe_whatsapp.monitoring.check_instance_connections"
         ]
@@ -139,6 +142,7 @@ scheduler_events = {
         "frappe_whatsapp.utils.trigger_whatsapp_notifications_daily",
         "frappe_whatsapp.frappe_whatsapp.doctype.whatsapp_notification.whatsapp_notification.trigger_notifications",
         "frappe_whatsapp.frappe_whatsapp.doctype.whatsapp_notification.whatsapp_notification.process_recurring_reminders",
+        "frappe_whatsapp.maintenance.cleanup_old_whatsapp_data",
     ],
     "daily_long": [
         "frappe_whatsapp.utils.trigger_whatsapp_notifications_daily_long",

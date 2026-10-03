@@ -39,7 +39,13 @@ class WhatsappInstance(Document):
 		)
 
 	def validate(self):
-		"""Run all validations."""
+		"""Run all validations and apply the configured default server."""
+		if not self.evolution_server:
+			from frappe_whatsapp.utils.messaging import default_server_name
+
+			self.evolution_server = default_server_name()
+		if not self.evolution_server:
+			frappe.throw(_("No active Evolution Server is configured. Set Default Server in WhatsApp Settings."))
 		self.validate_single_instance_per_user()
 
 	def on_trash(self):
