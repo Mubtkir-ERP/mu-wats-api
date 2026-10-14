@@ -608,5 +608,17 @@ def get_user_instance_status():
         "instance_name": instance.instance_name or instance.name,
         "status": instance.connection_status or "Disconnected"
     }
+@frappe.whitelist()
+def send_text(mobile_no=None, message=None, number=None, text=None, instance_name=None):
+    """محوِّل الخطّاف العام mu_send_whatsapp (mobile_no, message) إلى طبقة Evolution.
 
+    يقبل تسمية الخطّاف (mobile_no, message) والتسمية الأصلية (number, text).
+    """
+    from frappe_whatsapp.utils.evolution import send_text as _evo_send_text
+
+    number = number or mobile_no
+    text = text if text is not None else message
+    if not number:
+        frappe.throw(_("Recipient mobile number is required."))
+    return _evo_send_text(number=number, text=text, instance_name=instance_name)
 
