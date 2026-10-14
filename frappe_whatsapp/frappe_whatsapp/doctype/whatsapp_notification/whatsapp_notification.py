@@ -264,7 +264,7 @@ class WhatsAppNotification(Document):
                 attachment_url = f'{frappe.utils.get_url()}{file_url}'
 
         # Send through the globally configured channel (Meta or Evolution).
-        self.notify_routed(
+        return self.notify_routed(
             phone_number=phone_number,
             message_text=message_text,
             attachment_url=attachment_url,

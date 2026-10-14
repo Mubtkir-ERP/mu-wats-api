@@ -33,7 +33,14 @@ app_include_js = [
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-doctype_js = {"Whatsapp Instance": "public/js/whatsapp_instance.js"}
+doctype_js = {
+    "Whatsapp Instance": "public/js/whatsapp_instance.js",
+    "Sales Invoice": "public/js/manual_whatsapp_send.js",
+    "Quotation": "public/js/manual_whatsapp_send.js",
+}
+
+# Requested integration hook (the named external app must be installed to use this path).
+mu_send_whatsapp = ["mu_wats_api.api.send_text"]
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
