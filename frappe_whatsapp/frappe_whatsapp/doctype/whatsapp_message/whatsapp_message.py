@@ -5,7 +5,7 @@ import json
 
 import frappe
 from frappe import _
-from frappe.integrations.utils import make_post_request
+from frappe_whatsapp.utils.meta import make_post_request
 from frappe.model.document import Document
 
 from frappe_whatsapp.utils.messaging import (
@@ -22,6 +22,20 @@ class WhatsAppMessage(Document):
     Every outbound path is routed through the message's explicit ``channel``;
     when it is blank, WhatsApp Settings -> Default Channel is used.
     """
+
+    def delivery_operation_key(self):
+        from frappe_whatsapp.utils.delivery_guard import delivery_key
+
+        scope = self.flags.get("delivery_scope")
+        if not scope and self.get("bulk_message_reference"):
+            scope = ("bulk", self.bulk_message_reference, normalize_number(self.to))
+        if not scope:
+            # Unreferenced messages are separate operations; retries of a saved
+            # message keep its name. Notification/report callers supply a scope.
+            if not self.flags.get("new_delivery_token"):
+                self.flags.new_delivery_token = frappe.generate_hash(length=32)
+            scope = ("message", self.name or self.flags.new_delivery_token)
+        return delivery_key("outbound-v1", scope)
 
     def before_insert(self):
         if self.type == "Incoming":
@@ -133,6 +147,7 @@ class WhatsAppMessage(Document):
                     buttons=payload.get("buttons", []),
                     footer=payload.get("footer"),
                     instance_name=instance,
+                    operation_key=self.delivery_operation_key(),
                 )
                 self.content_type = "button"
             elif payload and payload.get("sections"):
@@ -144,6 +159,7 @@ class WhatsAppMessage(Document):
                     sections=payload.get("sections", []),
                     footer=payload.get("footer"),
                     instance_name=instance,
+                    operation_key=self.delivery_operation_key(),
                 )
                 self.content_type = "flow"
             elif self.attach:
@@ -163,6 +179,7 @@ class WhatsAppMessage(Document):
                     caption=self.message,
                     filename=filename,
                     instance_name=instance,
+                    operation_key=self.delivery_operation_key(),
                 )
             else:
                 self.content_type = self.content_type or "text"
@@ -170,6 +187,7 @@ class WhatsAppMessage(Document):
                     number=self.to,
                     text=self.message,
                     instance_name=instance,
+                    operation_key=self.delivery_operation_key(),
                 )
             self.status = "Sent"
             self.failure_reason = ""
@@ -308,14 +326,17 @@ class WhatsAppMessage(Document):
             "content-type": "application/json",
         }
         try:
-            response = make_post_request(
-                f"{settings.url.rstrip('/')}/{settings.version}/{settings.phone_id}/messages",
-                headers=headers,
-                data=json.dumps(data),
-            )
-            self.message_id = (response.get("messages") or [{}])[0].get("id")
-            if not self.message_id:
-                frappe.throw(_("Meta accepted the request but returned no message ID."))
+            from frappe_whatsapp.utils.delivery_guard import send_once
+
+            def send():
+                response = make_post_request(
+                    f"{settings.url.rstrip('/')}/{settings.version}/{settings.phone_id}/messages",
+                    headers=headers,
+                    data=json.dumps(data),
+                )
+                return (response.get("messages") or [{}])[0].get("id")
+
+            self.message_id = send_once(self.delivery_operation_key(), send)
         except Exception as exc:
             error_message = str(exc)
             meta_data = {"error": error_message}
@@ -400,6 +421,12 @@ def send_template(to, reference_doctype, reference_name, template):
             "template": template,
             # channel intentionally omitted: WhatsApp Settings decides.
         }
+    )
+    reference = frappe.get_doc(reference_doctype, reference_name)
+    reference.check_permission("read")
+    doc.flags.delivery_scope = (
+        "form-template", reference_doctype, reference_name,
+        str(reference.modified), normalize_number(to), template,
     )
     doc.insert(ignore_permissions=True)
     return {

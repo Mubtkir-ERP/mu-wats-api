@@ -227,6 +227,8 @@ class WhatsAppScheduledReport(Document):
 		if channel == "Evolution":
 			data["send_from_instance"] = self._resolve_instance()
 		msg = frappe.get_doc(data)
+		if not self.is_new():
+			msg.flags.delivery_scope = ("scheduled-report", self.name, nowdate(), now_datetime().hour)
 		msg.insert(ignore_permissions=True)
 		return msg
 
@@ -244,6 +246,11 @@ class WhatsAppScheduledReport(Document):
 		"""True when this report's schedule matches the given day/hour."""
 		if self.disabled:
 			return False
+		if self.last_sent_on:
+			from frappe.utils import get_datetime
+			last = get_datetime(self.last_sent_on)
+			if last.date() == today and last.hour == current_hour:
+				return False
 		repeat = self.repeat_every or 1
 		scheduled_hour = int(str(self.schedule_time or "08:00:00")[:2]) if self.schedule_time else 8
 		if scheduled_hour != current_hour:

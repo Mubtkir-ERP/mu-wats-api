@@ -116,7 +116,9 @@ def trigger_whatsapp_notifications_monthly_long():
 
 
 def trigger_whatsapp_notifications(event):
-    """Run cron."""
+    """Run legacy schedules; calendar schedules belong to the hourly runner."""
+    if event in ("Daily", "Weekly", "Monthly"):
+        return
     wa_notify_list = frappe.get_list(
         "WhatsApp Notification",
         filters={

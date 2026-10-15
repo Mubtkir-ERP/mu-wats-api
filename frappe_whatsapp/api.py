@@ -102,6 +102,9 @@ def _request(method, base_url, path, api_key, payload=None):
 
 	# --- HTTP layer: 4xx / 5xx. Surface the status + body, don't hide it. ---
 	if response.status_code >= 400:
+		from frappe_whatsapp.utils.delivery_guard import DeliveryRejected, REJECTED_HTTP_STATUSES
+		if response.status_code in REJECTED_HTTP_STATUSES:
+			raise DeliveryRejected(f"Evolution rejected the request: {response.status_code} {(response.text or '')[:1000]}")
 		frappe.log_error(
 			message=f"{method} {url}\n{response.status_code} {response.text}",
 			title="Mubtkir API HTTP Error",
@@ -609,16 +612,32 @@ def get_user_instance_status():
         "status": instance.connection_status or "Disconnected"
     }
 @frappe.whitelist()
-def send_text(mobile_no=None, message=None, number=None, text=None, instance_name=None):
+def send_text(mobile_no=None, message=None, number=None, text=None, instance_name=None, operation_key=None):
     """محوِّل الخطّاف العام mu_send_whatsapp (mobile_no, message) إلى طبقة Evolution.
 
     يقبل تسمية الخطّاف (mobile_no, message) والتسمية الأصلية (number, text).
     """
-    from frappe_whatsapp.utils.evolution import send_text as _evo_send_text
 
     number = number or mobile_no
     text = text if text is not None else message
     if not number:
         frappe.throw(_("Recipient mobile number is required."))
-    return _evo_send_text(number=number, text=text, instance_name=instance_name)
+    from frappe_whatsapp.utils.messaging import normalize_number
+    from frappe.utils import now_datetime
+
+    number = normalize_number(number)
+    # Old integrations lack a request ID. Suppress identical requests briefly;
+    # callers requiring reliable retries must pass their own operation_key.
+    scope = ("integration", operation_key) if operation_key else (
+        "integration-window", instance_name, number, text,
+        int(now_datetime().timestamp()) // 300,
+    )
+    doc = frappe.get_doc({
+        "doctype": "WhatsApp Message", "type": "Outgoing", "channel": "Evolution",
+        "to": number, "message": text, "message_type": "Manual", "content_type": "text",
+        "send_from_instance": instance_name,
+    })
+    doc.flags.delivery_scope = scope
+    doc.insert(ignore_permissions=True)
+    return doc.message_id
 

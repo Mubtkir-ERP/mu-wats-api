@@ -198,6 +198,18 @@ class BulkWhatsAppMessage(Document):
         return text
 
     def _gather_recipients(self):
+        recipients = []
+        seen = set()
+        for recipient in self._gather_recipients_raw():
+            number = normalize_number(recipient.get("mobile_number"))
+            if number and number in seen:
+                continue
+            if number:
+                seen.add(number)
+            recipients.append(recipient)
+        return recipients
+
+    def _gather_recipients_raw(self):
         if self.recipient_type == "Recipient List" and self.recipient_list:
             return frappe.get_all(
                 "WhatsApp Recipient",
@@ -236,6 +248,11 @@ class BulkWhatsAppMessage(Document):
     def send_single_message(self, recipient):
         """Send one campaign recipient through the global channel router."""
         phone_number = normalize_number(recipient.get("mobile_number"))
+        if phone_number and frappe.db.exists("WhatsApp Message", {
+            "bulk_message_reference": self.name, "to": phone_number,
+            "status": ["in", ["Sent", "Delivered", "Read"]],
+        }):
+            return True
         if not phone_number:
             self._record_failure("", "", _("Recipient has no mobile number"), recipient=recipient)
             return False
@@ -350,10 +367,20 @@ class BulkWhatsAppMessage(Document):
                 self._delay_between_messages()
             try:
                 msg = frappe.get_doc("WhatsApp Message", name)
+                # Re-read after taking the database row lock. A concurrent retry
+                # must not overwrite a successful ID with a later attempt.
+                frappe.db.sql("SELECT name FROM `tabWhatsApp Message` WHERE name=%s FOR UPDATE", (name,))
+                msg.reload()
+                if msg.status != "Failed":
+                    continue
                 msg.to = normalize_number(msg.to)
                 msg.channel = self._channel
                 msg.send_from_instance = self._sender_instance if self._channel == "Evolution" else None
-                msg.message_id = None
+                if msg.message_id:
+                    # A provider ID is evidence of acceptance; reconcile status,
+                    # never erase that evidence and blindly send again.
+                    self._log(f"SKIP RETRY {name}: provider message ID already exists")
+                    continue
                 msg.failure_reason = ""
 
                 if self._channel == "Evolution":
@@ -440,7 +467,7 @@ def process_bulk_message(bulk_name, retry_failed_only=False):
     """Background-worker entry point with a durable failure state."""
     try:
         doc = frappe.get_doc("Bulk WhatsApp Message", bulk_name)
-        if doc.docstatus != 1:
+        if doc.docstatus != 1 or (not retry_failed_only and doc.status == "Completed"):
             return
         return doc.send_messages(retry_failed_only=bool(retry_failed_only))
     except Exception:
