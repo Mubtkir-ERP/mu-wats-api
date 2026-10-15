@@ -8,7 +8,7 @@ import frappe
 from frappe import _dict, _
 from frappe.model.document import Document
 from frappe.utils.safe_exec import get_safe_globals, safe_exec
-from frappe_whatsapp.utils.meta import make_post_request
+from frappe.integrations.utils import make_post_request
 from frappe.utils import add_to_date, nowdate, datetime
 
 
@@ -56,11 +56,7 @@ class WhatsAppNotification(Document):
                 for data in self._data_list:
                     doc = frappe.get_doc(self.reference_doctype, data.get("name"))
 
-                    self.send_template_message(
-                        doc, data.get("phone_no"), template, True,
-                        delivery_scope=("scheduled-notification", self.name, nowdate(),
-                                        doc.name, self.format_number(data.get("phone_no") or self.resolve_phone(doc, doc.as_dict())))
-                    )
+                    self.send_template_message(doc, data.get("phone_no"), template, True)
         # return _globals.frappe.flags
 
 
@@ -135,7 +131,7 @@ class WhatsAppNotification(Document):
         return phone
 
 
-    def send_template_message(self, doc: Document, phone_no=None, default_template=None, ignore_condition=False, delivery_scope=None):
+    def send_template_message(self, doc: Document, phone_no=None, default_template=None, ignore_condition=False):
         """Send WhatsApp message using Mubtkir API instead of Meta."""
         if self.disabled:
             return
@@ -208,7 +204,15 @@ class WhatsAppNotification(Document):
         phone_number = phone_no or self.resolve_phone(doc, doc_data)
 
         if not phone_number:
-            frappe.throw("Phone number not found")
+            # A missing phone number must NEVER block the triggering document
+            # (e.g. a Sales Invoice saving/printing for a walk-in customer with
+            # no mobile). WhatsApp notifications are best-effort: skip silently
+            # and log, instead of frappe.throw which aborts the host transaction.
+            frappe.logger("frappe_whatsapp").info(
+                f"WhatsApp notification '{self.name}' skipped: no phone number"
+                f" for {getattr(doc, 'name', '') or ''}"
+            )
+            return
 
         # Format phone number
         phone_number = self.format_number(phone_number)
@@ -268,7 +272,6 @@ class WhatsAppNotification(Document):
                 attachment_url = f'{frappe.utils.get_url()}{file_url}'
 
         # Send through the globally configured channel (Meta or Evolution).
-        from frappe_whatsapp.utils.delivery_guard import business_snapshot
         return self.notify_routed(
             phone_number=phone_number,
             message_text=message_text,
@@ -276,14 +279,6 @@ class WhatsAppNotification(Document):
             filename=filename,
             template=template,
             doc_data=doc_data,
-            delivery_scope=delivery_scope or (
-                "notification", self.name, doc_data.get("doctype"),
-                doc_data.get("name"), doc_data.get("docstatus"), message_text,
-                phone_number, self.template, self.print_format,
-                self.attach_document_print, self.custom_attachment, self.attach,
-                doc_data.get(self.attach_from_field) if self.attach_from_field else None,
-                business_snapshot(doc_data, (self.set_property_after_alert,)),
-            ),
             parameters=parameters if self.fields else None
         )
 
@@ -340,7 +335,6 @@ class WhatsAppNotification(Document):
         doc_data=None,
         parameters=None,
         force_channel=None,
-        delivery_scope=None,
     ):
         """Create one WhatsApp Message and let its central router send it."""
         from frappe_whatsapp.utils.messaging import get_default_channel, normalize_number
@@ -348,7 +342,11 @@ class WhatsAppNotification(Document):
         channel = force_channel or get_default_channel()
         phone_number = normalize_number(phone_number)
         if not phone_number:
-            frappe.throw(_("Phone number not found"))
+            # Best-effort: never abort the host document over a missing number.
+            frappe.logger("frappe_whatsapp").info(
+                f"WhatsApp notification '{self.name}' not routed: no phone number."
+            )
+            return None
 
         attach = self._temporary_attachment_url(attachment_url, filename)
         content_type = self._attachment_content_type(filename) if attach else "text"
@@ -381,9 +379,6 @@ class WhatsAppNotification(Document):
 
         try:
             msg = frappe.get_doc(data)
-            msg.flags.delivery_scope = delivery_scope or (
-                "scheduled-notification", self.name, nowdate(), phone_number
-            )
             if doc_data:
                 msg.flags.custom_ref_doc = doc_data
             msg.insert(ignore_permissions=True)
@@ -456,21 +451,10 @@ class WhatsAppNotification(Document):
         }
         try:
             success = False
-            from frappe_whatsapp.utils.delivery_guard import delivery_key, send_once
-            from frappe.utils import now_datetime
-
-            def send():
-                result = make_post_request(
-                    f"{settings.url}/{settings.version}/{settings.phone_id}/messages",
-                    headers=headers, data=json.dumps(data)
-                )
-                return (result.get("messages") or [{}])[0].get("id")
-
-            operation = delivery_key(
-                "legacy-meta", self.name, data,
-                int(now_datetime().timestamp()) // 300,
+            response = make_post_request(
+                f"{settings.url}/{settings.version}/{settings.phone_id}/messages",
+                headers=headers, data=json.dumps(data)
             )
-            response = {"messages": [{"id": send_once(operation, send)}]}
 
             if not self.get("content_type"):
                 self.content_type = 'text'
@@ -522,7 +506,7 @@ class WhatsAppNotification(Document):
 
         except Exception as e:
             error_message = str(e)
-            if getattr(frappe.flags, "integration_request", None):
+            if frappe.flags.integration_request:
                 response = frappe.flags.integration_request.json()['error']
                 error_message = response.get('Error', response.get("message"))
 
@@ -583,9 +567,8 @@ class WhatsAppNotification(Document):
 
         for d in doc_list:
             doc = frappe.get_doc(self.reference_doctype, d.name)
-            self.send_template_message(
-                doc, delivery_scope=("notification-day", self.name, doc.name, nowdate())
-            )
+            self.send_template_message(doc)
+            # print(doc.name)
 
     # ------------------------------------------------------------------
     # Recurring reminders — repeat until the Condition clears, then thank.
@@ -630,9 +613,7 @@ class WhatsAppNotification(Document):
                 return  # too soon since the last reminder
 
         # send_template_message re-checks the Condition itself.
-        self.send_template_message(
-            doc, delivery_scope=("notification-day", self.name, doc.name, str(today))
-        )
+        self.send_template_message(doc)
 
         if not state:
             state = frappe.get_doc(
@@ -659,10 +640,7 @@ class WhatsAppNotification(Document):
         if self.send_thank_you_on_clear and self.thank_you_template and not state.thanked:
             tmpl = frappe.db.get_value("WhatsApp Templates", self.thank_you_template, "*")
             if tmpl:
-                self.send_template_message(
-                    doc, default_template=tmpl, ignore_condition=True,
-                    delivery_scope=("thank-you", self.name, doc.name, str(state.last_sent_on))
-                )
+                self.send_template_message(doc, default_template=tmpl, ignore_condition=True)
                 state.thanked = 1
         state.save(ignore_permissions=True)
 
