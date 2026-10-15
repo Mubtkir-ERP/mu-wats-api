@@ -8,7 +8,7 @@ import frappe
 from frappe import _dict, _
 from frappe.model.document import Document
 from frappe.utils.safe_exec import get_safe_globals, safe_exec
-from frappe.integrations.utils import make_post_request
+from frappe_whatsapp.utils.meta import make_post_request
 from frappe.utils import add_to_date, nowdate, datetime
 
 
@@ -56,7 +56,10 @@ class WhatsAppNotification(Document):
                 for data in self._data_list:
                     doc = frappe.get_doc(self.reference_doctype, data.get("name"))
 
-                    self.send_template_message(doc, data.get("phone_no"), template, True)
+                    self.send_template_message(
+                        doc, data.get("phone_no"), template, True,
+                        delivery_scope=("scheduled-notification", self.name, nowdate(), doc.name)
+                    )
         # return _globals.frappe.flags
 
 
@@ -131,7 +134,7 @@ class WhatsAppNotification(Document):
         return phone
 
 
-    def send_template_message(self, doc: Document, phone_no=None, default_template=None, ignore_condition=False):
+    def send_template_message(self, doc: Document, phone_no=None, default_template=None, ignore_condition=False, delivery_scope=None):
         """Send WhatsApp message using Mubtkir API instead of Meta."""
         if self.disabled:
             return
@@ -271,6 +274,12 @@ class WhatsAppNotification(Document):
             else:
                 attachment_url = f'{frappe.utils.get_url()}{file_url}'
 
+        from frappe_whatsapp.utils.delivery_guard import business_snapshot
+        # A save timestamp or this notification's own marker is not a new send.
+        delivery_scope = delivery_scope or (
+            "document-notification", self.name,
+            business_snapshot(doc_data, (self.set_property_after_alert,)),
+        )
         # Send through the globally configured channel (Meta or Evolution).
         return self.notify_routed(
             phone_number=phone_number,
@@ -279,6 +288,7 @@ class WhatsAppNotification(Document):
             filename=filename,
             template=template,
             doc_data=doc_data,
+            delivery_scope=delivery_scope,
             parameters=parameters if self.fields else None
         )
 
@@ -308,7 +318,7 @@ class WhatsAppNotification(Document):
                 "doctype": "File",
                 "file_name": safe_name,
                 "content": content,
-                "is_private": 0,
+                "is_private": 1,
             }
         ).insert(ignore_permissions=True)
         return file_doc.file_url
@@ -335,6 +345,7 @@ class WhatsAppNotification(Document):
         doc_data=None,
         parameters=None,
         force_channel=None,
+        delivery_scope=None,
     ):
         """Create one WhatsApp Message and let its central router send it."""
         from frappe_whatsapp.utils.messaging import get_default_channel, normalize_number
@@ -378,10 +389,22 @@ class WhatsAppNotification(Document):
             data["reference_name"] = doc_data.get("name")
 
         try:
+            from frappe_whatsapp.utils.delivery_guard import delivery_key
+            from frappe_whatsapp.utils.security import configured_automation
             msg = frappe.get_doc(data)
             if doc_data:
                 msg.flags.custom_ref_doc = doc_data
-            msg.insert(ignore_permissions=True)
+            logical_attachment = (
+                "print", self.print_format, self.attach_document_print
+            ) if self.attach_document_print else (
+                self.attach, doc_data.get(self.attach_from_field) if doc_data and self.attach_from_field else None
+            )
+            fingerprint = delivery_key(channel, phone_number, message_text, template_name, parameters, logical_attachment)
+            scope = delivery_scope or ("scheduled-notification", self.name, nowdate())
+            msg.flags.delivery_scope = (scope, phone_number, fingerprint)
+            msg.flags.delivery_fingerprint = fingerprint
+            with configured_automation():
+                msg.insert(ignore_permissions=True)
 
             if doc_data and self.set_property_after_alert and self.property_value:
                 fieldname = self.set_property_after_alert
@@ -451,10 +474,15 @@ class WhatsAppNotification(Document):
         }
         try:
             success = False
-            response = make_post_request(
-                f"{settings.url}/{settings.version}/{settings.phone_id}/messages",
-                headers=headers, data=json.dumps(data)
-            )
+            from frappe_whatsapp.utils.delivery_guard import send_once, delivery_key
+            def send():
+                result = make_post_request(
+                    f"{settings.url}/{settings.version}/{settings.phone_id}/messages",
+                    headers=headers, data=json.dumps(data)
+                )
+                return (result.get("messages") or [{}])[0].get("id")
+            key = delivery_key("legacy-meta-v2", self.name, data)
+            response = {"messages": [{"id": send_once(key, send, replay_seconds=300)}]}
 
             if not self.get("content_type"):
                 self.content_type = 'text'
@@ -506,7 +534,7 @@ class WhatsAppNotification(Document):
 
         except Exception as e:
             error_message = str(e)
-            if frappe.flags.integration_request:
+            if getattr(frappe.flags, "integration_request", None):
                 response = frappe.flags.integration_request.json()['error']
                 error_message = response.get('Error', response.get("message"))
 
@@ -567,8 +595,7 @@ class WhatsAppNotification(Document):
 
         for d in doc_list:
             doc = frappe.get_doc(self.reference_doctype, d.name)
-            self.send_template_message(doc)
-            # print(doc.name)
+            self.send_template_message(doc, delivery_scope=("notification-day", self.name, doc.name, nowdate()))
 
     # ------------------------------------------------------------------
     # Recurring reminders — repeat until the Condition clears, then thank.
@@ -613,7 +640,7 @@ class WhatsAppNotification(Document):
                 return  # too soon since the last reminder
 
         # send_template_message re-checks the Condition itself.
-        self.send_template_message(doc)
+        self.send_template_message(doc, delivery_scope=("notification-day", self.name, doc.name, str(today)))
 
         if not state:
             state = frappe.get_doc(
@@ -640,7 +667,10 @@ class WhatsAppNotification(Document):
         if self.send_thank_you_on_clear and self.thank_you_template and not state.thanked:
             tmpl = frappe.db.get_value("WhatsApp Templates", self.thank_you_template, "*")
             if tmpl:
-                self.send_template_message(doc, default_template=tmpl, ignore_condition=True)
+                self.send_template_message(
+                    doc, default_template=tmpl, ignore_condition=True,
+                    delivery_scope=("thank-you", self.name, doc.name, str(state.last_sent_on))
+                )
                 state.thanked = 1
         state.save(ignore_permissions=True)
 
@@ -708,9 +738,12 @@ def process_recurring_reminders():
             frappe.log_error(frappe.get_traceback(), f"Recurring reminders failed: {name}")
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def call_trigger_notifications():
     """Trigger notifications."""
+    frappe.has_permission("WhatsApp Notification", "write", throw=True)
+    from frappe_whatsapp.utils.security import require_sender
+    require_sender()
     try:
         # Directly call the trigger_notifications function
         trigger_notifications()  
@@ -794,12 +827,14 @@ def trigger_monthly_notifications():
 def get_preview(notification_name):
     """Return preview of message with real data from latest document."""
     notif = frappe.get_doc("WhatsApp Notification", notification_name)
+    notif.check_permission("read")
+    frappe.has_permission(notif.reference_doctype, "read", throw=True)
 
     if not notif.reference_doctype:
         frappe.throw("No reference doctype selected")
 
     # Get the most recent document
-    docs = frappe.get_all(
+    docs = frappe.get_list(
         notif.reference_doctype,
         fields=["name"],
         order_by="modified desc",
@@ -810,6 +845,11 @@ def get_preview(notification_name):
         frappe.throw(f"No documents found for {notif.reference_doctype}")
 
     doc = frappe.get_doc(notif.reference_doctype, docs[0].name)
+    doc.check_permission("read")
+    from frappe.model import get_permitted_fields
+    permitted = set(get_permitted_fields(notif.reference_doctype))
+    if any(field.field_name not in permitted for field in (notif.fields or [])):
+        frappe.throw(_("The preview contains fields you cannot read."), frappe.PermissionError)
     doc_data = doc.as_dict()
 
     message_text = notif.code or ""
@@ -847,7 +887,7 @@ def get_preview(notification_name):
 # Reuses a notification's linked Whatsapp Instance via the unified layer.
 # ---------------------------------------------------------------------------
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def send_notification_interactive(phone_number, payload, whatsapp_instance=None):
     """Send interactive buttons/list to one recipient via Evolution.
 
@@ -858,6 +898,9 @@ def send_notification_interactive(phone_number, payload, whatsapp_instance=None)
     from frappe_whatsapp.utils import evolution
     from frappe_whatsapp.utils.messaging import ensure_enabled, normalize_number
 
+    from frappe_whatsapp.utils.security import require_sender, authorize_instance
+    require_sender()
+    whatsapp_instance = authorize_instance(whatsapp_instance)
     frappe.has_permission("WhatsApp Notification", "read", throw=True)
     ensure_enabled()
     phone_number = normalize_number(phone_number)

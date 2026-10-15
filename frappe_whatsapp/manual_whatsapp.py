@@ -6,7 +6,7 @@ from frappe import _
 SUPPORTED = ("Sales Invoice", "Quotation")
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def send_document_message(doctype, name):
     """Send via the existing automatic notification pipeline, without text overrides."""
     if doctype not in SUPPORTED:
@@ -17,8 +17,8 @@ def send_document_message(doctype, name):
         frappe.throw(_("Save the document before sending."))
     # Require permission to create an outbound message, rather than using the
     # privileged background notification context for arbitrary read-only users.
-    if not frappe.has_permission("WhatsApp Message", "create"):
-        frappe.throw(_("Not permitted to send WhatsApp messages"), frappe.PermissionError)
+    from frappe_whatsapp.utils.security import require_sender
+    require_sender()
 
     notifications = frappe.get_all(
         "WhatsApp Notification",

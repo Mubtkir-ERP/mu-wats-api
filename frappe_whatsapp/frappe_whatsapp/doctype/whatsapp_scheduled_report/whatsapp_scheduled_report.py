@@ -15,6 +15,7 @@ import json
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe_whatsapp.utils.security import require_sender
 from frappe.utils import cint, get_url, getdate, now, now_datetime, nowdate
 
 # Format -> (file extension, document mime type sent to WhatsApp).
@@ -49,10 +50,9 @@ class WhatsAppScheduledReport(Document):
 
 	def _run_report(self):
 		"""Run the report and return its columns + result rows."""
-		from frappe.desk.query_report import run as run_query_report
+		from frappe_whatsapp.utils.report_export import execute_report
 
-		res = run_query_report(self.report, filters=self._filters()) or {}
-		return res.get("columns") or [], res.get("result") or []
+		return execute_report(self.report, self.filters_json, self.get("builder_spec_json"))
 
 	@staticmethod
 	def _normalise(columns, result):
@@ -97,7 +97,7 @@ class WhatsAppScheduledReport(Document):
 			for r in rows:
 				writer.writerow(["" if v is None else v for v in r])
 			# BOM so Arabic opens correctly in Excel.
-			content = ("﻿" + buf.getvalue()).encode("utf-8")
+			content = ("ï»؟" + buf.getvalue()).encode("utf-8")
 
 		elif fmt == "Excel":
 			from frappe.utils.xlsxutils import make_xlsx
@@ -145,7 +145,7 @@ class WhatsAppScheduledReport(Document):
 				"doctype": "File",
 				"file_name": temp_name,
 				"content": content,
-				"is_private": 0,
+				"is_private": 1,
 			}
 		).insert(ignore_permissions=True)
 		return f.file_url
@@ -225,17 +225,28 @@ class WhatsAppScheduledReport(Document):
 			"channel": channel,
 		}
 		if channel == "Evolution":
-			data["send_from_instance"] = self._resolve_instance()
+			from frappe_whatsapp.utils.security import authorize_instance
+			data["send_from_instance"] = authorize_instance(self.whatsapp_instance or None)
+		from frappe_whatsapp.utils.delivery_guard import delivery_key
 		msg = frappe.get_doc(data)
-		if not self.is_new():
+		msg.flags.delivery_fingerprint = delivery_key("report-media", channel, self.report, self.filters_json, self.get("builder_spec_json"), self.report_format, data["to"], data["message"], data.get("send_from_instance"))
+		msg.flags.delivery_replay_seconds = self.flags.get("delivery_replay_seconds")
+		if self.flags.get("report_operation_key"):
+			msg.flags.delivery_scope = (
+				"report-adhoc", frappe.session.user, self.flags.report_operation_key,
+				self.report, self.filters_json, self.get("builder_spec_json"),
+				self.report_format, data["to"], data["message"], self.whatsapp_instance,
+			)
+		elif not self.is_new():
 			msg.flags.delivery_scope = ("scheduled-report", self.name, nowdate(), now_datetime().hour)
 		msg.insert(ignore_permissions=True)
 		return msg
 
 	# ---- public actions ----------------------------------------------------
-	@frappe.whitelist()
+	@frappe.whitelist(methods=["POST"])
 	def send_now(self):
 		"""Render and send the report immediately. Returns a small status dict."""
+		require_sender()
 		filename, content, mimetype = self._render_file()
 		file_url = self._save_file(filename, content)
 		self._send_file(file_url, filename, mimetype)
@@ -281,12 +292,19 @@ def trigger_scheduled_reports():
 
 	names = frappe.get_all("WhatsApp Scheduled Report", filters={"disabled": 0}, pluck="name")
 	for name in names:
+		original_user = frappe.session.user
 		try:
 			doc = frappe.get_doc("WhatsApp Scheduled Report", name)
 			if doc.is_due(today, current_hour, current_weekday):
+				# Re-run scheduled reports with their owner's permissions.
+				if not frappe.db.get_value("User", doc.owner, "enabled"):
+					continue
+				frappe.set_user(doc.owner)
 				doc.send_now()
 		except Exception:
 			frappe.log_error(frappe.get_traceback(), f"Scheduled report failed: {name}")
+		finally:
+			frappe.set_user(original_user)
 
 
 def _apply_report_args(doc, **kwargs):
@@ -309,21 +327,33 @@ def _apply_report_args(doc, **kwargs):
 	doc.use_template = cint(kwargs.get("use_template"))
 	doc.template = kwargs.get("template")
 	doc.whatsapp_instance = kwargs.get("whatsapp_instance")
+	from frappe_whatsapp.utils.report_export import parse_object
+	doc.builder_spec_json = _json.dumps(parse_object(kwargs.get("builder_spec"), "Report Builder settings"))
+	operation_key = kwargs.get("operation_key")
+	if operation_key:
+		if not isinstance(operation_key, str) or len(operation_key) > 128:
+			frappe.throw(_("Invalid report send operation key."))
+		doc.flags.report_operation_key = operation_key
+	else:
+		from frappe_whatsapp.utils.delivery_guard import delivery_key
+		doc.flags.report_operation_key = "legacy-" + delivery_key(kwargs)
+		doc.flags.delivery_replay_seconds = 300
 	return doc
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def send_report_adhoc(**kwargs):
 	"""Render and send a report immediately from the report view (no schedule).
 
 	Reuses the WhatsApp Scheduled Report rendering/sending on an unsaved doc so
 	the current report filters/format chosen in the report page are honoured.
 	"""
-	if not kwargs.get("report"):
+	require_sender()
+	if not kwargs.get("report") and not kwargs.get("builder_spec"):
 		frappe.throw(_("No report specified."))
 
 	doc = _apply_report_args(frappe.new_doc("WhatsApp Scheduled Report"), **kwargs)
-	doc.report_title = kwargs.get("report")  # not saved; only used for the filename
+	doc.report_title = kwargs.get("report") or kwargs.get("report_title") or "Report"
 
 	filename, content, mimetype = doc._render_file()
 	file_url = doc._save_file(filename, content)
@@ -331,7 +361,7 @@ def send_report_adhoc(**kwargs):
 	return {"sent": True, "file": filename}
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def create_scheduled_report(**kwargs):
 	"""Create a WhatsApp Scheduled Report from the report view's current setup.
 
@@ -339,11 +369,17 @@ def create_scheduled_report(**kwargs):
 	before it goes live. Returns the new record name.
 	"""
 	if not kwargs.get("report"):
-		frappe.throw(_("No report specified."))
+		frappe.throw(_("Save this Report Builder report before scheduling it."))
+	frappe.has_permission("WhatsApp Scheduled Report", "create", throw=True)
 
 	doc = _apply_report_args(frappe.new_doc("WhatsApp Scheduled Report"), **kwargs)
 	doc.report_title = f"{kwargs.get('report')} - {frappe.generate_hash(length=5)}"
 	doc.frequency = "Daily"
 	doc.disabled = 1
-	doc.insert()
-	return {"name": doc.name}
+	from frappe_whatsapp.utils.operations import create_once
+	from frappe_whatsapp.utils.delivery_guard import delivery_key
+	identity = delivery_key(frappe.session.user, kwargs.get("operation_key") or kwargs)
+	def create():
+		doc.insert()
+		return {"name": doc.name}
+	return create_once("report-schedule", identity, create, fingerprint=delivery_key(kwargs))

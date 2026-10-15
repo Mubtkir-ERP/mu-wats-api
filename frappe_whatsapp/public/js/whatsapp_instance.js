@@ -353,8 +353,10 @@ function show_qr_dialog(frm) {
 
 		if (data.base64) {
 			let img = data.base64;
-			if (!img.startsWith("data:image")) {
-				img = "data:image/png;base64," + img;
+			if (!img.startsWith("data:image")) img = "data:image/png;base64," + img;
+			if (!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=\r\n]+$/.test(img)) {
+				set_message(__("Invalid QR image returned by the provider."));
+				return;
 			}
 			set_message(`
 				<p style="color:#555; margin-bottom:12px;">

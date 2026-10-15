@@ -1,0 +1,46 @@
+{
+ "doctype": "DocType",
+ "name": "WhatsApp Operation",
+ "module": "Frappe Whatsapp",
+ "engine": "InnoDB",
+ "field_order": [
+  "kind",
+  "namespace",
+  "result_name",
+  "request_fingerprint"
+ ],
+ "fields": [
+  {
+   "fieldname": "kind",
+   "fieldtype": "Select",
+   "label": "Kind",
+   "options": "Receipt\nLock",
+   "read_only": 1
+  },
+  {
+   "fieldname": "namespace",
+   "fieldtype": "Data",
+   "label": "Namespace",
+   "read_only": 1
+  },
+  {
+   "fieldname": "result_name",
+   "fieldtype": "Data",
+   "label": "Result",
+   "read_only": 1
+  },
+  {
+   "fieldname": "request_fingerprint",
+   "fieldtype": "Data",
+   "label": "Request Fingerprint",
+   "read_only": 1
+  }
+ ],
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1
+  }
+ ],
+ "track_changes": 0
+}

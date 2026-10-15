@@ -109,25 +109,25 @@ def get_data(filters):
         # Get delivered count
         row["delivered_count"] = frappe.db.count("WhatsApp Message", {
             "bulk_message_reference": row.name,
-            "status": "delivered"
+            "status": "Delivered"
         })
         
         # Get read count
         row["read_count"] = frappe.db.count("WhatsApp Message", {
             "bulk_message_reference": row.name,
-            "status": "read"
+            "status": "Read"
         })
 
          # Get read count
         row["sent_count"] = frappe.db.count("WhatsApp Message", {
             "bulk_message_reference": row.name,
-            "status": "sent"
+            "status": "Sent"
         })
         
         # Get failed count
         row["failed_count"] = frappe.db.count("WhatsApp Message", {
             "bulk_message_reference": row.name,
-            "status": "failed"
+            "status": "Failed"
         })
     
     return data

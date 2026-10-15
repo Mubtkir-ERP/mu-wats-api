@@ -57,6 +57,10 @@ class BulkWhatsAppMessage(Document):
             self.recipient_count = len(self.recipients or [])
 
     def on_submit(self):
+        from frappe_whatsapp.utils.security import require_sender, authorize_instance
+        require_sender()
+        if get_default_channel() == "Evolution":
+            self.sender_number = authorize_instance(self.sender_number or None)
         ensure_enabled()
         if self.scheduled_time and get_datetime(self.scheduled_time) > now_datetime():
             self.db_set("status", "Queued")
@@ -66,6 +70,10 @@ class BulkWhatsAppMessage(Document):
     def enqueue_send(self, retry_failed_only=False):
         """Queue a campaign on Frappe's long worker; never block the web request."""
         ensure_enabled()
+        frappe.db.sql("SELECT name FROM `tabBulk WhatsApp Message` WHERE name=%s FOR UPDATE", (self.name,))
+        self.reload()
+        if self.status == "In Progress" or (not retry_failed_only and self.status == "Completed"):
+            return False
         self.db_set("status", "In Progress")
         try:
             frappe.enqueue(
@@ -83,8 +91,10 @@ class BulkWhatsAppMessage(Document):
     def _resolve_sender(self):
         from frappe_whatsapp.utils import evolution
 
+        from frappe_whatsapp.utils.security import authorize_instance
+        sender = authorize_instance(self.sender_number or None, user=self.owner)
         base_url, api_key, instance_name = evolution.resolve_instance(
-            self.sender_number or None,
+            sender,
             user=self.owner,
         )
         self._sender_base = base_url
@@ -228,6 +238,7 @@ class BulkWhatsAppMessage(Document):
 
     @frappe.whitelist()
     def preview_messages(self, limit=25):
+        self.check_permission("read")
         limit = max(1, min(int(limit or 25), 100))
         return [
             {
@@ -342,16 +353,19 @@ class BulkWhatsAppMessage(Document):
     def format_number(self, number):
         return normalize_number(number)
 
-    @frappe.whitelist()
+    @frappe.whitelist(methods=["POST"])
     def retry_failed(self):
+        from frappe_whatsapp.utils.security import require_sender
+        self.check_permission("write")
+        require_sender()
         """Retry this campaign's failed messages on the long worker."""
         failed = frappe.db.count(
             "WhatsApp Message", {"bulk_message_reference": self.name, "status": "Failed"}
         )
         if not failed:
             return {"queued": 0}
-        self.enqueue_send(retry_failed_only=True)
-        return {"queued": failed}
+        queued = self.enqueue_send(retry_failed_only=True)
+        return {"queued": failed if queued is not False else 0}
 
     def _retry_failed_messages(self):
         names = frappe.get_all(
@@ -421,6 +435,7 @@ class BulkWhatsAppMessage(Document):
 
     @frappe.whitelist()
     def get_progress(self):
+        self.check_permission("read")
         total = cint(self.recipient_count)
         sent = frappe.db.count(
             "WhatsApp Message",
@@ -466,7 +481,13 @@ def _media_kind(filename):
 def process_bulk_message(bulk_name, retry_failed_only=False):
     """Background-worker entry point with a durable failure state."""
     try:
+        frappe.db.sql("SELECT name FROM `tabBulk WhatsApp Message` WHERE name=%s FOR UPDATE", (bulk_name,))
         doc = frappe.get_doc("Bulk WhatsApp Message", bulk_name)
+        from frappe_whatsapp.utils.security import require_sender
+        if not frappe.db.get_value("User", doc.owner, "enabled"):
+            frappe.throw(_("The campaign owner's account is disabled."), frappe.PermissionError)
+        require_sender(doc.owner)
+        frappe.has_permission("Bulk WhatsApp Message", "submit", doc=doc, user=doc.owner, throw=True)
         if doc.docstatus != 1 or (not retry_failed_only and doc.status == "Completed"):
             return
         return doc.send_messages(retry_failed_only=bool(retry_failed_only))
@@ -503,11 +524,14 @@ def trigger_scheduled_bulk_messages():
             frappe.log_error(frappe.get_traceback(), f"Could not queue WhatsApp bulk campaign: {name}")
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def send_bulk_interactive(recipients, payload, instance_name=None):
     """Send one buttons/list payload to many recipients through Evolution."""
     from frappe_whatsapp.utils import evolution
 
+    from frappe_whatsapp.utils.security import require_sender, authorize_instance
+    require_sender()
+    instance_name = authorize_instance(instance_name)
     frappe.has_permission("Bulk WhatsApp Message", "create", throw=True)
     ensure_enabled()
     if isinstance(recipients, str):

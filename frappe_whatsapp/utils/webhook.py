@@ -5,9 +5,11 @@ import hmac
 import requests
 from werkzeug.wrappers import Response
 import frappe.utils
+from frappe_whatsapp.utils.operations import claim_event
+from frappe_whatsapp.utils import webhook_auth
 
 
-@frappe.whitelist(allow_guest=True)
+@frappe.whitelist(allow_guest=True, methods=["GET", "POST"])
 def webhook():
 	"""Meta webhook."""
 	if frappe.request.method == "GET":
@@ -22,18 +24,31 @@ def get():
 		"WhatsApp Settings", "webhook_verify_token"
 	)
 
-	if frappe.form_dict.get("hub.verify_token") != webhook_verify_token:
+	if not webhook_verify_token or not hmac.compare_digest(str(frappe.form_dict.get("hub.verify_token") or ""), str(webhook_verify_token)):
 		frappe.throw("Verify token does not match")
 
 	return Response(hub_challenge, status=200)
 
 def post():
+    data = webhook_auth.meta_payload()
+    if not webhook_auth.event_once("Meta", "", data):
+        return Response("OK", status=200)
+    phone_id = frappe.db.get_single_value("WhatsApp Settings", "phone_id")
+    for entry in data.get("entry") or []:
+        for change in entry.get("changes") or []:
+            incoming_phone = ((change.get("value") or {}).get("metadata") or {}).get("phone_number_id")
+            if incoming_phone and phone_id and str(incoming_phone) != str(phone_id):
+                continue
+            _post_meta_item({"entry": [{"changes": [change]}]})
+    return Response("OK", status=200)
+
+
+def _post_meta_item(data):
 	"""Post."""
-	data = frappe.local.form_dict
 	frappe.get_doc({
 		"doctype": "WhatsApp Notification Log",
 		"template": "Webhook",
-		"meta_data": json.dumps(data)
+		"meta_data": json.dumps({"source": "Meta", "event": "accepted"})
 	}).insert(ignore_permissions=True)
 
 	messages = []
@@ -54,8 +69,13 @@ def post():
 
 	if messages:
 		for message in messages:
+			mid = message.get("id")
+			if not mid or not claim_event("incoming-meta", str(mid)):
+				continue
+			if frappe.db.exists("WhatsApp Message", {"message_id": mid, "channel": "Meta", "type": "Incoming"}):
+				continue
 			message_type = message['type']
-			is_reply = True if message.get('context') and 'forwarded' not in message.get('context') else False
+			is_reply = bool((message.get('context') or {}).get('id'))
 			reply_to_message_id = message['context']['id'] if is_reply else None
 			if message_type == 'text':
 				frappe.get_doc({
@@ -85,7 +105,7 @@ def post():
 					"doctype": "WhatsApp Message",
 					"type": "Incoming",
 					"from": message['from'],
-					"message": message['interactive']['nfm_reply']['response_json'],
+                    "message": webhook_auth.interactive_text(message.get('interactive') or {}),
 					"message_id": message['id'],
 					"reply_to_message_id": reply_to_message_id,
 					"is_reply": is_reply,
@@ -93,58 +113,21 @@ def post():
 					"profile_name":sender_profile_name
 				}).insert(ignore_permissions=True)
 			elif message_type in ["image", "audio", "video", "document"]:
-				settings = frappe.get_doc(
-							"WhatsApp Settings", "WhatsApp Settings",
-						)
-				token = settings.get_password("token")
-				url = f"{settings.url}/{settings.version}/"
-
-
-				media_id = message[message_type]["id"]
-				headers = {
-					'Authorization': 'Bearer ' + token
-
-				}
-				response = requests.get(f'{url}{media_id}/', headers=headers)
-
-				if response.status_code == 200:
-					media_data = response.json()
-					media_url = media_data.get("url")
-					mime_type = media_data.get("mime_type")
-					file_extension = mime_type.split('/')[1]
-
-					media_response = requests.get(media_url, headers=headers)
-					if media_response.status_code == 200:
-
-						file_data = media_response.content
-						file_name = f"{frappe.generate_hash(length=10)}.{file_extension}"
-
-						message_doc = frappe.get_doc({
-							"doctype": "WhatsApp Message",
-							"type": "Incoming",
-							"from": message['from'],
-							"message_id": message['id'],
-							"reply_to_message_id": reply_to_message_id,
-							"is_reply": is_reply,
-							"message": message[message_type].get("caption",f"/files/{file_name}"),
-							"content_type" : message_type,
-							"profile_name":sender_profile_name
-						}).insert(ignore_permissions=True)
-
-						file = frappe.get_doc(
-							{
-								"doctype": "File",
-								"file_name": file_name,
-								"attached_to_doctype": "WhatsApp Message",
-								"attached_to_name": message_doc.name,
-								"content": file_data,
-								"attached_to_field": "attach"
-							}
-						).save(ignore_permissions=True)
-
-
-						message_doc.attach = file.file_url
-						message_doc.save()
+				settings = frappe.get_doc("WhatsApp Settings", "WhatsApp Settings")
+				filename, content = webhook_auth.fetch_meta_media(message[message_type].get("id"), settings)
+				message_doc = frappe.get_doc({
+					"doctype": "WhatsApp Message", "type": "Incoming", "channel": "Meta",
+					"from": message['from'], "message_id": message['id'],
+					"reply_to_message_id": reply_to_message_id, "is_reply": is_reply,
+					"message": message[message_type].get("caption", ""),
+					"content_type": message_type, "profile_name": sender_profile_name,
+				}).insert(ignore_permissions=True)
+				file = frappe.get_doc({
+					"doctype": "File", "file_name": filename, "content": content, "is_private": 1,
+					"attached_to_doctype": "WhatsApp Message", "attached_to_name": message_doc.name,
+					"attached_to_field": "attach",
+				}).insert(ignore_permissions=True)
+				frappe.db.set_value("WhatsApp Message", message_doc.name, "attach", file.file_url)
 			elif message_type == "button":
 				frappe.get_doc({
 					"doctype": "WhatsApp Message",
@@ -163,18 +146,12 @@ def post():
 					"type": "Incoming",
 					"from": message['from'],
 					"message_id": message['id'],
-					"message": message[message_type].get(message_type),
-					"content_type" : message_type,
+					"message": json.dumps(message.get(message_type) or {}, ensure_ascii=False),
+					"content_type": message_type if message_type in ("location", "contact") else "text",
 					"profile_name":sender_profile_name
 				}).insert(ignore_permissions=True)
 
-	else:
-		changes = None
-		try:
-			changes = data["entry"][0]["changes"][0]
-		except KeyError:
-			changes = data["entry"]["changes"][0]
-		update_status(changes)
+	update_status(data["entry"][0]["changes"][0])
 	return
 
 def update_status(data):
@@ -195,53 +172,32 @@ def update_template_status(data):
 	)
 
 def update_message_status(data):
-	"""Update a Meta outbound message status without storing lowercase values."""
-	from frappe_whatsapp.utils.messaging import can_advance_status, normalise_message_status
+    from frappe_whatsapp.utils.messaging import can_advance_status, normalise_message_status
+    for item in data.get("statuses") or []:
+        message_id = item.get("id")
+        status = normalise_message_status(item.get("status"))
+        if not message_id or not status:
+            continue
+        name = frappe.db.get_value("WhatsApp Message", {"message_id": message_id, "channel": "Meta", "type": "Outgoing"}, "name")
+        if not name:
+            continue
+        frappe.db.sql("SELECT name FROM `tabWhatsApp Message` WHERE name=%s FOR UPDATE", (name,))
+        current = frappe.db.get_value("WhatsApp Message", name, "status")
+        if can_advance_status(current, status):
+            values = {"status": status}
+            conversation = (item.get("conversation") or {}).get("id")
+            if conversation:
+                values["conversation_id"] = conversation
+            frappe.db.set_value("WhatsApp Message", name, values)
 
-	statuses = data.get("statuses") or []
-	if not statuses:
-		return
-	item = statuses[0]
-	message_id = item.get("id")
-	status = normalise_message_status(item.get("status"))
-	conversation = item.get("conversation", {}).get("id")
-	if not message_id or not status:
-		return
-
-	name = frappe.db.get_value("WhatsApp Message", {"message_id": message_id}, "name")
-	if not name:
-		return
-	current = frappe.db.get_value("WhatsApp Message", name, "status")
-	if not can_advance_status(current, status):
-		return
-	values = {"status": status}
-	if conversation:
-		values["conversation_id"] = conversation
-	frappe.db.set_value("WhatsApp Message", name, values)
 
 # ---------------------------------------------------------------------------
 # Evolution (Mubtkir API) inbound webhook
 # ---------------------------------------------------------------------------
 
 
-def _request_header(name):
-	try:
-		return frappe.get_request_header(name) or ""
-	except Exception:
-		return (getattr(frappe.local, "request", None).headers.get(name, "") if getattr(frappe.local, "request", None) else "")
 
 
-def _configured_evolution_secret():
-	settings = frappe.get_doc("WhatsApp Settings", "WhatsApp Settings")
-	try:
-		return settings.get_password("evolution_webhook_secret", raise_exception=False) or ""
-	except TypeError:
-		try:
-			return settings.get_password("evolution_webhook_secret") or ""
-		except Exception:
-			return ""
-	except Exception:
-		return ""
 
 
 def _evolution_instance_name(data, item=None):
@@ -260,33 +216,11 @@ def _evolution_instance_name(data, item=None):
 
 
 def _validate_evolution_webhook(data):
-	"""Authenticate the webhook when a shared secret is configured.
-
-	The endpoint accepts the secret through an HTTP header, Bearer token or query
-	parameter so it works with different Evolution deployments. Even without a
-	secret, an event must identify an instance that exists on this ERPNext site;
-	unknown-instance payloads are rejected instead of being stored blindly.
-	"""
-	secret = _configured_evolution_secret()
-	if secret:
-		authorization = _request_header("Authorization")
-		bearer = authorization[7:].strip() if authorization.lower().startswith("bearer ") else ""
-		provided = (
-			_request_header("X-Webhook-Secret")
-			or _request_header("X-Evolution-Webhook-Secret")
-			or bearer
-			or str(frappe.form_dict.get("secret") or "")
-		)
-		if not provided or not hmac.compare_digest(str(secret), str(provided)):
-			frappe.throw("Invalid Evolution webhook secret", frappe.PermissionError)
-
-	instance_name = _evolution_instance_name(data)
-	if not instance_name or not frappe.db.exists("Whatsapp Instance", instance_name):
-		frappe.throw("Unknown Evolution webhook instance", frappe.PermissionError)
-	return instance_name
+    return webhook_auth.evolution(data, _evolution_instance_name(data))
 
 
-@frappe.whitelist(allow_guest=True)
+
+@frappe.whitelist(allow_guest=True, methods=["GET", "POST"])
 def evolution_webhook():
 	"""Receive authenticated Evolution message/status events."""
 	if frappe.request.method == "GET":
@@ -294,8 +228,10 @@ def evolution_webhook():
 	if frappe.request.method != "POST":
 		return Response("Method Not Allowed", status=405)
 
-	data = frappe.local.form_dict
+	data = webhook_auth.payload()
 	instance_name = _validate_evolution_webhook(data)
+	if not webhook_auth.event_once("Evolution", instance_name, data):
+		return Response("OK", status=200)
 
 	# Only authenticated / known-instance payloads are persisted to the audit log.
 	audit_data = dict(data)
@@ -303,7 +239,7 @@ def evolution_webhook():
 	frappe.get_doc({
 		"doctype": "WhatsApp Notification Log",
 		"template": "Evolution Webhook",
-		"meta_data": json.dumps(audit_data, default=str),
+		"meta_data": json.dumps({"instance": instance_name, "event": data.get("event")}),
 	}).insert(ignore_permissions=True)
 
 	event = (data.get("event") or "").replace(".", "_").lower()
@@ -312,7 +248,7 @@ def evolution_webhook():
 
 	if event == "messages_update":
 		for item in items:
-			_process_evolution_status(item)
+			_process_evolution_status(item, instance_name)
 		return Response("OK", status=200)
 
 	if event and event != "messages_upsert":
@@ -324,7 +260,7 @@ def evolution_webhook():
 	return Response("OK", status=200)
 
 
-def _process_evolution_status(item):
+def _process_evolution_status(item, instance_name=None):
 	from frappe_whatsapp.utils.messaging import can_advance_status, normalise_message_status
 
 	if not isinstance(item, dict):
@@ -339,9 +275,10 @@ def _process_evolution_status(item):
 	if not status:
 		return
 
-	name = frappe.db.get_value("WhatsApp Message", {"message_id": message_id}, "name")
+	name = frappe.db.get_value("WhatsApp Message", {"message_id": message_id, "channel": "Evolution", "send_from_instance": instance_name, "type": "Outgoing"}, "name")
 	if not name:
 		return
+	frappe.db.sql("SELECT name FROM `tabWhatsApp Message` WHERE name=%s FOR UPDATE", (name,))
 	current = frappe.db.get_value("WhatsApp Message", name, "status")
 	if can_advance_status(current, status):
 		frappe.db.set_value("WhatsApp Message", name, "status", status)
@@ -356,7 +293,11 @@ def _process_evolution_message(item, instance_name=None):
 	if key.get("fromMe"):
 		return
 	message_id = key.get("id")
-	if not message_id or frappe.db.exists("WhatsApp Message", {"message_id": message_id}):
+	if not message_id:
+		return
+	if not claim_event("incoming-evolution", f"{instance_name}:{message_id}"):
+		return
+	if frappe.db.exists("WhatsApp Message", {"message_id": message_id, "channel": "Evolution", "send_from_instance": instance_name, "type": "Incoming"}):
 		return
 
 	remote_jid = key.get("remoteJid", "") or ""

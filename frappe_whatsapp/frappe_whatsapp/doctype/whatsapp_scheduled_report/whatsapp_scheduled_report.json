@@ -11,6 +11,7 @@
   "report",
   "report_format",
   "filters_json",
+  "builder_spec_json",
   "caption",
   "use_template",
   "template",
@@ -65,6 +66,13 @@
    "label": "Report Filters (JSON)",
    "options": "JSON",
    "description": "Optional filters passed to the report, as a JSON object. Example: {\"company\": \"My Co\", \"from_date\": \"2026-01-01\"}."
+  },
+  {
+   "fieldname": "builder_spec_json",
+   "fieldtype": "Code",
+   "options": "JSON",
+   "label": "Saved Report Builder Settings",
+   "hidden": 1
   },
   {
    "fieldname": "caption",

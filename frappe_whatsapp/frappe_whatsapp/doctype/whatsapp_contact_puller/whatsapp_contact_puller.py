@@ -57,6 +57,8 @@ def _clean_number(jid_or_number):
 
 
 def _resolve_instance(instance_name):
+	from frappe_whatsapp.utils.security import authorize_instance
+	instance_name = authorize_instance(instance_name)
 	"""Return (base_url, api_key, instance_name) for a Whatsapp Instance."""
 	if not instance_name:
 		frappe.throw(_("Select a Source Instance first."))
@@ -222,7 +224,7 @@ def _engagement_from_history(messages):
 	return {"last": last, "count": count, "hours": hours, "texts": texts, "last_dir": last_dir}
 
 
-def _engagement_map(numbers):
+def _engagement_map(numbers, instance_name):
 	"""Return {number: {"last": datetime|None, "count": int}} from local history.
 
 	Counts inbound WhatsApp Messages per sender. The stored `from` value is
@@ -234,7 +236,7 @@ def _engagement_map(numbers):
 	wanted = set(numbers)
 	rows = frappe.get_all(
 		"WhatsApp Message",
-		filters={"type": "Incoming"},
+		filters={"type": "Incoming", "channel": "Evolution", "send_from_instance": instance_name},
 		fields=["`from` as number", "creation"],
 	)
 	result = {}
@@ -249,14 +251,14 @@ def _engagement_map(numbers):
 	return result
 
 
-def _keyword_matches(numbers, keyword):
+def _keyword_matches(numbers, keyword, instance_name):
 	"""Return the subset of numbers whose inbound messages contain keyword."""
 	if not keyword:
 		return set(numbers)
 	wanted = set(numbers)
 	rows = frappe.get_all(
 		"WhatsApp Message",
-		filters={"type": "Incoming", "message": ["like", f"%{keyword}%"]},
+		filters={"type": "Incoming", "channel": "Evolution", "send_from_instance": instance_name, "message": ["like", f"%{keyword}%"]},
 		fields=["`from` as number"],
 	)
 	return {_clean_number(r.number) for r in rows if _clean_number(r.number) in wanted}
@@ -287,14 +289,14 @@ def _tier_of(status, count, a_min_msgs=5):
 	return "C"
 
 
-def _best_hour_map(numbers):
+def _best_hour_map(numbers, instance_name):
 	"""Idea 8: most frequent reply hour per number, from inbound history."""
 	if not numbers:
 		return {}
 	wanted = set(numbers)
 	rows = frappe.get_all(
 		"WhatsApp Message",
-		filters={"type": "Incoming"},
+		filters={"type": "Incoming", "channel": "Evolution", "send_from_instance": instance_name},
 		fields=["`from` as number", "creation"],
 	)
 	buckets = {}
@@ -312,7 +314,7 @@ def _best_hour_map(numbers):
 	return result
 
 
-def _read_no_reply_set(numbers):
+def _read_no_reply_set(numbers, instance_name):
 	"""Idea 9: numbers whose latest message is an outbound (no inbound after).
 
 	Approximation from local history: if the most recent message with this
@@ -323,7 +325,7 @@ def _read_no_reply_set(numbers):
 	wanted = set(numbers)
 	rows = frappe.get_all(
 		"WhatsApp Message",
-		filters={},
+		filters={"channel": "Evolution", "send_from_instance": instance_name},
 		fields=["`from` as frm", "`to` as t", "type", "creation"],
 		order_by="creation desc",
 	)
@@ -340,7 +342,7 @@ def _read_no_reply_set(numbers):
 # Whitelisted actions (called from the client script)
 # ---------------------------------------------------------------------------
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def pull(docname):
 	"""Fetch + filter numbers and write them into the doc's child table."""
 	frappe.has_permission("WhatsApp Contact Puller", "write", docname, throw=True)
@@ -361,10 +363,10 @@ def pull(docname):
 	keyword = _normalize_text(doc.keyword_filter or "")
 
 	# Local (ERPNext) engagement as fallback when deep history is off.
-	local_eng = {} if deep else _engagement_map(numbers)
-	local_hours = {} if deep else _best_hour_map(numbers)
-	local_rnr = set() if deep else _read_no_reply_set(numbers)
-	local_kw = None if deep else _keyword_matches(numbers, keyword)
+	local_eng = {} if deep else _engagement_map(numbers, doc.source_instance)
+	local_hours = {} if deep else _best_hour_map(numbers, doc.source_instance)
+	local_rnr = set() if deep else _read_no_reply_set(numbers, doc.source_instance)
+	local_kw = None if deep else _keyword_matches(numbers, keyword, doc.source_instance)
 
 	effective_status = doc.engagement_status
 	if doc.winback_preset:
@@ -480,7 +482,7 @@ def _where_exists(number):
 	return ", ".join(labels)
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def toggle_select_all(docname, value):
 	"""Set the `selected` flag on every row."""
 	frappe.has_permission("WhatsApp Contact Puller", "write", docname, throw=True)
@@ -493,7 +495,7 @@ def toggle_select_all(docname, value):
 	return {"selected": doc.selected_count}
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def save_selected(docname):
 	"""Save selected numbers to the chosen destination.
 
@@ -509,7 +511,7 @@ def save_selected(docname):
 	if len(selected) > BACKGROUND_THRESHOLD:
 		frappe.enqueue(
 			"frappe_whatsapp.frappe_whatsapp.doctype.whatsapp_contact_puller.whatsapp_contact_puller._do_save",
-			queue="long", timeout=1500, docname=docname,
+			queue="long", timeout=1500, docname=docname, enqueue_after_commit=True,
 		)
 		return {"queued": True, "count": len(selected)}
 
@@ -518,6 +520,8 @@ def save_selected(docname):
 
 def _do_save(docname):
 	"""Perform the actual save (runs inline or in a background job)."""
+	frappe.has_permission("WhatsApp Contact Puller", "write", docname, throw=True)
+	frappe.db.sql("SELECT name FROM `tabWhatsApp Contact Puller` WHERE name=%s FOR UPDATE", (docname,))
 	doc = frappe.get_doc("WhatsApp Contact Puller", docname)
 	selected = [r for r in doc.pulled_numbers if r.selected]
 
@@ -539,8 +543,12 @@ def _do_save(docname):
 def _save_to_recipient_list(doc, selected):
 	"""Append selected numbers to a new or existing Recipient List (deduped)."""
 	if doc.target_recipient_list:
+		from frappe_whatsapp.utils.operations import transaction_lock
+		transaction_lock("recipient-list", doc.target_recipient_list)
 		rl = frappe.get_doc("WhatsApp Recipient List", doc.target_recipient_list)
+		rl.check_permission("write")
 	else:
+		frappe.has_permission("WhatsApp Recipient List", "create", throw=True)
 		name = doc.new_list_name or f"Pull {doc.name}"
 		rl = frappe.get_doc({
 			"doctype": "WhatsApp Recipient List",
@@ -569,12 +577,17 @@ def _save_to_recipient_list(doc, selected):
 		existing.add(row.mobile_number)
 		added += 1
 
-	rl.save(ignore_permissions=True)
+	rl.save()
+	if not doc.target_recipient_list:
+		doc.target_recipient_list = rl.name
+		doc.save()
 	return {"destination": "Recipient List", "list": rl.name, "added": added}
 
 
 def _save_to_leads(doc, selected):
 	"""Create standard ERPNext Leads for numbers not already a Lead (deduped)."""
+	frappe.has_permission("Lead", "create", throw=True)
+	from frappe_whatsapp.utils.operations import transaction_lock
 	created, skipped = 0, 0
 	source = doc.lead_source or "WhatsApp Pull"
 	# Company now lives on the Recipient List, not the puller; use the target
@@ -584,7 +597,8 @@ def _save_to_leads(doc, selected):
 		company = frappe.db.get_value("WhatsApp Recipient List", doc.target_recipient_list, "company")
 	for row in selected:
 		number = row.mobile_number
-		if frappe.db.exists("Lead", {"mobile_no": number}) or frappe.db.exists("Lead", {"phone": number}):
+		transaction_lock("lead-phone", number)
+		if frappe.db.sql("SELECT name FROM `tabLead` WHERE mobile_no=%s OR phone=%s FOR UPDATE", (number, number)):
 			skipped += 1
 			continue
 		lead = frappe.get_doc({
@@ -595,7 +609,7 @@ def _save_to_leads(doc, selected):
 			"company": company or None,
 			"source": source if frappe.db.exists("Lead Source", source) else None,
 		})
-		lead.insert(ignore_permissions=True)
+		lead.insert()
 		created += 1
 	return {"destination": "Lead", "created": created, "skipped": skipped}
 
@@ -604,6 +618,7 @@ def _save_to_leads(doc, selected):
 def export_excel(docname):
 	"""Return the selected numbers as an .xlsx download."""
 	frappe.has_permission("WhatsApp Contact Puller", "read", docname, throw=True)
+	frappe.has_permission("WhatsApp Contact Puller", "export", docname, throw=True)
 	doc = frappe.get_doc("WhatsApp Contact Puller", docname)
 	selected = [r for r in doc.pulled_numbers if r.selected]
 	if not selected:

@@ -37,6 +37,14 @@ class WhatsAppMessage(Document):
             scope = ("message", self.name or self.flags.new_delivery_token)
         return delivery_key("outbound-v1", scope)
 
+    def delivery_payload_fingerprint(self):
+        from frappe_whatsapp.utils.delivery_guard import delivery_key
+        return self.flags.get("delivery_fingerprint") or delivery_key(
+            self.get("channel"), self.get("send_from_instance"), normalize_number(self.to),
+            self.get("message_type"), self.get("template"), self.get("body_param"),
+            self.get("template_parameters"), self.get("content_type"), self.get("message"), self.get("attach"),
+        )
+
     def before_insert(self):
         if self.type == "Incoming":
             self.status = self.status or "Received"
@@ -54,6 +62,9 @@ class WhatsAppMessage(Document):
             return
 
         ensure_enabled()
+        if not frappe.flags.get("whatsapp_configured_automation"):
+            from frappe_whatsapp.utils.security import require_sender
+            require_sender()
         self.to = normalize_number(self.to)
         if not self.to:
             frappe.throw(_("Recipient mobile number is required."))
@@ -65,6 +76,9 @@ class WhatsAppMessage(Document):
             self.send_from_instance = resolve_instance_name(
                 self.get("send_from_instance"), user=self.owner or frappe.session.user
             )
+            if not frappe.flags.get("whatsapp_configured_automation"):
+                from frappe_whatsapp.utils.security import authorize_instance
+                self.send_from_instance = authorize_instance(self.send_from_instance)
             if self.message_type == "Template" and not self.message:
                 self.message = self._render_evolution_template()
             self._send_via_evolution()
@@ -104,6 +118,12 @@ class WhatsAppMessage(Document):
 
         if field_names and self.reference_doctype and self.reference_name:
             ref_doc = frappe.get_doc(self.reference_doctype, self.reference_name)
+            if not frappe.flags.get("whatsapp_configured_automation"):
+                ref_doc.check_permission("read")
+                from frappe.model import get_permitted_fields
+                permitted = set(get_permitted_fields(self.reference_doctype))
+                if any(name not in permitted for name in field_names):
+                    frappe.throw(_("The template uses fields you cannot read."), frappe.PermissionError)
             out = []
             for name in field_names:
                 try:
@@ -148,6 +168,8 @@ class WhatsAppMessage(Document):
                     footer=payload.get("footer"),
                     instance_name=instance,
                     operation_key=self.delivery_operation_key(),
+                    fingerprint=self.delivery_payload_fingerprint(),
+                    replay_seconds=self.flags.get("delivery_replay_seconds"),
                 )
                 self.content_type = "button"
             elif payload and payload.get("sections"):
@@ -160,12 +182,13 @@ class WhatsAppMessage(Document):
                     footer=payload.get("footer"),
                     instance_name=instance,
                     operation_key=self.delivery_operation_key(),
+                    fingerprint=self.delivery_payload_fingerprint(),
+                    replay_seconds=self.flags.get("delivery_replay_seconds"),
                 )
                 self.content_type = "flow"
             elif self.attach:
-                link = self.attach
-                if link and not link.startswith(("http://", "https://")):
-                    link = frappe.utils.get_url() + "/" + link.lstrip("/")
+                from frappe_whatsapp.utils.secure_media import provider_url
+                link = provider_url(self.attach)
                 mediatype = (
                     self.content_type
                     if self.content_type in ("image", "video", "audio", "document")
@@ -180,6 +203,8 @@ class WhatsAppMessage(Document):
                     filename=filename,
                     instance_name=instance,
                     operation_key=self.delivery_operation_key(),
+                    fingerprint=self.delivery_payload_fingerprint(),
+                    replay_seconds=self.flags.get("delivery_replay_seconds"),
                 )
             else:
                 self.content_type = self.content_type or "text"
@@ -188,6 +213,8 @@ class WhatsAppMessage(Document):
                     text=self.message,
                     instance_name=instance,
                     operation_key=self.delivery_operation_key(),
+                    fingerprint=self.delivery_payload_fingerprint(),
+                    replay_seconds=self.flags.get("delivery_replay_seconds"),
                 )
             self.status = "Sent"
             self.failure_reason = ""
@@ -239,9 +266,8 @@ class WhatsAppMessage(Document):
                 self.failure_reason = ""
                 return
 
-            link = self.attach
-            if link and not link.startswith(("http://", "https://")):
-                link = frappe.utils.get_url() + "/" + link.lstrip("/")
+            from frappe_whatsapp.utils.secure_media import provider_url
+            link = provider_url(self.attach)
 
             data = {
                 "messaging_product": "whatsapp",
@@ -278,6 +304,7 @@ class WhatsAppMessage(Document):
             raise
 
     def send_template(self):
+        from frappe_whatsapp.utils.secure_media import provider_url
         if not self.template:
             frappe.throw(_("A WhatsApp Template is required."))
         template = frappe.get_doc("WhatsApp Templates", self.template)
@@ -301,7 +328,7 @@ class WhatsAppMessage(Document):
         if template.header_type == "IMAGE":
             source = self.attach or template.sample
             if source:
-                url = source if source.startswith(("http://", "https://")) else f"{frappe.utils.get_url()}{source}"
+                url = provider_url(source)
                 data["template"]["components"].append(
                     {
                         "type": "header",
@@ -309,7 +336,7 @@ class WhatsAppMessage(Document):
                     }
                 )
         elif template.header_type == "DOCUMENT" and self.attach:
-            url = self.attach if self.attach.startswith(("http://", "https://")) else f"{frappe.utils.get_url()}{self.attach}"
+            url = provider_url(self.attach)
             data["template"]["components"].append(
                 {
                     "type": "header",
@@ -336,7 +363,11 @@ class WhatsAppMessage(Document):
                 )
                 return (response.get("messages") or [{}])[0].get("id")
 
-            self.message_id = send_once(self.delivery_operation_key(), send)
+            self.message_id = send_once(
+                self.delivery_operation_key(), send,
+                fingerprint=self.delivery_payload_fingerprint(),
+                replay_seconds=self.flags.get("delivery_replay_seconds"),
+            )
         except Exception as exc:
             error_message = str(exc)
             meta_data = {"error": error_message}
@@ -365,8 +396,11 @@ class WhatsAppMessage(Document):
     def format_number(self, number):
         return normalize_number(number)
 
-    @frappe.whitelist()
+    @frappe.whitelist(methods=["POST"])
     def send_read_receipt(self):
+        self.check_permission("read")
+        frappe.db.sql("SELECT name FROM `tabWhatsApp Message` WHERE name=%s FOR UPDATE", (self.name,))
+        self.reload()
         # Evolution read receipts are not sent by this Meta endpoint.
         if (self.get("channel") or "Meta") == "Evolution":
             return False
@@ -406,9 +440,13 @@ def on_doctype_update():
         frappe.db.add_index("WhatsApp Message", ["channel", "status"])
 
 
-@frappe.whitelist()
+@frappe.whitelist(methods=["POST"])
 def send_template(to, reference_doctype, reference_name, template):
     """Send a template from any ERPNext form through the configured default channel."""
+    from frappe_whatsapp.utils.security import require_sender, authorize_instance
+    from frappe_whatsapp.utils.messaging import get_default_channel
+    require_sender()
+    frappe.get_doc("WhatsApp Templates", template).check_permission("read")
     doc = frappe.get_doc(
         {
             "doctype": "WhatsApp Message",
@@ -422,6 +460,8 @@ def send_template(to, reference_doctype, reference_name, template):
             # channel intentionally omitted: WhatsApp Settings decides.
         }
     )
+    if get_default_channel() == "Evolution":
+        doc.send_from_instance = authorize_instance()
     reference = frappe.get_doc(reference_doctype, reference_name)
     reference.check_permission("read")
     doc.flags.delivery_scope = (

@@ -15,6 +15,9 @@ class WhatsAppRecipientList(Document):
 	
 	def import_list_from_doctype(self, doctype, mobile_field, name_field=None, filters=None, limit=None, data_fields=None):
 		"""Import recipients from another DocType"""
+		self.check_permission("write" if not self.is_new() else "create")
+		frappe.has_permission(doctype, "read", throw=True)
+		frappe.has_permission(doctype, "export", throw=True)
 		self.doctype_to_import = doctype
 		self.mobile_field = mobile_field
 		self.filters = filters
@@ -33,8 +36,12 @@ class WhatsAppRecipientList(Document):
 			for field in meta.fields:
 				if field.fieldname not in fields and field.fieldname in data_fields:
 					fields.append(field.fieldname)
+		from frappe.model import get_permitted_fields
+		permitted = set(get_permitted_fields(doctype))
+		if any(not isinstance(field, str) or field not in permitted for field in fields):
+			frappe.throw(_("One or more import fields are not permitted."), frappe.PermissionError)
 		# Get records from the doctype
-		records = frappe.get_all(
+		records = frappe.get_list(
 			doctype,
 			filters=filters,
 			fields=fields,

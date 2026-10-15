@@ -20,7 +20,8 @@
   "phone_number",
   "column_break_status",
   "connected_since",
-  "disconnect_alerted"
+  "disconnect_alerted",
+  "disconnect_event_key"
  ],
  "fields": [
   {
@@ -118,6 +119,13 @@
    "read_only": 1,
    "hidden": 1,
    "no_copy": 1
+  },
+  {
+   "fieldname": "disconnect_event_key",
+   "fieldtype": "Data",
+   "label": "Disconnect Event Key",
+   "hidden": 1,
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,

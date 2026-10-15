@@ -82,13 +82,8 @@ def resolve_default_instance(user: str | None = None) -> str | None:
         if linked:
             return linked
 
-    connected = frappe.db.get_value(
-        "Whatsapp Instance", {"connection_status": "Connected"}, "name", order_by="modified desc"
-    )
-    if connected:
-        return connected
-
-    return frappe.db.get_value("Whatsapp Instance", {}, "name", order_by="modified desc")
+    from frappe_whatsapp.utils.security import shared_or_own_instance
+    return shared_or_own_instance(user)
 
 
 def resolve_instance_name(instance_name: str | None = None, user: str | None = None) -> str:
