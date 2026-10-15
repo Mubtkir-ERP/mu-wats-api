@@ -11,3 +11,4 @@ frappe_whatsapp.patches.reload_puller_doctypes
 frappe_whatsapp.patches.upgrade_whatsapp_routing
 
 frappe_whatsapp.patches.fix_whatsapp_message_channel_default
+frappe_whatsapp.patches.evolution_settings_default

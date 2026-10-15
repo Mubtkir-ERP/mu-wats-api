@@ -177,7 +177,7 @@ function send_test_message(frm) {
 				fieldtype: "Small Text",
 				fieldname: "text",
 				label: __("Message"),
-				default: "Test message from ERPNext ✅",
+				default: "Test message from MUBTKIR ✅ رسالة اختبار من مُبتكِر",
 			},
 		],
 		primary_action_label: __("Send"),

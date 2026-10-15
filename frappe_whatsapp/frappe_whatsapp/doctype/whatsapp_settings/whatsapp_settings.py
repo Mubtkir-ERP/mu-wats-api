@@ -8,12 +8,9 @@ from frappe.model.document import Document
 
 class WhatsAppSettings(Document):
     def validate(self):
+        self.default_channel = self.default_channel or "Evolution"
         if self.default_channel not in ("Meta", "Evolution"):
             frappe.throw(_("Default Channel must be Meta or Evolution."))
-
-        if self.default_channel == "Evolution" and self.default_evolution_instance:
-            if not frappe.db.exists("Whatsapp Instance", self.default_evolution_instance):
-                frappe.throw(_("Default Evolution Instance does not exist."))
 
         if self.retention_days is not None and int(self.retention_days or 0) < 0:
             frappe.throw(_("Retention Days cannot be negative."))

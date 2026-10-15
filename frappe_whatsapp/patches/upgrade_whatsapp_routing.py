@@ -77,26 +77,10 @@ def execute():
     if not settings.enabled:
         settings.enabled = 1
 
-    # Pick a sensible routing default for existing installations:
-    # - Evolution when an instance exists and no usable Meta token exists
-    # - Meta when a usable Meta token exists
-    # - otherwise preserve/initialise Meta.
-    token = _safe_meta_token(settings)
-    has_evolution = bool(frappe.db.count("Whatsapp Instance"))
-    if has_evolution and not token:
+    # New sites use Evolution; the later settings patch updates existing sites.
+    # Do not access the retired Default Evolution Instance field during migration.
+    if not settings.default_channel:
         settings.default_channel = "Evolution"
-    elif token:
-        settings.default_channel = "Meta"
-    elif not settings.default_channel:
-        settings.default_channel = "Meta"
-
-    if not settings.default_evolution_instance and has_evolution:
-        settings.default_evolution_instance = (
-            frappe.db.get_value(
-                "Whatsapp Instance", {"connection_status": "Connected"}, "name", order_by="modified desc"
-            )
-            or frappe.db.get_value("Whatsapp Instance", {}, "name", order_by="modified desc")
-        )
 
     if not settings.default_server:
         settings.default_server = frappe.db.get_value(

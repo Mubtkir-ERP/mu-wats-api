@@ -580,7 +580,7 @@ def send_test_message(instance_name, number, text=None):
 		frappe.throw(_("Please enter a recipient number."))
 
 	url = f"{base_url}/message/sendText/{instance_name}"
-	payload = {"number": digits, "text": text or "Test message from ERPNext ✅"}
+	payload = {"number": digits, "text": text or "Test message from MUBTKIR ✅ رسالة اختبار من مُبتكِر"}
 	try:
 		resp = requests.post(url, headers=_headers(api_key), json=payload, timeout=REQUEST_TIMEOUT)
 	except Exception as exc:

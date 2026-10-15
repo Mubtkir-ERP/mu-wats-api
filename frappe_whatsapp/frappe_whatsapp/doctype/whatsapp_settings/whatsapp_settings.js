@@ -11,7 +11,7 @@ frappe.ui.form.on('WhatsApp Settings', {
 });
 
 function set_channel_help(frm) {
-    const channel = frm.doc.default_channel || 'Meta';
+    const channel = frm.doc.default_channel || 'Evolution';
     const field = frm.get_field('default_channel');
     if (!field) return;
     if (channel === 'Evolution') {

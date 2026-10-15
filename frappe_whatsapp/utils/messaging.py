@@ -37,9 +37,9 @@ def ensure_enabled():
 
 
 def get_default_channel() -> str:
-    """Return the configured default channel, with a safe Meta fallback."""
-    channel = (get_settings().get("default_channel") or "Meta").strip()
-    return channel if channel in VALID_CHANNELS else "Meta"
+    """Return the configured default channel, with an Evolution fallback."""
+    channel = (get_settings().get("default_channel") or "Evolution").strip()
+    return channel if channel in VALID_CHANNELS else "Evolution"
 
 
 def resolve_channel(channel: str | None = None) -> str:
@@ -73,20 +73,14 @@ def resolve_default_instance(user: str | None = None) -> str | None:
 
     Resolution order:
       1. instance linked to the requested/current user
-      2. WhatsApp Settings -> Default Evolution Instance
-      3. first connected instance
-      4. first configured instance
+      2. first connected instance
+      3. first configured instance
     """
     user = user or getattr(getattr(frappe, "session", None), "user", None)
     if user and user != "Guest":
         linked = frappe.db.get_value("Whatsapp Instance", {"linked_user": user}, "name")
         if linked:
             return linked
-
-    settings = get_settings()
-    configured = settings.get("default_evolution_instance")
-    if configured and frappe.db.exists("Whatsapp Instance", configured):
-        return configured
 
     connected = frappe.db.get_value(
         "Whatsapp Instance", {"connection_status": "Connected"}, "name", order_by="modified desc"
@@ -104,7 +98,7 @@ def resolve_instance_name(instance_name: str | None = None, user: str | None = N
         frappe.throw(
             _(
                 "No WhatsApp Evolution instance is available. Link an instance to the user "
-                "or set Default Evolution Instance in WhatsApp Settings."
+                "or create a WhatsApp instance."
             )
         )
     if not frappe.db.exists("Whatsapp Instance", name):

@@ -9,7 +9,6 @@
   "enabled",
   "routing_section",
   "default_channel",
-  "default_evolution_instance",
   "routing_column_break",
   "default_server",
   "meta_section",
@@ -51,17 +50,9 @@
    "fieldtype": "Select",
    "label": "Default Channel",
    "options": "Meta\nEvolution",
-   "default": "Meta",
+   "default": "Evolution",
    "reqd": 1,
    "description": "Default sending channel used by messages, notifications, bulk sends and scheduled reports."
-  },
-  {
-   "fieldname": "default_evolution_instance",
-   "fieldtype": "Link",
-   "label": "Default Evolution Instance",
-   "options": "Whatsapp Instance",
-   "depends_on": "eval:doc.default_channel=='Evolution'",
-   "description": "Fallback Evolution instance when the current user has no linked instance."
   },
   {
    "fieldname": "routing_column_break",
