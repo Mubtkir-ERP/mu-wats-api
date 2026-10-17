@@ -1,5 +1,5 @@
 /* One-click resend through the existing automatic WhatsApp notification template. */
-(function () {
+;(function () {
     ["Sales Invoice", "Quotation"].forEach(function (doctype) {
         frappe.ui.form.on(doctype, {
             refresh: function (frm) {
