@@ -15,7 +15,6 @@ import json
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe_whatsapp.utils.security import require_sender
 from frappe.utils import cint, get_url, getdate, now, now_datetime, nowdate
 
 # Format -> (file extension, document mime type sent to WhatsApp).
@@ -97,7 +96,7 @@ class WhatsAppScheduledReport(Document):
 			for r in rows:
 				writer.writerow(["" if v is None else v for v in r])
 			# BOM so Arabic opens correctly in Excel.
-			content = ("ï»؟" + buf.getvalue()).encode("utf-8")
+			content = ("﻿" + buf.getvalue()).encode("utf-8")
 
 		elif fmt == "Excel":
 			from frappe.utils.xlsxutils import make_xlsx
@@ -145,7 +144,7 @@ class WhatsAppScheduledReport(Document):
 				"doctype": "File",
 				"file_name": temp_name,
 				"content": content,
-				"is_private": 1,
+				"is_private": 0,
 			}
 		).insert(ignore_permissions=True)
 		return f.file_url
@@ -225,12 +224,8 @@ class WhatsAppScheduledReport(Document):
 			"channel": channel,
 		}
 		if channel == "Evolution":
-			from frappe_whatsapp.utils.security import authorize_instance
-			data["send_from_instance"] = authorize_instance(self.whatsapp_instance or None)
-		from frappe_whatsapp.utils.delivery_guard import delivery_key
+			data["send_from_instance"] = self._resolve_instance()
 		msg = frappe.get_doc(data)
-		msg.flags.delivery_fingerprint = delivery_key("report-media", channel, self.report, self.filters_json, self.get("builder_spec_json"), self.report_format, data["to"], data["message"], data.get("send_from_instance"))
-		msg.flags.delivery_replay_seconds = self.flags.get("delivery_replay_seconds")
 		if self.flags.get("report_operation_key"):
 			msg.flags.delivery_scope = (
 				"report-adhoc", frappe.session.user, self.flags.report_operation_key,
@@ -243,10 +238,10 @@ class WhatsAppScheduledReport(Document):
 		return msg
 
 	# ---- public actions ----------------------------------------------------
-	@frappe.whitelist(methods=["POST"])
+	@frappe.whitelist()
 	def send_now(self):
 		"""Render and send the report immediately. Returns a small status dict."""
-		require_sender()
+		frappe.has_permission("WhatsApp Message", "create", throw=True)
 		filename, content, mimetype = self._render_file()
 		file_url = self._save_file(filename, content)
 		self._send_file(file_url, filename, mimetype)
@@ -334,21 +329,17 @@ def _apply_report_args(doc, **kwargs):
 		if not isinstance(operation_key, str) or len(operation_key) > 128:
 			frappe.throw(_("Invalid report send operation key."))
 		doc.flags.report_operation_key = operation_key
-	else:
-		from frappe_whatsapp.utils.delivery_guard import delivery_key
-		doc.flags.report_operation_key = "legacy-" + delivery_key(kwargs)
-		doc.flags.delivery_replay_seconds = 300
 	return doc
 
 
-@frappe.whitelist(methods=["POST"])
+@frappe.whitelist()
 def send_report_adhoc(**kwargs):
 	"""Render and send a report immediately from the report view (no schedule).
 
 	Reuses the WhatsApp Scheduled Report rendering/sending on an unsaved doc so
 	the current report filters/format chosen in the report page are honoured.
 	"""
-	require_sender()
+	frappe.has_permission("WhatsApp Message", "create", throw=True)
 	if not kwargs.get("report") and not kwargs.get("builder_spec"):
 		frappe.throw(_("No report specified."))
 
@@ -361,7 +352,7 @@ def send_report_adhoc(**kwargs):
 	return {"sent": True, "file": filename}
 
 
-@frappe.whitelist(methods=["POST"])
+@frappe.whitelist()
 def create_scheduled_report(**kwargs):
 	"""Create a WhatsApp Scheduled Report from the report view's current setup.
 
@@ -376,10 +367,5 @@ def create_scheduled_report(**kwargs):
 	doc.report_title = f"{kwargs.get('report')} - {frappe.generate_hash(length=5)}"
 	doc.frequency = "Daily"
 	doc.disabled = 1
-	from frappe_whatsapp.utils.operations import create_once
-	from frappe_whatsapp.utils.delivery_guard import delivery_key
-	identity = delivery_key(frappe.session.user, kwargs.get("operation_key") or kwargs)
-	def create():
-		doc.insert()
-		return {"name": doc.name}
-	return create_once("report-schedule", identity, create, fingerprint=delivery_key(kwargs))
+	doc.insert()
+	return {"name": doc.name}

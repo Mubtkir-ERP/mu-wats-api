@@ -70,8 +70,6 @@ class WhatsappInstance(Document):
 		if not self.linked_user:
 			return
 
-		from frappe_whatsapp.utils.operations import transaction_lock
-		transaction_lock("instance-user", self.linked_user)
 		existing = frappe.db.get_value(
 			"Whatsapp Instance",
 			{

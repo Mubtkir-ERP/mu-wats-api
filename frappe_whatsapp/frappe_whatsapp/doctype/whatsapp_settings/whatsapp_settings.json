@@ -26,7 +26,6 @@
   "column_break_evolution",
   "max_attachment_size",
   "security_section",
-  "meta_app_secret",
   "evolution_webhook_secret",
   "monitoring_section",
   "enable_disconnect_alert",
@@ -158,7 +157,7 @@
    "fieldname": "evolution_webhook_secret",
    "fieldtype": "Password",
    "label": "Evolution Webhook Secret",
-   "description": "Webhook authentication: use this shared secret, or the Evolution server API key sent as apikey. Requests without valid credentials are rejected; outbound sending is unchanged."
+   "description": "Optional shared secret for Evolution webhooks. When set, requests must send it in X-Webhook-Secret, X-Evolution-Webhook-Secret, Authorization Bearer, or ?secret=."
   },
   {
    "fieldname": "monitoring_section",
@@ -188,12 +187,6 @@
    "fieldtype": "Data",
    "label": "Company Supervisor Mobile",
    "description": "Optional mobile number (with country code) of the company supervisor, for future WhatsApp-based alerts."
-  },
-  {
-   "fieldname": "meta_app_secret",
-   "fieldtype": "Password",
-   "label": "Meta App Secret",
-   "description": "Used to verify signed Meta webhook requests. Does not change Evolution sending."
   }
  ],
  "grid_page_length": 50,

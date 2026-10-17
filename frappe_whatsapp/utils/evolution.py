@@ -21,18 +21,19 @@ from frappe_whatsapp.api import _request, _server_credentials
 from frappe_whatsapp.utils.delivery_guard import send_once
 
 
-def _send_request(base_url, path, api_key, payload, operation_key, fingerprint=None, replay_seconds=None):
+def _send_request(base_url, path, api_key, payload, operation_key):
     def send():
         return _extract_message_id(_request("POST", base_url, path, api_key, payload))
     if not operation_key:
+        from frappe.utils import now_datetime
         from frappe_whatsapp.utils.delivery_guard import delivery_key
-        # Successful legacy sends may be intentionally repeated after five
-        # minutes. Uncertain sends never expire or reset at a clock boundary.
-        replay_seconds = 300
+        # Compatibility window for callers without an operation ID. New callers
+        # should supply a stable ID, especially for retries across time windows.
         operation_key = delivery_key(
             "evolution-window", base_url, path, payload,
+            int(now_datetime().timestamp()) // 300,
         )
-    return send_once(operation_key, send, fingerprint=fingerprint, replay_seconds=replay_seconds)
+    return send_once(operation_key, send)
 from frappe_whatsapp.utils.messaging import normalize_number, resolve_instance_name
 
 
@@ -67,7 +68,7 @@ def _extract_message_id(response):
     return mid or ""
 
 
-def send_text(number, text, instance_name=None, base_url=None, api_key=None, operation_key=None, fingerprint=None, replay_seconds=None):
+def send_text(number, text, instance_name=None, base_url=None, api_key=None, operation_key=None):
     """Send a plain text message. Returns the message id."""
     if not base_url:
         base_url, api_key, instance_name = resolve_instance(instance_name)
@@ -78,12 +79,12 @@ def send_text(number, text, instance_name=None, base_url=None, api_key=None, ope
         frappe.throw(_("Message text is required for an Evolution text message."))
     payload = {"number": clean_number, "text": str(text)}
     return _send_request(
-        base_url, f"/message/sendText/{instance_name}", api_key, payload, operation_key, fingerprint, replay_seconds
+        base_url, f"/message/sendText/{instance_name}", api_key, payload, operation_key
     )
 
 
 def send_media(number, media_url, mediatype="image", caption=None, filename=None,
-               mimetype=None, instance_name=None, base_url=None, api_key=None, operation_key=None, fingerprint=None, replay_seconds=None):
+               mimetype=None, instance_name=None, base_url=None, api_key=None, operation_key=None):
     """Send an image / document / video / audio by URL. Returns the message id.
 
     mediatype: one of "image", "document", "video", "audio".
@@ -106,12 +107,12 @@ def send_media(number, media_url, mediatype="image", caption=None, filename=None
         payload["fileName"] = filename or "file"
         payload["mimetype"] = mimetype or "application/octet-stream"
     return _send_request(
-        base_url, f"/message/sendMedia/{instance_name}", api_key, payload, operation_key, fingerprint, replay_seconds
+        base_url, f"/message/sendMedia/{instance_name}", api_key, payload, operation_key
     )
 
 
 def send_buttons(number, title, description, buttons, footer=None,
-                 instance_name=None, base_url=None, api_key=None, operation_key=None, fingerprint=None, replay_seconds=None):
+                 instance_name=None, base_url=None, api_key=None, operation_key=None):
     """Send up to 3 interactive reply buttons. Returns the message id.
 
     buttons: list of dicts. Each accepts:
@@ -141,12 +142,12 @@ def send_buttons(number, title, description, buttons, footer=None,
         payload["footer"] = footer
 
     return _send_request(
-        base_url, f"/message/sendButtons/{instance_name}", api_key, payload, operation_key, fingerprint, replay_seconds
+        base_url, f"/message/sendButtons/{instance_name}", api_key, payload, operation_key
     )
 
 
 def send_list(number, title, description, button_text, sections,
-              footer=None, instance_name=None, base_url=None, api_key=None, operation_key=None, fingerprint=None, replay_seconds=None):
+              footer=None, instance_name=None, base_url=None, api_key=None, operation_key=None):
     """Send an interactive list (up to 10 rows across sections). Returns message id.
 
     sections: list of dicts:
@@ -185,5 +186,5 @@ def send_list(number, title, description, button_text, sections,
         payload["footer"] = footer
 
     return _send_request(
-        base_url, f"/message/sendList/{instance_name}", api_key, payload, operation_key, fingerprint, replay_seconds
+        base_url, f"/message/sendList/{instance_name}", api_key, payload, operation_key
     )

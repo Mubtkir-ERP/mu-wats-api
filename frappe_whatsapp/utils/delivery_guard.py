@@ -8,7 +8,6 @@ provider reconciliation, not a blind retry. No credentials or payloads are store
 import hashlib
 import json
 import os
-import time
 from pathlib import Path
 
 import frappe
@@ -74,7 +73,7 @@ def _write_atomic(path, data):
             temporary.unlink()
 
 
-def send_once(key, send, fingerprint=None, replay_seconds=None):
+def send_once(key, send):
     """Atomically claim an operation; replay its ID without another HTTP call."""
     path = _path(key)
     try:
@@ -84,24 +83,6 @@ def send_once(key, send, fingerprint=None, replay_seconds=None):
             state = json.loads(path.read_text(encoding="utf-8"))
         except (ValueError, OSError):
             state = {}
-        if fingerprint and state.get("fingerprint") and state["fingerprint"] != fingerprint:
-            raise ValueError("This operation key is already bound to a different WhatsApp payload.")
-        if (replay_seconds and state.get("state") == "sent" and state.get("accepted_at")
-                and time.time() - state["accepted_at"] >= replay_seconds):
-            recycle = path.with_suffix(".recycle")
-            try:
-                recycle.mkdir()
-            except FileExistsError:
-                raise DeliveryUncertain("A new WhatsApp operation is already being reserved.")
-            try:
-                current = json.loads(path.read_text(encoding="utf-8"))
-                if (current.get("state") == "sent" and current.get("accepted_at")
-                        and time.time() - current["accepted_at"] >= replay_seconds):
-                    path.unlink()
-                    _sync_directory(path.parent)
-            finally:
-                recycle.rmdir()
-            return send_once(key, send, fingerprint, replay_seconds)
         if state.get("state") == "sent" and state.get("message_id"):
             return state["message_id"]
         raise DeliveryUncertain(
@@ -111,7 +92,7 @@ def send_once(key, send, fingerprint=None, replay_seconds=None):
 
     # Persist the claim BEFORE the provider is called. SQL rollback cannot erase it.
     with handle:
-        json.dump({"state": "pending", "fingerprint": fingerprint}, handle)
+        json.dump({"state": "pending"}, handle)
         handle.flush()
         os.fsync(handle.fileno())
     _sync_directory(path.parent)
@@ -119,7 +100,7 @@ def send_once(key, send, fingerprint=None, replay_seconds=None):
         message_id = send()
         if not message_id:
             raise DeliveryUncertain("Provider returned no WhatsApp message ID.")
-        _write_atomic(path, {"state": "sent", "message_id": message_id, "fingerprint": fingerprint, "accepted_at": time.time()})
+        _write_atomic(path, {"state": "sent", "message_id": message_id})
         return message_id
     except DeliveryRejected:
         path.unlink()
@@ -148,8 +129,7 @@ def reconcile(journal_name, message_id=None, confirmed_not_sent=False):
     if not path.exists():
         raise ValueError("Journal does not exist")
     if message_id:
-        previous = json.loads(path.read_text(encoding="utf-8") or "{}")
-        _write_atomic(path, {"state": "sent", "message_id": str(message_id), "fingerprint": previous.get("fingerprint")})
+        _write_atomic(path, {"state": "sent", "message_id": str(message_id)})
     else:
         path.unlink()
         _sync_directory(path.parent)

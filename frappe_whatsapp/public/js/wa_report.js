@@ -186,7 +186,7 @@ function open_dialog(qr) {
 			if (!args) return;
 			frappe.call({
 				method: `${WSR}.create_scheduled_report`,
-				args: Object.assign(args, {operation_key}),
+				args,
 				freeze: true,
 				callback: function (r) {
 					if (r.exc || !r.message) {

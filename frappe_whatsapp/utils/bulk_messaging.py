@@ -7,19 +7,15 @@ import frappe
 
 @frappe.whitelist()
 def get_progress(name):
-    doc = frappe.get_doc("Bulk WhatsApp Message", name)
-    doc.check_permission("read")
-    return doc.get_progress()
+    return frappe.get_doc("Bulk WhatsApp Message", name).get_progress()
 
 
-@frappe.whitelist(methods=["POST"])
+@frappe.whitelist()
 def retry_failed(name):
-    doc = frappe.get_doc("Bulk WhatsApp Message", name)
-    doc.check_permission("write")
-    return doc.retry_failed()
+    return frappe.get_doc("Bulk WhatsApp Message", name).retry_failed()
 
 
-@frappe.whitelist(methods=["POST"])
+@frappe.whitelist()
 def import_recipients(list_name, doctype, mobile_field, name_field=None, filters=None, limit=None, data_fields=None):
     if filters and isinstance(filters, str):
         filters = json.loads(filters)
@@ -27,7 +23,6 @@ def import_recipients(list_name, doctype, mobile_field, name_field=None, filters
         data_fields = json.loads(data_fields)
 
     doc = frappe.get_doc("WhatsApp Recipient List", list_name)
-    doc.check_permission("write")
     count = doc.import_list_from_doctype(doctype, mobile_field, name_field, filters, limit, data_fields)
     doc.save()
     return count

@@ -55,16 +55,12 @@ def check_instance_connections():
 
 		status = (result or {}).get("status")
 
-		if status == "Disconnected":
-			from frappe_whatsapp.utils.operations import transaction_lock
-			transaction_lock("disconnect-alert", inst.name)
-			if frappe.db.get_value("Whatsapp Instance", inst.name, "disconnect_alerted"):
-				continue
-			inst.disconnect_event_key = frappe.db.get_value("Whatsapp Instance", inst.name, "disconnect_event_key") or frappe.generate_hash(length=32)
-			frappe.db.set_value("Whatsapp Instance", inst.name, "disconnect_event_key", inst.disconnect_event_key)
-			if _notify_disconnect(inst, settings):
+		if status == "Disconnected" and not inst.disconnect_alerted:
+			try:
+				_notify_disconnect(inst, settings)
+			finally:
 				frappe.db.set_value("Whatsapp Instance", inst.name, "disconnect_alerted", 1)
-			frappe.db.commit()
+				frappe.db.commit()
 		elif status == "Connected" and inst.disconnect_alerted:
 			# Reconnected — reset the flag so a future drop alerts again.
 			frappe.db.set_value("Whatsapp Instance", inst.name, "disconnect_alerted", 0)
@@ -108,24 +104,38 @@ def _notify_disconnect(inst, settings):
 	if supervisor_email and supervisor_email not in recipients:
 		recipients.append(supervisor_email)
 
-	from frappe_whatsapp.utils.operations import run_transaction_once
-	complete = True
-	for recipient in recipients:
+	# --- Email alert ---
+	if recipients:
 		try:
-			run_transaction_once("disconnect-email", f"{inst.disconnect_event_key}:{recipient}", lambda: frappe.sendmail(
-				recipients=[recipient], subject=subject, message=body,
-				reference_doctype="Whatsapp Instance", reference_name=inst.name,
-			))
+			frappe.sendmail(
+				recipients=recipients,
+				subject=subject,
+				message=body,
+				reference_doctype="Whatsapp Instance",
+				reference_name=inst.name,
+			)
 		except Exception:
-			complete = False
-			frappe.log_error(frappe.get_traceback(), f"Disconnect email failed for {inst.name}")
-	for manager in managers:
+			frappe.log_error(
+				message=frappe.get_traceback(),
+				title=f"Disconnect email failed for {inst.name}",
+			)
+
+	# --- Internal desk notification (for each System Manager) ---
+	for m in managers:
 		try:
-			run_transaction_once("disconnect-desk", f"{inst.disconnect_event_key}:{manager.name}", lambda: frappe.get_doc({
-				"doctype": "Notification Log", "subject": subject, "email_content": body,
-				"for_user": manager.name, "type": "Alert", "document_type": "Whatsapp Instance", "document_name": inst.name,
-			}).insert(ignore_permissions=True))
+			frappe.get_doc(
+				{
+					"doctype": "Notification Log",
+					"subject": subject,
+					"email_content": body,
+					"for_user": m.name,
+					"type": "Alert",
+					"document_type": "Whatsapp Instance",
+					"document_name": inst.name,
+				}
+			).insert(ignore_permissions=True)
 		except Exception:
-			complete = False
-			frappe.log_error(frappe.get_traceback(), f"Disconnect notification failed for {inst.name}")
-	return complete
+			frappe.log_error(
+				message=frappe.get_traceback(),
+				title=f"Disconnect notification failed for {inst.name}",
+			)

@@ -96,22 +96,22 @@ def _request(method, base_url, path, api_key, payload=None):
 		)
 
 	# --- Always log the raw response so we can see exactly what came back. ---
-	from frappe_whatsapp.utils.security import log_remote
-	log_remote(method, path, response.status_code)
+	frappe.logger().error(
+		f"Mubtkir API response [{method} {url}]: {response.status_code} — {response.text}"
+	)
 
 	# --- HTTP layer: 4xx / 5xx. Surface the status + body, don't hide it. ---
 	if response.status_code >= 400:
 		from frappe_whatsapp.utils.delivery_guard import DeliveryRejected, REJECTED_HTTP_STATUSES
 		if response.status_code in REJECTED_HTTP_STATUSES:
-			from frappe_whatsapp.utils.security import provider_error
-			raise DeliveryRejected(f"Evolution rejected the request: {response.status_code} {provider_error(response.text, api_key)}")
+			raise DeliveryRejected(f"Evolution rejected the request: {response.status_code} {(response.text or '')[:1000]}")
 		frappe.log_error(
-			message=f"{method} {path.split('?')[0]} status={response.status_code}",
+			message=f"{method} {url}\n{response.status_code} {response.text}",
 			title="Mubtkir API HTTP Error",
 		)
 		frappe.throw(
 			_("Mubtkir API error: {0} — {1}").format(
-				response.status_code, "Provider request failed; see provider logs."
+				response.status_code, (response.text or "")[:500]
 			),
 			title=_("Mubtkir API Error"),
 		)
@@ -206,8 +206,6 @@ def _store_status(instance_name, status, doc=None):
 	if status == "Connected" and not current_connected_since:
 		values["connected_since"] = frappe.utils.now_datetime()
 	elif status == "Disconnected" and current_connected_since:
-		from frappe_whatsapp.utils.delivery_guard import delivery_key
-		values["disconnect_event_key"] = delivery_key(instance_name, str(current_connected_since))
 		values["connected_since"] = None
 
 	frappe.db.set_value("Whatsapp Instance", instance_name, values)
@@ -233,18 +231,18 @@ def is_registered(instance_name):
 	"""
 	if not frappe.db.exists("Whatsapp Instance", instance_name):
 		return False
-	doc = _get_instance(instance_name)
+	doc = frappe.get_doc("Whatsapp Instance", instance_name)
 	return bool(doc.get_password("api_key", raise_exception=False))
 
 
-@frappe.whitelist(methods=["POST"])
+@frappe.whitelist()
 def create_whatsapp_instance(instance_name):
 	"""Register an existing Whatsapp Instance record on the Mubtkir API.
 
 	The local record already exists (its name was auto-generated on save); this
 	registers that same name on the Mubtkir API, stores the returned
 	per-instance API key and sets the status to Disconnected (ready for QR).
-	Returns ``{"success": True}``; credentials stay in the encrypted store.
+	Returns ``{"success": True, "api_key": ...}``.
 	"""
 	if not frappe.db.exists("Whatsapp Instance", instance_name):
 		frappe.throw(
@@ -253,10 +251,6 @@ def create_whatsapp_instance(instance_name):
 
 	doc = frappe.get_doc("Whatsapp Instance", instance_name)
 	doc.check_permission("write")
-	frappe.db.sql("SELECT name FROM `tabWhatsapp Instance` WHERE name=%s FOR UPDATE", (instance_name,))
-	doc.reload()
-	if doc.get_password("api_key", raise_exception=False):
-		return {"success": True}
 
 	if not doc.evolution_server:
 		frappe.throw(_("Please set an Mubtkir API Server on this instance first."))
@@ -286,12 +280,13 @@ def create_whatsapp_instance(instance_name):
 			title=_("Connection Error"),
 		)
 
-	from frappe_whatsapp.utils.security import log_remote
-	log_remote("POST", "/instance/create", response.status_code)
+	frappe.logger().error(
+		f"Mubtkir API response [POST {url}]: {response.status_code} — {response.text}"
+	)
 	if response.status_code not in (200, 201):
 		frappe.throw(
 			_("Mubtkir API error: {0} — {1}").format(
-				response.status_code, "Provider registration failed; see provider logs."
+				response.status_code, (response.text or "")[:500]
 			),
 			title=_("Mubtkir API Error"),
 		)
@@ -299,13 +294,14 @@ def create_whatsapp_instance(instance_name):
 	data = response.json() if response.content else {}
 	instance_key = _extract_api_key(data) or data.get("apikey") or ""
 
-	from frappe.utils.password import set_encrypted_password
-	if instance_key:
-		set_encrypted_password("Whatsapp Instance", instance_name, instance_key, fieldname="api_key")
-	frappe.db.set_value("Whatsapp Instance", instance_name, {"api_key": "********" if instance_key else "", "connection_status": "Disconnected"})
+	frappe.db.set_value(
+		"Whatsapp Instance",
+		instance_name,
+		{"api_key": instance_key, "connection_status": "Disconnected"},
+	)
 	frappe.db.commit()
 
-	return {"success": True}
+	return {"success": True, "api_key": instance_key}
 
 
 def delete_remote_instance(doc):
@@ -328,7 +324,7 @@ def delete_remote_instance(doc):
 		)
 
 
-@frappe.whitelist(methods=["POST"])
+@frappe.whitelist()
 def delete_whatsapp_instance(instance_name, delete_remote=False):
 	"""Cleanup helper: remove a WhatsApp instance record (and optionally remote).
 
@@ -346,17 +342,16 @@ def delete_whatsapp_instance(instance_name, delete_remote=False):
 
 	if not frappe.db.exists("Whatsapp Instance", instance_name):
 		return {"deleted": False, "message": f"No local record named {instance_name}."}
-	doc = frappe.get_doc("Whatsapp Instance", instance_name)
-	doc.check_permission("delete")
 
 	if frappe.utils.cint(delete_remote):
+		doc = frappe.get_doc("Whatsapp Instance", instance_name)
 		delete_remote_instance(doc)
 
 	# The remote has already been handled above (or intentionally kept), so tell
 	# on_trash not to repeat the DELETE call.
 	frappe.flags.wa_skip_remote_delete = True
 	try:
-		frappe.delete_doc("Whatsapp Instance", instance_name)
+		frappe.delete_doc("Whatsapp Instance", instance_name, ignore_permissions=True)
 	finally:
 		frappe.flags.wa_skip_remote_delete = False
 	frappe.db.commit()
@@ -391,8 +386,6 @@ def _clear_registration(instance_name):
 	the form shows the "Create Instance" button again), marks it Disconnected and
 	wipes ``connected_since``.
 	"""
-	from frappe.utils.password import remove_encrypted_password
-	remove_encrypted_password("Whatsapp Instance", instance_name, fieldname="api_key")
 	frappe.db.set_value(
 		"Whatsapp Instance",
 		instance_name,
@@ -405,7 +398,7 @@ def _clear_registration(instance_name):
 	frappe.db.commit()
 
 
-@frappe.whitelist(methods=["POST"])
+@frappe.whitelist()
 def sync_instance_with_evolution(instance_name):
 	"""Reconcile a single local instance against its Mubtkir API server.
 
@@ -440,7 +433,7 @@ def sync_instance_with_evolution(instance_name):
 	return {"exists": True, "status": result.get("status")}
 
 
-@frappe.whitelist(methods=["POST"])
+@frappe.whitelist()
 def sync_server_instances(server_name):
 	"""Reconcile every local instance hosted on ``server_name`` against Mubtkir API.
 
@@ -451,7 +444,6 @@ def sync_server_instances(server_name):
 		frappe.throw(_("You are not permitted to sync Mubtkir API servers."))
 
 	server = frappe.get_doc("Evolution Server", server_name)
-	server.check_permission("write")
 	base_url = server.get_base_url()
 	api_key = server.get_api_key()
 	if not base_url or not api_key:
@@ -476,8 +468,6 @@ def sync_server_instances(server_name):
 	)
 	missing = [name for name in local if name not in remote_names]
 	for name in missing:
-		frappe.get_doc("Whatsapp Instance", name).check_permission("write")
-	for name in missing:
 		_clear_registration(name)
 
 	return {"checked": len(local), "missing": missing}
@@ -489,12 +479,10 @@ def check_user_instance(user):
 	if not user:
 		return None
 
-	if user != frappe.session.user:
-		frappe.has_permission("Whatsapp Instance", "read", throw=True)
 	return frappe.db.get_value("Whatsapp Instance", {"linked_user": user}, "name")
 
 
-@frappe.whitelist(methods=["POST"])
+@frappe.whitelist()
 def get_qr_code(instance_name):
 	"""Fetch a QR code from ``GET /instance/connect/{name}``.
 
@@ -502,7 +490,6 @@ def get_qr_code(instance_name):
 	current ``status``.
 	"""
 	doc = _get_instance(instance_name)
-	doc.check_permission("write")
 	base_url, api_key = _server_credentials(doc.evolution_server)
 
 	frappe.logger().error(f"Fetching QR for instance '{instance_name}' on {base_url[:20]!r}")
@@ -522,7 +509,7 @@ def get_qr_code(instance_name):
 	}
 
 
-@frappe.whitelist(methods=["POST"])
+@frappe.whitelist()
 def get_instance_status(instance_name):
 	"""Fetch state from ``GET /instance/connectionState/{name}``.
 
@@ -549,7 +536,7 @@ def get_instance_status(instance_name):
 		if extracted:
 			phone_number = extracted
 
-		values = {"connection_status": "Connected", "phone_number": phone_number, "disconnect_event_key": "", "disconnect_alerted": 0}
+		values = {"connection_status": "Connected", "phone_number": phone_number}
 		# Preserve the original connection time; only set it the first time.
 		if not doc.connected_since:
 			values["connected_since"] = frappe.utils.now()
@@ -561,7 +548,7 @@ def get_instance_status(instance_name):
 	return {"status": status, "phone_number": phone_number}
 
 
-@frappe.whitelist(methods=["POST"])
+@frappe.whitelist()
 def disconnect_instance(instance_name):
 	"""Log the instance out via ``DELETE /instance/logout/{name}``."""
 	doc = _get_instance(instance_name)
@@ -572,7 +559,7 @@ def disconnect_instance(instance_name):
 
 	return _store_status(instance_name, "Disconnected", doc)
 
-@frappe.whitelist(methods=["POST"])
+@frappe.whitelist()
 def send_test_message(instance_name, number, text=None):
 	"""Send one test text message and return the RAW Evolution response.
 
@@ -592,10 +579,19 @@ def send_test_message(instance_name, number, text=None):
 	if not digits:
 		frappe.throw(_("Please enter a recipient number."))
 
-	# Keep test sends logged and protected just like normal outgoing messages.
-	message_id = send_text(number=digits, text=text or "Test message from MUBTKIR ✅ رسالة اختبار من مُبتكِر", instance_name=instance_name)
-	return {"ok": True, "number_sent": digits, "status_code": 200, "response": message_id}
+	url = f"{base_url}/message/sendText/{instance_name}"
+	payload = {"number": digits, "text": text or "Test message from MUBTKIR ✅ رسالة اختبار من مُبتكِر"}
+	try:
+		resp = requests.post(url, headers=_headers(api_key), json=payload, timeout=REQUEST_TIMEOUT)
+	except Exception as exc:
+		return {"ok": False, "number_sent": digits, "status_code": None, "response": str(exc)}
 
+	return {
+		"ok": resp.status_code in (200, 201),
+		"number_sent": digits,
+		"status_code": resp.status_code,
+		"response": (resp.text or "")[:2000],
+	}
 
 
 @frappe.whitelist()
@@ -615,17 +611,13 @@ def get_user_instance_status():
         "instance_name": instance.instance_name or instance.name,
         "status": instance.connection_status or "Disconnected"
     }
-@frappe.whitelist(methods=["POST"])
+@frappe.whitelist()
 def send_text(mobile_no=None, message=None, number=None, text=None, instance_name=None, operation_key=None):
     """محوِّل الخطّاف العام mu_send_whatsapp (mobile_no, message) إلى طبقة Evolution.
 
     يقبل تسمية الخطّاف (mobile_no, message) والتسمية الأصلية (number, text).
     """
 
-    from frappe_whatsapp.utils.security import require_sender, authorize_instance
-    from frappe_whatsapp.utils.delivery_guard import delivery_key
-    require_sender()
-    instance_name = authorize_instance(instance_name)
     number = number or mobile_no
     text = text if text is not None else message
     if not number:
@@ -636,11 +628,9 @@ def send_text(mobile_no=None, message=None, number=None, text=None, instance_nam
     number = normalize_number(number)
     # Old integrations lack a request ID. Suppress identical requests briefly;
     # callers requiring reliable retries must pass their own operation_key.
-    if operation_key and (not isinstance(operation_key, str) or len(operation_key) > 128):
-        frappe.throw(_("Invalid operation key."))
-    fingerprint = delivery_key(instance_name, number, text)
-    scope = ("integration-v2", frappe.session.user, operation_key) if operation_key else (
-        "integration-legacy-v2", frappe.session.user, fingerprint,
+    scope = ("integration", operation_key) if operation_key else (
+        "integration-window", instance_name, number, text,
+        int(now_datetime().timestamp()) // 300,
     )
     doc = frappe.get_doc({
         "doctype": "WhatsApp Message", "type": "Outgoing", "channel": "Evolution",
@@ -648,8 +638,6 @@ def send_text(mobile_no=None, message=None, number=None, text=None, instance_nam
         "send_from_instance": instance_name,
     })
     doc.flags.delivery_scope = scope
-    doc.flags.delivery_fingerprint = fingerprint
-    doc.flags.delivery_replay_seconds = None if operation_key else 300
     doc.insert(ignore_permissions=True)
     return doc.message_id
 

@@ -38,7 +38,7 @@ class EvolutionServer(Document):
 		frappe.db.set_value("Evolution Server", self.name, "connection_status", status)
 		frappe.db.commit()
 
-	@frappe.whitelist(methods=["POST"])
+	@frappe.whitelist()
 	def test_connection(self):
 		"""Ping GET {base_url}/instance/fetchInstances and report reachability.
 
@@ -47,7 +47,6 @@ class EvolutionServer(Document):
 		returns the URL, HTTP status and raw body for debugging. Credentials are
 		read straight from this record.
 		"""
-		self.check_permission("write")
 		base_url = self.get_base_url()
 		api_key = self.get_api_key()
 
@@ -82,8 +81,9 @@ class EvolutionServer(Document):
 				"body": f"Connection error: {exc}",
 			}
 
-		from frappe_whatsapp.utils.security import log_remote
-		log_remote("GET", "/instance/fetchInstances", response.status_code)
+		frappe.logger().error(
+			f"Mubtkir API response [GET {url}]: {response.status_code} — {response.text}"
+		)
 
 		ok = response.status_code == 200
 		self._set_connection_status("Online" if ok else "Offline")
