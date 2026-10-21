@@ -348,13 +348,8 @@ class WhatsAppNotification(Document):
             )
             return None
 
-        # Evolution v2 accepts a base64 media payload. Keep generated PDFs in
-        # memory rather than publishing a temporary file URL which Evolution
-        # may be unable to fetch (private host, proxy, DNS or auth).
-        if channel == "Evolution" and attachment_url and not str(attachment_url).startswith(("http://", "https://", "/files/", "/private/files/")):
-            attach = str(attachment_url)
-        else:
-            attach = self._temporary_attachment_url(attachment_url, filename)
+        # Keep only a File URL in the Attach field (never raw PDF base64).
+        attach = self._temporary_attachment_url(attachment_url, filename)
         content_type = self._attachment_content_type(filename) if attach else "text"
         template_name = self.template or (template.get("name") if template else None)
 
