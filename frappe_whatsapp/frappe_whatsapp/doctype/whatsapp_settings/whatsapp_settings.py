@@ -14,8 +14,8 @@ class WhatsAppSettings(Document):
 
         if self.retention_days is not None and int(self.retention_days or 0) < 0:
             frappe.throw(_("Retention Days cannot be negative."))
-        if self.max_attachment_size is not None and int(self.max_attachment_size or 0) <= 0:
-            frappe.throw(_("Max Attachment Size must be greater than zero."))
+        if self.max_attachment_size is None or int(self.max_attachment_size or 0) <= 0:
+            self.max_attachment_size = 10
 
     def on_update(self):
         frappe.clear_cache(doctype="WhatsApp Settings")
