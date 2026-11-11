@@ -17,13 +17,21 @@ class EvolutionServer(Document):
 	"""An Mubtkir API server used to host WhatsApp instances."""
 
 	def validate(self):
-		"""Normalise the base URL by stripping any trailing slash."""
+		"""Normalise the base URL by ensuring a clean http(s) scheme and stripping any trailing slash."""
 		if self.base_url:
-			self.base_url = self.base_url.rstrip("/")
+			self.base_url = self.get_base_url()
 
 	def get_base_url(self):
-		"""Return the base URL without a trailing slash."""
-		return (self.base_url or "").rstrip("/")
+		"""Return the base URL with a lowercase http(s) scheme and without a trailing slash."""
+		base_url = (self.base_url or "").strip().rstrip("/")
+		if not base_url:
+			return ""
+		lower = base_url.lower()
+		if lower.startswith("http://"):
+			return "http://" + base_url[7:]
+		elif lower.startswith("https://"):
+			return "https://" + base_url[8:]
+		return "https://" + base_url
 
 	def get_api_key(self):
 		"""Return the decrypted global API key.

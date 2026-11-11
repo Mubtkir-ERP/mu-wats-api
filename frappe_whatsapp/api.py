@@ -214,11 +214,16 @@ def _store_status(instance_name, status, doc=None):
 
 
 def _normalise_base_url(raw):
-	"""Strip whitespace / trailing slash and ensure an http(s) scheme."""
+	"""Strip whitespace / trailing slash and ensure a clean http(s) scheme (case-insensitive)."""
 	base_url = (raw or "").strip().rstrip("/")
-	if base_url and not base_url.startswith(("http://", "https://")):
-		base_url = "https://" + base_url
-	return base_url
+	if not base_url:
+		return ""
+	lower = base_url.lower()
+	if lower.startswith("http://"):
+		return "http://" + base_url[7:]
+	elif lower.startswith("https://"):
+		return "https://" + base_url[8:]
+	return "https://" + base_url
 
 
 @frappe.whitelist()
