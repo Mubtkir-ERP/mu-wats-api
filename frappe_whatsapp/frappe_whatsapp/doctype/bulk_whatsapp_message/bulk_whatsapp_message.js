@@ -22,6 +22,35 @@ frappe.ui.form.on('Bulk WhatsApp Message', {
             });
         }
 
+        // Show batch status and trigger button if campaign is queued/cooling down
+        if (frm.doc.docstatus === 1 && frm.doc.status === 'Queued' && frm.doc.next_batch_time) {
+            frm.dashboard.set_headline_alert(
+                __('Campaign in cool-down. Next batch scheduled at: {0}', [frm.doc.next_batch_time]),
+                'orange'
+            );
+            frm.add_custom_button(__('Send Next Batch Now'), function() {
+                frappe.confirm(
+                    __('Do you want to send the next batch immediately without waiting for the scheduled cool-down time?'),
+                    function() {
+                        frappe.call({
+                            method: 'frappe_whatsapp.utils.bulk_messaging.send_next_batch_now',
+                            args: { name: frm.doc.name },
+                            freeze: true,
+                            callback: function(r) {
+                                if (r.message) {
+                                    frappe.show_alert({
+                                        message: __('Next batch queued for sending'),
+                                        indicator: 'green'
+                                    });
+                                    frm.reload_doc();
+                                }
+                            }
+                        });
+                    }
+                );
+            }).addClass('btn-primary');
+        }
+
         // Add progress bar
         if(frm.doc.docstatus === 1 && frm.doc.status != 'Draft') {
             frm.add_custom_button(__('Check Progress'), function() {
@@ -50,6 +79,12 @@ frappe.ui.form.on('Bulk WhatsApp Message', {
                                     <span class="badge badge-info ml-2">Total: ${progress.total}</span>
                                 </div>
                             `;
+                            if (progress.completed_batches) {
+                                html += `<div class="mt-2 text-muted small">Completed Batches: ${progress.completed_batches}</div>`;
+                            }
+                            if (progress.next_batch_time) {
+                                html += `<div class="mt-1 text-primary small">Next Batch Time: ${progress.next_batch_time}</div>`;
+                            }
                             
                             frappe.msgprint({
                                 title: __('Message Progress'),
@@ -88,9 +123,16 @@ frappe.ui.form.on('Bulk WhatsApp Message', {
             return false;
         }
         
-        if(frm.doc.use_template && !frm.doc.template) {
-            frappe.throw(__('Please select a template'));
-            return false;
+        if(frm.doc.use_template) {
+            let mode = frm.doc.template_mode || 'Single Template';
+            if (mode === 'Single Template' && !frm.doc.template) {
+                frappe.throw(__('Please select a template'));
+                return false;
+            }
+            if (mode === 'Rotate Multiple Templates' && (!frm.doc.rotating_templates || frm.doc.rotating_templates.length === 0)) {
+                frappe.throw(__('Please add at least one template in Rotating Templates'));
+                return false;
+            }
         }
         
         if(!frm.doc.use_template && !frm.doc.message_content && !frm.doc.attach) {
@@ -98,6 +140,11 @@ frappe.ui.form.on('Bulk WhatsApp Message', {
             return false;
         }
         
+        if(frm.doc.enable_batch_sending && (!frm.doc.batch_size || frm.doc.batch_size <= 0)) {
+            frappe.throw(__('Batch size must be greater than 0'));
+            return false;
+        }
+
         return true;
     }
 });
@@ -117,12 +164,14 @@ function preview_bulk_messages(frm) {
             }
             const esc = frappe.utils.escape_html;
             let body = rows.map(function(row, i) {
+                let tplBadge = row.template ? `<span class="badge badge-light ml-2">Template: ${esc(row.template)}</span>` : '';
                 return `
                     <div style="border:1px solid var(--border-color,#e0e0e0);border-radius:8px;
                                 padding:10px 12px;margin-bottom:8px;">
                         <div style="font-weight:600;margin-bottom:6px;">
                             ${i + 1}. ${esc(row.name || "")}
                             <span style="color:var(--text-muted,#888);font-weight:400;">${esc(row.mobile || "")}</span>
+                            ${tplBadge}
                         </div>
                         <div dir="auto" style="white-space:pre-wrap;line-height:1.6;">${esc(row.message || "")}</div>
                     </div>`;

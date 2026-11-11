@@ -9,19 +9,35 @@
   "title",
   "from_number",
   "sender_number",
+  "section_timing",
   "message_delay",
   "max_delay",
+  "section_anti_ban",
+  "enable_batch_sending",
+  "batch_size",
+  "batch_delay_hours",
+  "column_break_warmup",
+  "enable_warmup",
+  "warmup_after_batches",
+  "warmup_increment",
+  "max_batch_size",
+  "section_batch_tracking",
+  "completed_batches",
+  "next_batch_time",
   "section_recipients",
   "recipient_type",
   "recipients",
   "recipient_list",
   "recipient_count",
   "section_message",
-  "message_content",
   "use_template",
+  "template_mode",
   "template",
+  "rotating_templates",
   "variable_type",
   "template_variables",
+  "message_content",
+  "section_media",
   "attach",
   "section_status",
   "status",
@@ -46,26 +62,116 @@
    "label": "From WhatsApp Number"
   },
   {
+   "description": "The connected WhatsApp instance used to send this campaign. Defaults to your own instance if left empty.",
    "fieldname": "sender_number",
    "fieldtype": "Link",
    "label": "Send From Instance",
-   "options": "Whatsapp Instance",
-   "reqd": 0,
-   "description": "The connected WhatsApp instance used to send this campaign. Defaults to your own instance if left empty."
+   "options": "Whatsapp Instance"
   },
   {
-   "default": "20",
+   "fieldname": "section_timing",
+   "fieldtype": "Section Break",
+   "label": "Random Delay Between Messages"
+  },
+  {
+   "default": "30",
    "description": "Minimum delay in seconds between messages (random delay used)",
    "fieldname": "message_delay",
    "fieldtype": "Int",
    "label": "Min Delay (seconds)"
   },
   {
-   "default": "60",
+   "default": "150",
    "description": "Maximum delay in seconds between messages (random delay used)",
    "fieldname": "max_delay",
    "fieldtype": "Int",
    "label": "Max Delay (seconds)"
+  },
+  {
+   "fieldname": "section_anti_ban",
+   "fieldtype": "Section Break",
+   "label": "Anti-Ban & Batch Warming (Cool-down)"
+  },
+  {
+   "default": "1",
+   "description": "Send in limited batches with cool-down hours to protect the number from getting banned.",
+   "fieldname": "enable_batch_sending",
+   "fieldtype": "Check",
+   "label": "Enable Batch Sending (Anti-Ban)"
+  },
+  {
+   "default": "20",
+   "depends_on": "eval:doc.enable_batch_sending==1",
+   "description": "Number of messages to send per batch/day before cooling down (e.g. 20)",
+   "fieldname": "batch_size",
+   "fieldtype": "Int",
+   "label": "Batch Size (Messages)"
+  },
+  {
+   "default": "24",
+   "depends_on": "eval:doc.enable_batch_sending==1",
+   "description": "Cool-down hours to pause after reaching batch size before starting the next batch (e.g. 24 or 48 hours)",
+   "fieldname": "batch_delay_hours",
+   "fieldtype": "Float",
+   "label": "Wait Between Batches (Hours)"
+  },
+  {
+   "fieldname": "column_break_warmup",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.enable_batch_sending==1",
+   "description": "Gradually increase batch size after several successful batches to safely warm up the number.",
+   "fieldname": "enable_warmup",
+   "fieldtype": "Check",
+   "label": "Enable Gradual Warm-up"
+  },
+  {
+   "default": "2",
+   "depends_on": "eval:doc.enable_batch_sending==1 && doc.enable_warmup==1",
+   "description": "Number of batches to complete before increasing the batch size (e.g. every 2 batches)",
+   "fieldname": "warmup_after_batches",
+   "fieldtype": "Int",
+   "label": "Increase Every (Batches)"
+  },
+  {
+   "default": "10",
+   "depends_on": "eval:doc.enable_batch_sending==1 && doc.enable_warmup==1",
+   "description": "How many messages to add to the batch size on each increase step (e.g. +10)",
+   "fieldname": "warmup_increment",
+   "fieldtype": "Int",
+   "label": "Increase Batch Size By"
+  },
+  {
+   "default": "50",
+   "depends_on": "eval:doc.enable_batch_sending==1 && doc.enable_warmup==1",
+   "description": "Maximum batch size ceiling (e.g. max 50 messages/day)",
+   "fieldname": "max_batch_size",
+   "fieldtype": "Int",
+   "label": "Max Batch Size Ceiling"
+  },
+  {
+   "depends_on": "eval:doc.enable_batch_sending==1",
+   "fieldname": "section_batch_tracking",
+   "fieldtype": "Section Break",
+   "label": "Batch Progress & Schedule"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.enable_batch_sending==1",
+   "fieldname": "completed_batches",
+   "fieldtype": "Int",
+   "label": "Completed Batches",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.enable_batch_sending==1",
+   "description": "When the next batch is scheduled to resume automatically.",
+   "fieldname": "next_batch_time",
+   "fieldtype": "Datetime",
+   "label": "Next Batch Scheduled Time",
+   "read_only": 1
   },
   {
    "fieldname": "section_recipients",
@@ -102,24 +208,26 @@
   {
    "fieldname": "section_message",
    "fieldtype": "Section Break",
-   "label": "Message"
-  },
-  {
-   "fieldname": "message_content",
-   "fieldtype": "Small Text",
-   "label": "Message Content",
-   "depends_on": "eval:!doc.use_template",
-   "description": "Plain text body of the campaign, used when 'Use Template' is off. You can also attach an image, PDF, video or audio file below."
+   "label": "Message & Template Rotation"
   },
   {
    "default": "1",
+   "description": "Turn on to send approved WhatsApp Templates. Turn off to send plain Message Content.",
    "fieldname": "use_template",
    "fieldtype": "Check",
-   "label": "Use Template",
-   "description": "Turn on to send a pre-approved WhatsApp Template as the message. Turn off to send the plain Message Content above."
+   "label": "Use Template"
   },
   {
+   "default": "Single Template",
    "depends_on": "eval:doc.use_template==1",
+   "description": "Choose whether to use one template, rotate multiple templates among recipients, or use a custom template per recipient.",
+   "fieldname": "template_mode",
+   "fieldtype": "Select",
+   "label": "Template Mode",
+   "options": "Single Template\nRotate Multiple Templates\nPer Recipient"
+  },
+  {
+   "depends_on": "eval:doc.use_template==1 && doc.template_mode=='Single Template'",
    "description": "The WhatsApp Template used as the campaign message.",
    "fieldname": "template",
    "fieldtype": "Link",
@@ -127,12 +235,47 @@
    "options": "WhatsApp Templates"
   },
   {
+   "depends_on": "eval:doc.use_template==1 && doc.template_mode=='Rotate Multiple Templates'",
+   "description": "List of templates to rotate among recipients (recipient 1 gets template 1, recipient 2 gets template 2, etc.) to prevent spam pattern detection.",
+   "fieldname": "rotating_templates",
+   "fieldtype": "Table",
+   "label": "Rotating Templates",
+   "options": "Bulk Template Item"
+  },
+  {
+   "default": "Common",
+   "depends_on": "eval:doc.use_template==1",
+   "description": "How template placeholders ({{1}}, {{2}}...) are filled. Common: same values for all recipients. Unique: different values taken from each recipient data.",
+   "fieldname": "variable_type",
+   "fieldtype": "Select",
+   "label": "Variable Type",
+   "options": "Common\nUnique"
+  },
+  {
    "depends_on": "eval:doc.use_template==1 && doc.variable_type=='Common'",
+   "description": "Shared values for the template placeholders, as JSON. Example: {\"1\": \"Mubtkir\", \"2\": \"20% off\"}",
    "fieldname": "template_variables",
    "fieldtype": "Code",
    "label": "Template Variables",
-   "options": "JSON",
-   "description": "Shared values for the template placeholders, as JSON. Example: {\"1\": \"Mubtkir\", \"2\": \"20% off\"} fills {{1}} and {{2}} for everyone."
+   "options": "JSON"
+  },
+  {
+   "depends_on": "eval:!doc.use_template",
+   "description": "Plain text body. Supports Spintax {Option 1|Option 2|Option 3} and placeholders {name}, {mobile}.",
+   "fieldname": "message_content",
+   "fieldtype": "Small Text",
+   "label": "Message Content"
+  },
+  {
+   "fieldname": "section_media",
+   "fieldtype": "Section Break",
+   "label": "Media & Image Attachments"
+  },
+  {
+   "description": "Optional image (PNG, JPG, WEBP), PDF, video or audio. When using Evolution API, images are sent directly to WhatsApp with your message text as a caption.",
+   "fieldname": "attach",
+   "fieldtype": "Attach",
+   "label": "Attach Image / Media"
   },
   {
    "fieldname": "section_status",
@@ -150,19 +293,19 @@
   },
   {
    "default": "0",
+   "description": "Number of successfully accepted messages, not total attempts.",
    "fieldname": "sent_count",
    "fieldtype": "Int",
    "label": "Sent Count",
-   "read_only": 1,
-   "description": "Number of successfully accepted messages, not total attempts."
+   "read_only": 1
   },
   {
+   "description": "Per-recipient diagnostics: endpoint, HTTP status and the raw Evolution response. Use it to trace why a message did not arrive.",
    "fieldname": "send_log",
    "fieldtype": "Code",
-   "options": "Text",
    "label": "Send Log",
-   "read_only": 1,
-   "description": "Per-recipient diagnostics: endpoint, HTTP status and the raw Evolution response. Use it to trace why a message did not arrive."
+   "options": "Text",
+   "read_only": 1
   },
   {
    "description": "Leave empty to queue immediately after submission. Future times are picked up automatically by the scheduler.",
@@ -178,27 +321,12 @@
    "options": "Bulk WhatsApp Message",
    "print_hide": 1,
    "read_only": 1
-  },
-  {
-   "fieldname": "attach",
-   "fieldtype": "Attach",
-   "label": "Attach",
-   "description": "Optional media for the campaign: image, PDF, video or audio. Uploaded from your device or picked from ERPNext files."
-  },
-  {
-   "default": "Common",
-   "depends_on": "eval:doc.use_template==1",
-   "fieldname": "variable_type",
-   "fieldtype": "Select",
-   "label": "Variable Type",
-   "options": "Common\nUnique",
-   "description": "How template placeholders ({{1}}, {{2}}...) are filled. Common: the same values for all recipients (set once below). Unique: different values taken from each recipient's own data."
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-10-03 16:51:00.000000",
+ "modified": "2026-11-11 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Frappe Whatsapp",
  "name": "Bulk WhatsApp Message",
@@ -223,6 +351,7 @@
    "amend": 1,
    "cancel": 1,
    "create": 1,
+   "delete": 1,
    "email": 1,
    "export": 1,
    "print": 1,

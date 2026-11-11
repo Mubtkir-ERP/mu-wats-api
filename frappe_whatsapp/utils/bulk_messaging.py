@@ -16,6 +16,11 @@ def retry_failed(name):
 
 
 @frappe.whitelist()
+def send_next_batch_now(name):
+    return frappe.get_doc("Bulk WhatsApp Message", name).send_next_batch_now()
+
+
+@frappe.whitelist()
 def import_recipients(list_name, doctype, mobile_field, name_field=None, filters=None, limit=None, data_fields=None):
     if filters and isinstance(filters, str):
         filters = json.loads(filters)

@@ -8,6 +8,7 @@
   "recipient_code",
   "mobile_number",
   "recipient_name",
+  "template",
   "recipient_data"
  ],
  "fields": [
@@ -32,6 +33,14 @@
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Recipient Name"
+  },
+  {
+   "description": "Optional WhatsApp Template specific to this recipient",
+   "fieldname": "template",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Template",
+   "options": "WhatsApp Templates"
   },
   {
    "default": "{}",

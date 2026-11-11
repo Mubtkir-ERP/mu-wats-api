@@ -295,5 +295,58 @@ class TestRoutingSafety(unittest.TestCase):
         self.assertEqual(post.call_count, 1)
 
 
+class TestAntiBanFeatures(unittest.TestCase):
+    def test_spintax_resolution(self):
+        template = "{مرحباً|أهلاً|السلام عليكم} يا {صديقي|عزيزي}"
+        seen = set()
+        for _ in range(30):
+            res = bulk.process_spintax(template)
+            seen.add(res)
+            self.assertNotIn("|", res)
+            self.assertNotIn("{مرحباً", res)
+        self.assertGreater(len(seen), 1)
+
+    def test_spintax_preserves_placeholders(self):
+        text = "{مرحباً|أهلاً} {name}، رقمك هو {mobile}"
+        res = bulk.process_spintax(text)
+        self.assertIn("{name}", res)
+        self.assertIn("{mobile}", res)
+        self.assertTrue(res.startswith("مرحباً ") or res.startswith("أهلاً "))
+
+    def test_replace_placeholders(self):
+        text = "مرحباً {name} ({recipient_name})، هاتفك {mobile}، كودك {code}"
+        recipient = {
+            "recipient_name": "سارة",
+            "mobile_number": "966509999999",
+            "recipient_data": json.dumps({"code": "VIP-123"}),
+        }
+        res = bulk.replace_placeholders(text, recipient)
+        self.assertEqual(res, "مرحباً سارة (سارة)، هاتفك 966509999999، كودك VIP-123")
+
+    def test_warmup_calculation_logic(self):
+        base_size = 20
+        increment = 10
+        after_batches = 2
+        max_size = 50
+
+        step = 0 // after_batches
+        self.assertEqual(min(max_size, base_size + step * increment), 20)
+
+        step = 1 // after_batches
+        self.assertEqual(min(max_size, base_size + step * increment), 20)
+
+        step = 2 // after_batches
+        self.assertEqual(min(max_size, base_size + step * increment), 30)
+
+        step = 4 // after_batches
+        self.assertEqual(min(max_size, base_size + step * increment), 40)
+
+        step = 6 // after_batches
+        self.assertEqual(min(max_size, base_size + step * increment), 50)
+
+        step = 10 // after_batches
+        self.assertEqual(min(max_size, base_size + step * increment), 50)
+
+
 if __name__ == "__main__":
     unittest.main()

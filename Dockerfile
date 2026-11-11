@@ -1,5 +1,5 @@
 FROM ghcr.io/shridarpatil/frappe
 
-LABEL org.opencontainers.image.source=https://github.com/shridarpatil/frappe_whatsapp
-MAINTAINER Shridhar <shridharpatil2792@gmail.com>
-RUN bench get-app https://github.com/shridarpatil/frappe_whatsapp.git --skip-assets
+LABEL org.opencontainers.image.source=https://github.com/Mubtkir-ERP/mu-wats-api
+MAINTAINER Mubtkir <info@mubtkir.com>
+RUN bench get-app https://github.com/Mubtkir-ERP/mu-wats-api.git --skip-assets

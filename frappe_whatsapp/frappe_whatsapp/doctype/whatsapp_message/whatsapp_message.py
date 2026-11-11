@@ -164,10 +164,11 @@ class WhatsAppMessage(Document):
                 self.content_type = "flow"
             elif self.attach:
                 link = self.attach
-                # URLs must be absolute, but generated PDF base64 must remain
-                # untouched: prefixing it with the site URL corrupts the media.
+                # URLs must be absolute or signed if private, but generated PDF base64
+                # must remain untouched: prefixing it with the site URL corrupts the media.
                 if link and link.startswith(("/files/", "/private/files/")):
-                    link = frappe.utils.get_url().rstrip("/") + link
+                    from frappe_whatsapp.utils.secure_media import provider_url
+                    link = provider_url(link)
                 mediatype = (
                     self.content_type
                     if self.content_type in ("image", "video", "audio", "document")
