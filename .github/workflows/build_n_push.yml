@@ -1,29 +1,49 @@
-name: publish
+name: Publish Docker Image
+
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-      # This is used to complete the identity challenge
-      # with sigstore/fulcio when running outside of PRs.
-      id-token: write
 
     steps:
-      - uses: actions/checkout@v2
-      - name: Set env
-        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set Image Name and Version
+        id: meta
+        run: |
+          IMAGE_NAME="ghcr.io/${GITHUB_REPOSITORY,,}"
+          echo "IMAGE_NAME=${IMAGE_NAME}" >> $GITHUB_ENV
+          
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+          else
+            VERSION="latest"
+          fi
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: build and deploy
+
+      - name: Build and Push Docker Image
         run: |
-         docker build . --tag ghcr.io/shridarpatil/frappe_whatsapp:${{ env.RELEASE_VERSION }}
-         docker push ghcr.io/shridarpatil/frappe_whatsapp:${{ env.RELEASE_VERSION }}
+          echo "Building image: ${{ env.IMAGE_NAME }}:${{ env.VERSION }}"
+          docker build . --tag ${{ env.IMAGE_NAME }}:${{ env.VERSION }} --tag ${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.IMAGE_NAME }}:${{ env.VERSION }}
+          if [ "${{ env.VERSION }}" != "latest" ]; then
+            docker push ${{ env.IMAGE_NAME }}:latest
+          fi
