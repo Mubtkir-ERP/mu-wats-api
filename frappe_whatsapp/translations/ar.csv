@@ -30,7 +30,7 @@ Allowed functions:,الدوال المسموح بها:
 Already Exists,موجود بالفعل
 Amended From,معدل من
 An attachment is required for {0} messages.,المرفق مطلوب لرسائل {0}.
-Anti-Ban & Batch Warming (Cool-down),الحماية من الحظر والتسخين بالدفعات (فترة التبريد)
+Anti-Ban & Batch Warming (Cool-down),الحماية من الحظر وجدولة الدفعات
 API Key,مفتاح API
 App ID,معرّف التطبيق
 Are you sure you want to disconnect this WhatsApp instance?,هل أنت متأكد من رغبتك في قطع اتصال نسخة واتساب هذه؟
@@ -52,7 +52,7 @@ Automation,الأتمتة
 B,ب
 Base URL,الرابط الأساسي
 Based on document:,بناءً على المستند:
-Batch Complete - Cooling Down,اكتملت الدفعة - فترة تبريد
+Batch Complete - Cooling Down,اكتملت الدفعة - في فترة الانتظار
 Batch Progress & Schedule,تقدم وجدولة الدفعات
 Batch Size (Messages),حجم الدفعة (عدد الرسائل)
 Batch size must be greater than 0,يجب أن يكون حجم الدفعة أكبر من 0
@@ -117,7 +117,7 @@ Contacts,جهات الاتصال
 Content Type,نوع المحتوى
 Conversation ID,معرف المحادثة
 Cool-down hours between batches cannot be negative.,ساعات الانتظار بين الدفعات لا يمكن أن تكون سالبة.
-Cool-down hours to pause after reaching batch size before starting the next batch (e.g. 24 or 48 hours),مدة الانتظار والتبريد بالساعات بعد اكتمال الدفعة قبل بدء الدفعة التالية (مثال: 24 أو 48 ساعة)
+Cool-down hours to pause after reaching batch size before starting the next batch (e.g. 24 or 48 hours),مدة التوقف والانتظار بالساعات بعد اكتمال الدفعة قبل بدء الدفعة التالية (مثال: 24 أو 48 ساعة)
 Could not fetch a QR code. Please verify the Mubtkir API Server settings and try again.,تعذّر جلب رمز QR. يرجى التحقق من إعدادات خادم Mubtkir API والمحاولة مرة أخرى.
 Could not generate a unique instance name. Please try again.,تعذر إنشاء اسم نسخة فريد. يرجى المحاولة مرة أخرى.
 Could not reach the Mubtkir API server to sync. Please try again.,تعذّر الوصول إلى خادم Mubtkir API للمزامنة. حاول مرة أخرى.
@@ -163,7 +163,7 @@ Disconnect,قطع الاتصال
 Disconnect Alerted,تم تنبيه الانقطاع
 Disconnected,غير متصل
 Disconnecting...,جاري قطع الاتصال...
-Do you want to send the next batch immediately without waiting for the scheduled cool-down time?,هل تريد إرسال الدفعة التالية فوراً دون انتظار موعد التبريد المجدول؟
+Do you want to send the next batch immediately without waiting for the scheduled cool-down time?,هل تريد إرسال الدفعة التالية فوراً دون انتظار الموعد المجدول؟
 DocType Event,حدث المستند
 DocType to Import,المستند المراد الاستيراد منه
 DOCUMENT,مستند
@@ -176,7 +176,7 @@ Email of the operating company's supervisor. Receives disconnect and failure ale
 Employee,موظف
 Enable Batch Sending (Anti-Ban),تفعيل الإرسال على دفعات (حماية من الحظر)
 Enable Disconnect Alerts,تفعيل تنبيهات الانقطاع
-Enable Gradual Warm-up,تفعيل الزيادة التدريجية (التسخين)
+Enable Gradual Warm-up,تفعيل الزيادة التدريجية لحجم الدفعة
 Enabled,مُفعّل
 Engagement Status,حالة التفاعل
 Enter a recipient mobile number or select a party.,أدخل رقم جوال المستلم أو اختر جهة التعامل.
@@ -226,7 +226,7 @@ From WhatsApp Number,من رقم واتساب
 Get Alerts for Today,جلب التنبيهات لهذا اليوم
 Global Api Key,مفتاح API العام
 Global API key (apikey header) for the Mubtkir API server. Visible to System Manager only.,مفتاح API العام (ترويسة apikey) لخادم Mubtkir API. مرئي لمدير النظام فقط.
-Gradually increase batch size after several successful batches to safely warm up the number.,زيادة حجم الدفعة تدريجياً بعد عدة دفعات ناجحة لتسخين الرقم بأمان.
+Gradually increase batch size after several successful batches to safely warm up the number.,زيادة حجم الدفعة تدريجياً بعد عدة دفعات ناجحة لحماية الرقم ورفع طاقته بأمان.
 Header,الترويسة
 Header Type,نوع الترويسة
 Help,المساعدة
@@ -413,7 +413,7 @@ Number,رقم
 Number of batches to complete before increasing the batch size (e.g. every 2 batches),عدد الدفعات المطلوبة قبل زيادة حجم الدفعة (مثال: كل دفعتين)
 Number of days between repeated reminders for the same document.,عدد الأيام بين التذكيرات المتكررة لنفس المستند.
 Number of days to keep message history before cleanup.,عدد الأيام للاحتفاظ بسجل الرسائل قبل التنظيف.
-Number of messages to send per batch/day before cooling down (e.g. 20),عدد الرسائل في كل دفعة قبل التوقف والتبريد (مثال: 20)
+Number of messages to send per batch/day before cooling down (e.g. 20),عدد الرسائل في كل دفعة قبل التوقف المؤقت (مثال: 20)
 "Number of successfully accepted messages, not total attempts.",عدد الرسائل المقبولة بنجاح، وليس إجمالي المحاولات.
 Offline,غير متصل
 Online,متصل
@@ -571,7 +571,7 @@ Send days before or after the reference date,إرسال الأيام قبل أو
 Send every N units. Example: 3 with Daily = every 3 days. 2 with Weekly = every 2 weeks.,إرسال كل N وحدات. مثال: 3 مع يومي = كل 3 أيام. 2 مع أسبوعي = كل أسبوعين.
 Send Failed,فشل الإرسال
 Send From Instance,الإرسال من النسخة
-Send in limited batches with cool-down hours to protect the number from getting banned.,الإرسال على دفعات محدودة مع فترة انتظار وتبريد لحماية الرقم من الحظر.
+Send in limited batches with cool-down hours to protect the number from getting banned.,الإرسال على دفعات محدودة مع ساعات انتظار بين كل دفعة لحماية الرقم من الحظر.
 Send Log,سجل الإرسال
 Send Next Batch Now,إرسال الدفعة التالية الآن
 Send Now,إرسال الآن
