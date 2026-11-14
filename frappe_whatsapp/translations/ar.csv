@@ -1,406 +1,756 @@
-Sent Messages,الرسائل المرسلة
-Delivered Messages,الرسائل المُوصّلة
-Read Messages,الرسائل المقروءة
-Pending Messages,الرسائل المعلّقة
-Failed Messages,الرسائل الفاشلة
-Received Messages,الرسائل الواردة
-WhatsApp Management,إدارة واتساب
-Instance Management,إدارة النسخ
-Notifications,الإشعارات
-Messages,الرسائل
-Settings,الإعدادات
-Whatsapp Instance,نسخة واتساب
-Evolution Server,خادم Mubtkir API
-WhatsApp Notification,إشعار واتساب
-WhatsApp Templates,قوالب واتساب
-WhatsApp Notification Log,سجل إشعارات واتساب
-WhatsApp Message,رسالة واتساب
-Bulk WhatsApp Message,رسائل واتساب جماعية
-WhatsApp Recipient,مستلم واتساب
-WhatsApp Recipient List,قائمة مستلمي واتساب
-WhatsApp Settings,إعدادات واتساب
-You haven't created a Whatsapp Instance yet,لم تنشئ نسخة واتساب بعد
-Create your first Whatsapp Instance,أنشئ أول نسخة واتساب
-Add Whatsapp Instance,إضافة نسخة واتساب
-New Whatsapp Instance,نسخة واتساب جديدة
-Instance Details,تفاصيل النسخة
-Mubtkir API server that hosts this instance.,خادم Mubtkir API الذي يستضيف هذه النسخة.
-Linked User,المستخدم المرتبط
-The user who owns this instance. A user may own at most one instance.,المستخدم المالك لهذه النسخة. يمكن للمستخدم امتلاك نسخة واحدة كحد أقصى.
-Connection,الاتصال
-Connection Status,حالة الاتصال
-Disconnected,غير متصل
-Connecting,جاري الاتصال
-Connected,متصل
-"Live connection state, fetched automatically from the Mubtkir API. Cannot be edited manually.",حالة الاتصال المباشرة، تُجلب تلقائياً من Mubtkir API. لا يمكن تعديلها يدوياً.
-Create Instance,إنشاء النسخة
-Check Status,فحص الحالة
-Create this instance in Mubtkir API? This will register the instance name and prepare it for QR scanning.,إنشاء هذه النسخة في Mubtkir API؟ سيسجّل هذا اسم النسخة ويجهّزها لمسح رمز QR.
-Instance created successfully. You can now scan the QR code.,تم إنشاء النسخة بنجاح. يمكنك الآن مسح رمز QR.
-Show QR Code,عرض رمز QR
-Scan the QR Code with WhatsApp,امسح رمز QR بواسطة واتساب
-Loading QR code...,جاري تحميل رمز QR...
-"Open WhatsApp on your phone, go to Settings → Linked Devices → Link a Device.",افتح واتساب على جوالك، اذهب إلى الإعدادات ← الأجهزة المرتبطة ← ربط جهاز.
-Waiting for the connection... this dialog will refresh automatically.,في انتظار الاتصال... ستُحدَّث هذه النافذة تلقائياً.
-Test Connection,اختبار الاتصال
-Is Active,نشط
-Only active servers are used to create new instances.,تُستخدم الخوادم النشطة فقط لإنشاء نسخ جديدة.
-Current reachability of the Mubtkir API server. Updated automatically by the Test Connection button.,إمكانية الوصول الحالية لخادم Mubtkir API. تُحدَّث تلقائياً بواسطة زر اختبار الاتصال.
-Offline,غير متصل
-Online,متصل
-Credentials (System Manager only),بيانات الاعتماد (لمدير النظام فقط)
-Base URL,الرابط الأساسي
-API Key,مفتاح API
-"Mubtkir API base URL, e.g. https://evo.example.com. Visible to System Manager only.",الرابط الأساسي لـ Mubtkir API، مثال: https://evo.example.com. مرئي لمدير النظام فقط.
-Global API key (apikey header) for the Mubtkir API server. Visible to System Manager only.,مفتاح API العام (ترويسة apikey) لخادم Mubtkir API. مرئي لمدير النظام فقط.
-Connection Successful,تم الاتصال بنجاح
-Mubtkir API server is reachable and responding correctly.,خادم Mubtkir API متاح ويستجيب بشكل صحيح.
-No WhatsApp instance linked,لا توجد نسخة واتساب مرتبطة
-WhatsApp status unavailable,حالة واتساب غير متاحة
-⚠ WhatsApp disconnected! Click the status dot to reconnect.,⚠ واتساب غير متصل! اضغط على نقطة الحالة لإعادة الاتصال.
-Send To Whatsapp,إرسال إلى واتساب
-Send WhatsApp Message,إرسال رسالة واتساب
-Select Template,اختر قالباً
-Send to,إرسال إلى
-Mobile no,رقم الجوال
-Mobile number not found for the selected contact.,لم يُعثر على رقم جوال لجهة الاتصال المختارة.
-Preview Message,معاينة الرسالة
-Please select a Reference Document Type first,يرجى اختيار نوع المستند المرجعي أولاً
-Message Preview,معاينة الرسالة
-Based on document:,بناءً على المستند:
-Condition set. Edit as needed.,تم ضبط الشرط. عدّله حسب الحاجة.
-Click to use this condition,اضغط لاستخدام هذا الشرط
-WhatsApp Message Sent Successfully,تم إرسال رسالة واتساب بنجاح
-Phone number not found,لم يُعثر على رقم الجوال
-Failed to send WhatsApp message,فشل إرسال رسالة واتساب
-Notification Name,اسم الإشعار
-Notification Type,نوع الإشعار
-Reference Document Type,نوع المستند المرجعي
-DocType Event,حدث المستند
-Scheduler Event,حدث مجدول
-Print Format,تنسيق الطباعة
-Phone Source,مصدر رقم الجوال
-Phone Field,حقل رقم الجوال
-WhatsApp Instance,نسخة واتساب
-Primary Contact,جهة الاتصال الرئيسية
-Field in Document,حقل في المستند
-Linked DocType,مستند مرتبط
-Disabled,معطّل
-Template,القالب
-Fields,الحقول
-Format,الصيغة
-Field name,اسم الحقل
-Condition,الشرط
-Send Time,وقت الإرسال
-Day of Month,يوم من الشهر
-Day of Week,يوم من الأسبوع
-Repeat Every,التكرار كل
-Auto-filled from WhatsApp after successful QR scan connection.,يُملأ تلقائياً من واتساب بعد نجاح الاتصال بمسح رمز QR.
-Get Alerts for Today,جلب التنبيهات لهذا اليوم
-Required only for DocType Event and Days Before/After,مطلوب فقط لحدث المستند وأيام قبل/بعد
-How to find the recipient's phone number,طريقة العثور على رقم جوال المستلم
-Before Insert,قبل الإنشاء
-After Insert,بعد الإنشاء
-Before Save,قبل الحفظ
-After Save,بعد الحفظ
-Before Submit,قبل الترحيل
-After Submit,بعد الترحيل
-Before Cancel,قبل الإلغاء
-After Cancel,بعد الإلغاء
-Before Delete,قبل الحذف
-After Delete,بعد الحذف
-Days Before,أيام قبل
-Days After,أيام بعد
-Attach Document Print,إرفاق طباعة المستند
-WhatsApp Template requires a document.,قالب واتساب يتطلب مستنداً.
-Custom attachment,مرفق مخصص
-WhatsApp Template requires document,قالب واتساب يتطلب مستنداً
-Enter fields in the right sequence as per the template parameters.,أدخل الحقول بالترتيب الصحيح حسب متغيرات القالب.
-No Data,لا توجد بيانات
-Add Row,إضافة صف
-Python expression that must be true to send. See the Help section below for ready-to-use examples (click an example to insert it).,تعبير Python يجب أن يكون صحيحاً للإرسال. راجع قسم المساعدة أدناه لأمثلة جاهزة (اضغط على مثال لإدراجه).
-Expand,توسيع
-Set Property After Alert,تعيين خاصية بعد التنبيه
-Value To Be Set,القيمة المراد تعيينها
-Help,المساعدة
-Conditions should be written in simple Python. Please use properties available in the form only.,تُكتب الشروط بلغة Python بسيطة. استخدم فقط الحقول المتوفرة في المستند.
-Example:,مثال:
-For scheduler events you can use follwing methods,للأحداث المجدولة يمكنك استخدام الدوال التالية
-Allowed functions:,الدوال المسموح بها:
-"For scheduled events, use",للأحداث المجدولة، استخدم
+(template not found),(القالب غير موجود)
 "1. Simple template sending, without parameters, just send a template",١. إرسال قالب بسيط بدون متغيرات — يُرسل القالب كما هو
 2. Message based on doctype with parameters,٢. رسالة مبنية على مستند مع متغيرات تُجلب من بياناته
-Condition Examples — click to copy:,أمثلة الشروط — اضغط للنسخ:
-Only if amount is due,فقط إذا كان هناك مبلغ مستحق
-Prevent duplicate sends,منع الإرسال المكرر
-Only submitted documents,المستندات المرحّلة فقط
-Specific customer group,مجموعة عملاء محددة
-Only if total exceeds 1000,فقط إذا تجاوز الإجمالي ١٠٠٠
-Only submitted (docstatus check),المرحّلة فقط (فحص حالة المستند)
-New WhatsApp Templates,قالب واتساب جديد
-Template Label,اسم القالب
-Pending,قيد الانتظار
-Category,الفئة
-For V16 use UTILITY and AUTHENTICATION in place of TRANSACTIONAL and OTP,للإصدار 16 استخدم UTILITY و AUTHENTICATION بدلاً من TRANSACTIONAL و OTP
-Language,اللغة
-Sample Values,قيم تجريبية
-For DocType,لنوع المستند
-Field names,أسماء الحقول
-Field names to replace the value in templates,أسماء الحقول لاستبدال قيمها في القوالب
-Header Type,نوع الترويسة
-Footer,التذييل
-TRANSACTIONAL,معاملات
-MARKETING,تسويق
-OTP,رمز تحقق
-UTILITY,خدمي
-AUTHENTICATION,مصادقة
-TEXT,نص
-DOCUMENT,مستند
-IMAGE,صورة
-New WhatsApp Message,رسالة واتساب جديدة
-Label,التسمية
-Type,النوع
-Outgoing,صادرة
-Incoming,واردة
-Status,الحالة
-TO,إلى
-Mobile number with country code,رقم الجوال مع رمز الدولة
-Use Template,استخدام قالب
-Message,الرسالة
-Preview,معاينة
-Message Type,نوع الرسالة
-Manual,يدوي
-Content Type,نوع المحتوى
-Body Param,متغيرات النص
-Is Reply,رد
-Reply To Message ID,رد على معرّف الرسالة
-Reference DocType,المستند المرجعي
-Reference name,اسم المرجع
-text,نص
-document,مستند
-image,صورة
-video,فيديو
-audio,صوت
-flow,تدفق
-reaction,تفاعل
-location,موقع
-contact,جهة اتصال
-button,زر
-New Bulk WhatsApp Message,رسالة واتساب جماعية جديدة
-Title,العنوان
-Sender Number,رقم المُرسِل
-Min Delay (seconds),أقل تأخير (ثوانٍ)
-Max Delay (seconds),أقصى تأخير (ثوانٍ)
-Minimum delay in seconds between messages (random delay used),أقل تأخير بالثواني بين الرسائل (يُستخدم تأخير عشوائي)
-Maximum delay in seconds between messages (random delay used),أقصى تأخير بالثواني بين الرسائل (يُستخدم تأخير عشوائي)
-Recipients,المستلمون
-Recipient Type,نوع المستلم
-Individual,فردي
-Recipient List,قائمة مستلمين
-Mobile Number,رقم الجوال
-Recipient Name,اسم المستلم
-Make sure that Template variables are same as Recipient data fields,تأكد أن متغيرات القالب مطابقة لحقول بيانات المستلم
-Variable Type,نوع المتغيّرات
-Common,مشترك
-Unique,فريد
-Template Variables,متغيّرات القالب
-Attach,إرفاق
-Draft,مسودة
-Sent Count,عدد المُرسَل
-Scheduled Time,الوقت المجدول
-Leave empty to send immediately after submission,اتركه فارغاً للإرسال فوراً بعد الترحيل
-New WhatsApp Recipient List,قائمة مستلمي واتساب جديدة
-Add Test Recipient,إضافة مستلم تجريبي
-Validate Recipients,التحقق من المستلمين
-List Name,اسم القائمة
-Description,الوصف
-Import Recipients,استيراد المستلمين
-Import From DocType,استيراد من مستند
-DocType to Import,المستند المراد الاستيراد منه
-Mobile Number Field,حقل رقم الجوال
-Field name containing the mobile number,اسم الحقل الذي يحتوي على رقم الجوال
-Name Field,حقل الاسم
-Field name containing the recipient name (optional),اسم الحقل الذي يحتوي على اسم المستلم (اختياري)
-Filters,المرشّحات
-Recipient Data,بيانات المستلم
-Enabled,مُفعّل
-Allow Auto Read Receipt,السماح بإيصال القراءة التلقائي
-Token,الرمز
-Webhook Verify Token,رمز التحقق للويب هوك
-URL,الرابط
-Version,الإصدار
-Phone ID,معرّف الهاتف
-Business ID,معرّف الأعمال
-App ID,معرّف التطبيق
-Mubtkir API / Instance Settings,إعدادات Mubtkir API / النسخ
-Default Server,الخادم الافتراضي
-Mubtkir API server used by default when creating new WhatsApp instances.,خادم Mubtkir API المستخدم افتراضياً عند إنشاء نسخ واتساب جديدة.
-Max Attachment Size (MB),أقصى حجم للمرفق (ميجابايت)
-"Maximum allowed size, in megabytes, for outgoing attachments.",أقصى حجم مسموح به بالميجابايت للمرفقات الصادرة.
-Retention Days,أيام الاحتفاظ
-Number of days to keep message history before cleanup.,عدد الأيام للاحتفاظ بسجل الرسائل قبل التنظيف.
-Asia/Riyadh,آسيا/الرياض
-Successfully Sent to,تم الإرسال بنجاح إلى
-Sync with Mubtkir API,مزامنة مع Mubtkir API
-Syncing with Mubtkir API...,جاري المزامنة مع Mubtkir API...
-Instance Not Found on Mubtkir API,النسخة غير موجودة على Mubtkir API
-"This instance no longer exists on the Mubtkir API server. The record has been kept and reset — use ""Create Instance"" to re-create it under the same name.",لم تعد هذه النسخة موجودة على خادم Mubtkir API. تم الاحتفاظ بالسجل وإعادة تعيينه — استخدم «إنشاء النسخة» لإعادة إنشائها بنفس الاسم.
-In sync. Connection status: {0},تمت المزامنة. حالة الاتصال: {0}
-Sync Instances,مزامنة النسخ
-Reconciling instances with Mubtkir API...,جاري مطابقة النسخ مع Mubtkir API...
-Sync Complete,اكتملت المزامنة
-All {0} instance(s) are in sync.,جميع النسخ ({0}) متزامنة.
-Checked {0} instance(s). {1} no longer exist on Mubtkir API and were reset for re-creation: {2},تم فحص {0} نسخة. {1} لم تعد موجودة على Mubtkir API وأُعيد تعيينها لإعادة الإنشاء: {2}
-Could not reach the Mubtkir API server to sync. Please try again.,تعذّر الوصول إلى خادم Mubtkir API للمزامنة. حاول مرة أخرى.
-Sync Failed,فشلت المزامنة
-Disconnect,قطع الاتصال
+A,أ
+A name for this scheduled report.,اسم لهذا التقرير المجدول.
+A number needs at least this many inbound messages (and Active status) to be tier A.,يحتاج الرقم إلى هذا العدد من الرسائل الواردة كحد أدنى (وحالة نشط) ليكون في الفئة A.
+A WhatsApp Template is required.,قالب واتساب مطلوب.
 About this screen,عن هذه الشاشة
-عن هذه الشاشة,عن هذه الشاشة
-How to use this screen,طريقة استخدام هذه الشاشة
-طريقة استخدام هذه الشاشة,طريقة استخدام هذه الشاشة
-WhatsApp Connected,واتساب متصل
-WhatsApp Connecting,واتساب يتصل
-WhatsApp Disconnected,واتساب منقطع
-Evolution Phone Settings,إعدادات هاتف Mubtkir API
-Mubtkir API Server,خادم Mubtkir API
-Mubtkir API Phone Settings,إعدادات هاتف Mubtkir API
-Mubtkir API Phone Settings not configured,إعدادات هاتف Mubtkir API غير مضبوطة
-Contacting Mubtkir API...,جاري الاتصال بـ Mubtkir API...
-Could not reach the Mubtkir API. See the dialog for details.,تعذّر الوصول إلى Mubtkir API. راجع النافذة للتفاصيل.
-Human friendly name to identify this Mubtkir API server.,اسم مبسّط للتعرّف على خادم Mubtkir API هذا.
-Per-instance API key returned by the Mubtkir API. Visible to System Manager only.,مفتاح API لكل نسخة يُرجعه Mubtkir API. مرئي لمدير النظام فقط.
-"Mubtkir API base URL, e.g. https://api.example.com. Visible to System Manager only.",الرابط الأساسي لـ Mubtkir API، مثال: https://api.example.com. مرئي لمدير النظام فقط.
-No Mubtkir API Server is configured for this instance.,لا يوجد خادم Mubtkir API مضبوط لهذه النسخة.
-Please set an Mubtkir API Server on this instance first.,يرجى ضبط خادم Mubtkir API لهذه النسخة أولاً.
-You are not permitted to sync Mubtkir API servers.,غير مسموح لك بمزامنة خوادم Mubtkir API.
-Mubtkir API Error,خطأ Mubtkir API
-Sent,مُرسَلة
-Delivered,مُوصّلة
-Read,مقروءة
-Failed,فاشلة
-Received,واردة
-Queued,في الطابور
-In Progress,قيد التنفيذ
-Completed,مكتملة
-Partially Failed,فشل جزئي
+Active,نشط
+"Active = interacted recently, Idle = 30-90 days, Dead = 90+ days. Based on local message history.",نشط = تفاعل مؤخراً، راكد = 30-90 يوماً، خامل = أكثر من 90 يوماً. بناءً على سجل الرسائل المحلي.
+Active window (days),نافذة التفاعل النشط (أيام)
+Add,إضافة
+Add Row,إضافة صف
+Add Test Recipient,إضافة مستلم تجريبي
+"Add to an existing list, or leave blank and set a new list name below.",إضافة إلى قائمة موجودة، أو اتركها فارغة وحدد اسماً لقائمة جديدة بالأسفل.
+Add Whatsapp Instance,إضافة نسخة واتساب
+After Cancel,بعد الإلغاء
+After Delete,بعد الحذف
+After Insert,بعد الإنشاء
+After Save,بعد الحفظ
+After Save (Submitted Document),بعد الحفظ (مستند مرحّل)
+After Submit,بعد الترحيل
 All,الكل
-Hourly,كل ساعة
-Daily,يومي
-Weekly,أسبوعي
-Monthly,شهري
-Yearly,سنوي
-Hourly Long,كل ساعة (طويل)
-Daily Long,يومي (طويل)
-Weekly Long,أسبوعي (طويل)
-Monthly Long,شهري (طويل)
-Monday,الإثنين
-Tuesday,الثلاثاء
-Wednesday,الأربعاء
-Thursday,الخميس
-Friday,الجمعة
-Saturday,السبت
-Sunday,الأحد
-Text,نص
-Number,رقم
-Datetime,تاريخ ووقت
+All recipients have valid numbers,جميع المستلمين لديهم أرقام صالحة
+All send paths will use Evolution by default. A message can still override the channel individually.,ستستخدم جميع مسارات الإرسال Evolution افتراضياً. ولا يزال بإمكان كل رسالة تجاوز القناة بشكل فردي.
+All send paths will use Meta Cloud API by default. A message can still override the channel individually.,ستستخدم جميع مسارات الإرسال Meta Cloud API افتراضياً. ولا يزال بإمكان كل رسالة تجاوز القناة بشكل فردي.
+All {0} instance(s) are in sync.,جميع النسخ ({0}) متزامنة.
+Allow Auto Read Receipt,السماح بإيصال القراءة التلقائي
+Allowed functions:,الدوال المسموح بها:
+Already Exists,موجود بالفعل
+Amended From,معدل من
+An attachment is required for {0} messages.,المرفق مطلوب لرسائل {0}.
+Anti-Ban & Batch Warming (Cool-down),الحماية من الحظر والتسخين بالدفعات (فترة التبريد)
+API Key,مفتاح API
+App ID,معرّف التطبيق
+Are you sure you want to disconnect this WhatsApp instance?,هل أنت متأكد من رغبتك في قطع اتصال نسخة واتساب هذه؟
+Asia/Riyadh,آسيا/الرياض
+At least one recipient is required,مطلوب مستلم واحد على الأقل
+At least one recipient or a recipient list is required,مطلوب مستلم واحد أو قائمة مستلمين على الأقل
+Attach,إرفاق
+Attach Document Print,إرفاق طباعة المستند
+Attach from field,إرفاق من حقل
+Attach Image / Media,إرفاق صورة / وسائط
+Attach media from doctype field,إرفاق وسائط من حقل المستند
+Attachment Too Large,المرفق كبير جداً
+audio,صوت
+AUTHENTICATION,مصادقة
+"Auto A/B/C by engagement: A=highly engaged, B=moderate, C=dormant/low.",تصنيف تلقائي A/B/C حسب التفاعل: A=تفاعل عالي، B=متوسط، C=خامل/منخفض.
+Auto-filled from WhatsApp after successful QR scan connection.,يُملأ تلقائياً من واتساب بعد نجاح الاتصال بمسح رمز QR.
+Auto-generated as the site prefix followed by 5 random digits (e.g. samad-48291).,يتم إنشاؤه تلقائياً كبادئة الموقع متبوعة بـ 5 أرقام عشوائية (مثال: samad-48291).
+Automation,الأتمتة
+B,ب
+Base URL,الرابط الأساسي
+Based on document:,بناءً على المستند:
+Batch Complete - Cooling Down,اكتملت الدفعة - فترة تبريد
+Batch Progress & Schedule,تقدم وجدولة الدفعات
+Batch Size (Messages),حجم الدفعة (عدد الرسائل)
+Batch size must be greater than 0,يجب أن يكون حجم الدفعة أكبر من 0
+Batch Size must be greater than 0.,يجب أن يكون حجم الدفعة أكبر من 0.
+Batch {0} complete ({1} sent). Resuming at {2},اكتملت الدفعة {0} (أُرسلت {1} رسالة). الاستئناف في {2}
+Before Cancel,قبل الإلغاء
+Before Delete,قبل الحذف
+Before Insert,قبل الإنشاء
+Before Save,قبل الحفظ
+Before Save (Submitted Document),قبل الحفظ (مستند مرحّل)
+Before Submit,قبل الترحيل
+Before Validate,قبل التحقق
+Best Hour,أفضل ساعة
+Between Active window and this = Idle. Beyond this = Dead.,بين نافذة النشاط وهذه المدة = راكد. أبعد من ذلك = خامل.
+Body Param,متغيرات النص
+Building preview...,جاري بناء المعاينة...
+Bulk Send Result,نتيجة الإرسال الجماعي
+Bulk Template Item,عنصر قالب الإرسال الجماعي
+Bulk WhatsApp Message,رسائل واتساب جماعية
+bulk_message_reference,مرجع الرسالة الجماعية
+Business ID,معرّف الأعمال
+button,زر
+C,ج
+Campaign is either not submitted or already completed.,الحملة إما غير معتمدة أو مكتملة بالفعل.
+Category,الفئة
+Channel Routing,توجيه القنوات
+Chats,المحادثات
+Chats = numbers you have actually messaged with. Contacts = all saved contacts on the device.,المحادثات = الأرقام التي تواصلت معها فعلياً. جهات الاتصال = جميع جهات الاتصال المحفوظة في الجهاز.
+Check Progress,فحص التقدم
+Check Status,فحص الحالة
+Checked {0} instance(s). {1} no longer exist on Mubtkir API and were reset for re-creation: {2},تم فحص {0} نسخة. {1} لم تعد موجودة على Mubtkir API وأُعيد تعيينها لإعادة الإنشاء: {2}
+Checking connection status...,جاري فحص حالة الاتصال...
+"Choose whether to use one template, rotate multiple templates among recipients, or use a custom template per recipient.",اختر ما إذا كنت تريد استخدام قالب موحد، أو تدوير عدة قوالب بين المستلمين، أو استخدام قالب مخصص لكل مستلم.
+Cleared,تم التحقق
+Click to use this condition,اضغط لاستخدام هذا الشرط
+Colored circular indicator reflecting the current connection status.,مؤشر دائري ملون يعكس حالة الاتصال الحالية.
+Common,مشترك
+Company,الشركة
+Company Supervisor Email,إيميل مشرف الشركة
+Company Supervisor Mobile,جوال مشرف الشركة
+Company this recipient list belongs to (useful when managing several companies).,الشركة التي تنتمي إليها قائمة المستلمين هذه (مفيدة عند إدارة شركات متعددة).
+Completed,مكتملة
+Completed Batches,الدفعات المكتملة
+"Completed: {0} sent, {1} failed",اكتمل: {0} تم إرسالها، {1} فشلت
+Condition,الشرط
+Condition Examples — click to copy:,أمثلة الشروط — اضغط للنسخ:
+Condition set. Edit as needed.,تم ضبط الشرط. عدّله حسب الحاجة.
+Conditions should be written in simple Python. Please use properties available in the form only.,تُكتب الشروط بلغة Python بسيطة. استخدم فقط الحقول المتوفرة في المستند.
+Connected,متصل
+Connected Since,متصل منذ
+Connected successfully,تم الاتصال بنجاح
+Connecting,جاري الاتصال
+Connection,الاتصال
+Connection Error,خطأ في الاتصال
+Connection Failed,فشل الاتصال
+Connection Monitoring,مراقبة الاتصال
+Connection Status,حالة الاتصال
+Connection Successful,تم الاتصال بنجاح
+contact,جهة اتصال
+Contacting Mubtkir API...,جاري الاتصال بـ Mubtkir API...
+Contacts,جهات الاتصال
+Content Type,نوع المحتوى
+Conversation ID,معرف المحادثة
+Cool-down hours between batches cannot be negative.,ساعات الانتظار بين الدفعات لا يمكن أن تكون سالبة.
+Cool-down hours to pause after reaching batch size before starting the next batch (e.g. 24 or 48 hours),مدة الانتظار والتبريد بالساعات بعد اكتمال الدفعة قبل بدء الدفعة التالية (مثال: 24 أو 48 ساعة)
+Could not fetch a QR code. Please verify the Mubtkir API Server settings and try again.,تعذّر جلب رمز QR. يرجى التحقق من إعدادات خادم Mubtkir API والمحاولة مرة أخرى.
+Could not generate a unique instance name. Please try again.,تعذر إنشاء اسم نسخة فريد. يرجى المحاولة مرة أخرى.
+Could not reach the Mubtkir API server to sync. Please try again.,تعذّر الوصول إلى خادم Mubtkir API للمزامنة. حاول مرة أخرى.
+Could not reach the Mubtkir API. See the dialog for details.,تعذّر الوصول إلى Mubtkir API. راجع النافذة للتفاصيل.
+"Could not resolve a recipient mobile number. Set a Party with a contact, or a mobile override.",تعذّر تحديد رقم جوال المستلم. حدّد طرفاً له جهة اتصال، أو أدخل رقم تجاوز.
+Count of A / B / C numbers in this pull.,عدد الأرقام في الفئات A / B / C في عملية السحب هذه.
+Create Instance,إنشاء النسخة
+Create this instance in Mubtkir API? This will register the instance name and prepare it for QR scanning.,إنشاء هذه النسخة في Mubtkir API؟ سيسجّل هذا اسم النسخة ويجهّزها لمسح رمز QR.
+Create your first Whatsapp Instance,أنشئ أول نسخة واتساب
+Created On,تاريخ الإنشاء
+Creating instance in Mubtkir API...,جاري إنشاء النسخة في Mubtkir API...
+Credentials (System Manager only),بيانات الاعتماد (لمدير النظام فقط)
+CSV,ملف CSV
 Currency (SAR),عملة (ريال)
+Current reachability of the Mubtkir API server. Updated automatically by the Test Connection button.,إمكانية الوصول الحالية لخادم Mubtkir API. تُحدَّث تلقائياً بواسطة زر اختبار الاتصال.
+Custom attachment,مرفق مخصص
+Customer,عميل
+Daily,يومي
+Daily Long,يومي (طويل)
+Data fields,حقول البيانات
 Date (DD/MM/YYYY),تاريخ (يوم/شهر/سنة)
 Date (YYYY-MM-DD),تاريخ (سنة-شهر-يوم)
-Before Validate,قبل التحقق
-Before Save (Submitted Document),قبل الحفظ (مستند مرحّل)
-After Save (Submitted Document),بعد الحفظ (مستند مرحّل)
-Creating instance in Mubtkir API...,جاري إنشاء النسخة في Mubtkir API...
-Could not fetch a QR code. Please verify the Mubtkir API Server settings and try again.,تعذّر جلب رمز QR. يرجى التحقق من إعدادات خادم Mubtkir API والمحاولة مرة أخرى.
-Connection Monitoring,مراقبة الاتصال
-Enable Disconnect Alerts,تفعيل تنبيهات الانقطاع
-"When on, an email and an internal notification are sent whenever a connected WhatsApp instance drops.",عند التفعيل، يُرسَل إيميل وإشعار داخلي كلما انقطع اتصال نسخة واتساب متصلة.
-Company Supervisor Email,إيميل مشرف الشركة
-Email of the operating company's supervisor. Receives disconnect and failure alerts in addition to the site's System Managers.,إيميل مشرف الشركة المشغّلة. يستقبل تنبيهات الانقطاع والفشل بالإضافة إلى مدراء نظام السايت.
-Company Supervisor Mobile,جوال مشرف الشركة
-"Optional mobile number (with country code) of the company supervisor, for future WhatsApp-based alerts.",رقم جوال اختياري (مع رمز الدولة) لمشرف الشركة، لتنبيهات واتساب المستقبلية.
+Datetime,تاريخ ووقت
+Day of Month,يوم من الشهر
+"Day of the month (1-31) to send on, for Monthly frequency.",يوم الإرسال في الشهر (1-31) للتكرار الشهري.
+Day of the month to send (1-28). Example: 1 = first day of month,يوم الإرسال في الشهر (1-28). مثال: 1 = أول يوم في الشهر
+Day of Week,يوم من الأسبوع
+Days After,أيام بعد
+Days Before,أيام قبل
+Days Before or After,الأيام قبل أو بعد
+Dead,خامل
+Deep History Search,بحث عميق في السجل
+Default Channel,القناة الافتراضية
+Default Channel must be Meta or Evolution.,يجب أن تكون القناة الافتراضية إما Meta أو Evolution.
+"Default sending channel used by messages, notifications, bulk sends and scheduled reports.",قناة الإرسال الافتراضية المستخدمة في الرسائل والإشعارات والإرسال الجماعي والتقارير المجدولة.
+Default Server,الخادم الافتراضي
+Delivered,مُوصّلة
+Delivered Messages,الرسائل المُوصّلة
+Description,الوصف
+Destination,الوجهة
+Disabled,معطّل
+Disconnect,قطع الاتصال
 Disconnect Alerted,تم تنبيه الانقطاع
-unknown,غير معروف
-Recurring Reminder,تذكير متكرر
-Repeat Until Condition Clears,التكرار حتى يتحقق الشرط
-Keep resending this reminder on an interval until the Condition above is no longer true (e.g. the invoice is paid or the subscription renewed). Requires a Condition and a Reference Date.,إعادة إرسال هذا التذكير كل فترة حتى يصبح الشرط أعلاه غير محقق (مثل سداد الفاتورة أو تجديد الاشتراك). يتطلب شرطاً وتاريخاً مرجعياً.
-Repeat Every (days),التكرار كل (أيام)
-Number of days between repeated reminders for the same document.,عدد الأيام بين التذكيرات المتكررة لنفس المستند.
-Look Back (days),الرجوع للخلف (أيام)
-How far back from the Reference Date to keep scanning documents for repeated reminders.,إلى أي مدى نرجع للخلف من التاريخ المرجعي لمواصلة فحص المستندات للتذكيرات المتكررة.
-Send Thank-you When Cleared,إرسال شكر عند التحقق
-"When the condition clears (e.g. payment received), send a one-time thank-you message and stop reminding.",عند تحقّق الشرط (مثل استلام السداد)، يُرسَل رسالة شكر لمرة واحدة ويتوقف التذكير.
-Thank-you Template,قالب الشكر
-Template used for the thank-you message.,القالب المستخدم لرسالة الشكر.
-WhatsApp Reminder Log,سجل تذكيرات واتساب
-Last Reminder Sent On,آخر تذكير أُرسل في
-Reminders Sent,عدد التذكيرات المرسلة
-Cleared,تم التحقق
-Thank-you Sent,تم إرسال الشكر
-Reference Name,اسم المرجع
-Message Content,محتوى الرسالة
-"Plain text body of the campaign, used when 'Use Template' is off. You can also attach an image, PDF, video or audio file below.",نص الحملة، يُستخدم عند إيقاف «استخدام قالب». يمكنك أيضاً إرفاق صورة أو PDF أو فيديو أو ملف صوتي بالأسفل.
-"Optional media for the campaign: image, PDF, video or audio. Uploaded from your device or picked from ERPNext files.",وسائط اختيارية للحملة: صورة أو PDF أو فيديو أو صوت. تُرفع من جهازك أو تُختار من ملفات ERPNext.
-WhatsApp Scheduled Report,تقرير واتساب مجدول
-Reports,التقارير
-Report,التقرير
-Report Filters (JSON),فلاتر التقرير (JSON)
-Message Caption,نص مرافق للرسالة
-Recipient,المستلم
-Party Type,نوع الطرف
-Party,الطرف المعني
-Recipient Mobile (override),جوال المستلم (تجاوز)
-Send From Instance,الإرسال من النسخة
-Schedule,الجدولة
+Disconnected,غير متصل
+Disconnecting...,جاري قطع الاتصال...
+Do you want to send the next batch immediately without waiting for the scheduled cool-down time?,هل تريد إرسال الدفعة التالية فوراً دون انتظار موعد التبريد المجدول؟
+DocType Event,حدث المستند
+DocType to Import,المستند المراد الاستيراد منه
+DOCUMENT,مستند
+document,مستند
+Download the selected numbers as an Excel file.,تنزيل الأرقام المحددة كملف إكسل.
+Draft,مسودة
+Duplicate Instance,نسخة مكررة
+Either {0} a file or add a {1} to send attachemt,إما {0} ملفاً أو أضف {1} لإرسال مرفق
+Email of the operating company's supervisor. Receives disconnect and failure alerts in addition to the site's System Managers.,إيميل مشرف الشركة المشغّلة. يستقبل تنبيهات الانقطاع والفشل بالإضافة إلى مدراء نظام السايت.
+Employee,موظف
+Enable Batch Sending (Anti-Ban),تفعيل الإرسال على دفعات (حماية من الحظر)
+Enable Disconnect Alerts,تفعيل تنبيهات الانقطاع
+Enable Gradual Warm-up,تفعيل الزيادة التدريجية (التسخين)
+Enabled,مُفعّل
+Engagement Status,حالة التفاعل
+Enter a recipient mobile number or select a party.,أدخل رقم جوال المستلم أو اختر جهة التعامل.
+Enter fields in the right sequence as per the template parameters.,أدخل الحقول بالترتيب الصحيح حسب متغيرات القالب.
+Event Frequency,تكرار الحدث
+Evolution,Evolution
+Evolution Phone Settings,إعدادات هاتف Mubtkir API
+Evolution response,رد Evolution
+Evolution Server,خادم Mubtkir API
+Evolution Webhook Secret,الرمز السري لـ Webhook في Evolution
+Example:,مثال:
+Excel,ملف Excel
+Exists In,موجود في
+Expand,توسيع
+Expired or invalid media link.,رابط الوسائط منتهي الصلاحية أو غير صالح.
+Export to Excel,تصدير إلى Excel
+Failed,فاشلة
+Failed Messages,الرسائل الفاشلة
+Failed to send via Evolution: {0},فشل الإرسال عبر Evolution: {0}
+Failed to send WhatsApp message,فشل إرسال رسالة واتساب
+Failed to trigger notifications,فشل تشغيل الإشعارات
+Fetch numbers from the instance using the filters below.,جلب الأرقام من النسخة باستخدام الفلاتر بالأسفل.
+Fetch templates from meta,جلب القوالب من Meta
+Field in Document,حقل في المستند
+Field name,اسم الحقل
+Field name containing the mobile number,اسم الحقل الذي يحتوي على رقم الجوال
+Field name containing the recipient name (optional),اسم الحقل الذي يحتوي على اسم المستلم (اختياري)
+Field names,أسماء الحقول
+Field names to replace the value in templates,أسماء الحقول لاستبدال قيمها في القوالب
+Field {0} not found on DocType {1},الحقل {0} غير موجود في نوع المستند {1}
+Fields,الحقول
+File name,اسم الملف
+Filters,المرشّحات
+flow,تدفق
+Footer,التذييل
+For DocType,لنوع المستند
+"For scheduled events, use",للأحداث المجدولة، استخدم
+For scheduler events you can use follwing methods,للأحداث المجدولة يمكنك استخدام الدوال التالية
+For V16 use UTILITY and AUTHENTICATION in place of TRANSACTIONAL and OTP,للإصدار 16 استخدم UTILITY و AUTHENTICATION بدلاً من TRANSACTIONAL و OTP
+Format,الصيغة
 Frequency,التكرار
-Send Now,إرسال الآن
+Friday,الجمعة
+From,من
+From Date,من تاريخ
+From Number,من رقم
+From WhatsApp Number,من رقم واتساب
+Get Alerts for Today,جلب التنبيهات لهذا اليوم
+Global Api Key,مفتاح API العام
+Global API key (apikey header) for the Mubtkir API server. Visible to System Manager only.,مفتاح API العام (ترويسة apikey) لخادم Mubtkir API. مرئي لمدير النظام فقط.
+Gradually increase batch size after several successful batches to safely warm up the number.,زيادة حجم الدفعة تدريجياً بعد عدة دفعات ناجحة لتسخين الرقم بأمان.
+Header,الترويسة
+Header Type,نوع الترويسة
+Help,المساعدة
+History Messages Per Number,رسائل السجل لكل رقم
+Hour of day this contact most often replies (from inbound history).,ساعة اليوم التي غالباً ما يرد فيها جهة الاتصال هذه (من سجل الوارد).
+Hour of day to send (the report is sent within the matching hour).,ساعة الإرسال في اليوم (يُرسل التقرير خلال هذه الساعة).
+Hourly,كل ساعة
+Hourly Long,كل ساعة (طويل)
+How far back from the Reference Date to keep scanning documents for repeated reminders.,إلى أي مدى نرجع للخلف من التاريخ المرجعي لمواصلة فحص المستندات للتذكيرات المتكررة.
+How many messages to add to the batch size on each increase step (e.g. +10),عدد الرسائل المضافة لحجم الدفعة في كل مرحلة زيادة (مثال: +10)
+How many recent messages to fetch per number for deep search.,عدد الرسائل الأخيرة المطلوب جلبها لكل رقم للبحث العميق.
+"How template placeholders ({{1}}, {{2}}...) are filled. Common: same values for all recipients. Unique: different values taken from each recipient data.","طريقة ملء متغيرات القالب ({{1}}, {{2}}...). عام: نفس القيم لجميع المستلمين. فريد: قيم مخصصة مأخوذة من بيانات كل مستلم."
+"How template placeholders ({{1}}, {{2}}...) are filled. Common: the same values for all recipients (set once below). Unique: different values taken from each recipient's own data.",كيف تُملأ متغيّرات القالب ({{1}}، {{2}}...). مشترك: نفس القيم لكل المستلمين (تُحدَّد مرة واحدة بالأسفل). فريد: قيم مختلفة تُؤخذ من بيانات كل مستلم.
+How to find the recipient's phone number,طريقة العثور على رقم جوال المستلم
+How to format this field value in the message,كيفية تنسيق قيمة هذا الحقل داخل الرسالة
+How to use this screen,طريقة استخدام هذه الشاشة
+HTTP Status,حالة HTTP
+Human friendly name to identify this Mubtkir API server.,اسم مبسّط للتعرّف على خادم Mubtkir API هذا.
+ID,المعرف
+Idle,راكد
+Idle window (days),نافذة الركود (أيام)
+If the response looks OK but the message did not arrive: check that the number is a real WhatsApp account and that this instance is truly connected (phone → Linked Devices).,إذا كان الرد سليماً لكن الرسالة لم تصل: تأكد أن الرقم حساب واتساب حقيقي وأن هذه النسخة متصلة فعلاً (الجوال ← الأجهزة المرتبطة).
+IMAGE,صورة
+image,صورة
+Import From DocType,استيراد من مستند
+Import Limit,حد الاستيراد
+Import Recipients,استيراد المستلمين
+In Progress,قيد التنفيذ
+In sync. Connection status: {0},تمت المزامنة. حالة الاتصال: {0}
+Inbound Msgs,الرسائل الواردة
+Incoming,واردة
+Increase Batch Size By,مقدار زيادة الدفعة بـ
+Increase Every (Batches),زيادة الدفعة كل (عدد دفعات)
+Individual,فردي
+Instance API Key,مفتاح API للنسخة
+Instance created successfully. You can now scan the QR code.,تم إنشاء النسخة بنجاح. يمكنك الآن مسح رمز QR.
+Instance Details,تفاصيل النسخة
+Instance Management,إدارة النسخ
+Instance Name,اسم النسخة
+Instance Name Error,خطأ في اسم النسخة
+Instance Not Found on Mubtkir API,النسخة غير موجودة على Mubtkir API
+Interacted within this many days = Active. Up to Idle window = Idle. Beyond = Dead.,تفاعل خلال هذه الأيام = نشط. حتى نافذة الركود = راكد. أبعد من ذلك = خامل.
+Interactive Payload must be valid JSON.,يجب أن تكون حمولة التفاعل بصيغة JSON صالحة.
+"Internal flag: set once a disconnect alert has been sent, cleared on reconnection, so alerts are not repeated.",علامة داخلية: تُضبط عند إرسال تنبيه انقطاع الاتصال وتُلغى عند إعادة الاتصال لتجنب تكرار التنبيهات.
+"International format, e.g. 9665XXXXXXXX. A local 05XXXXXXXX is auto-converted.",الصيغة الدولية، مثل 9665XXXXXXXX. الرقم المحلي 05XXXXXXXX يُحوَّل تلقائياً.
+Invalid JSON in Filters field,صيغة JSON غير صالحة في حقل الفلاتر
+Invalid JSON in Recipient Data field,صيغة JSON غير صالحة في حقل بيانات المستلم
+Invalid media file.,ملف وسائط غير صالح.
+Invalid media link.,رابط وسائط غير صالح.
+Invalid report send operation key.,مفتاح عملية إرسال التقرير غير صالح.
+Invalid {0} JSON.,صيغة JSON غير صالحة في {0}.
+Is Active,نشط
+Is Reply,رد
+"JSON fields to apply when importing (optional) [""full_name"", ""email""]","حقول JSON للتطبيق عند الاستيراد (اختياري) مثل [""full_name"", ""email""]"
+"JSON filters to apply when importing (optional) Ex: {""email"": ""admin@example.com""}","فلاتر JSON للتطبيق عند الاستيراد (اختياري) مثال: {""email"": ""admin@example.com""}"
+JSON formatted data for message variables,بيانات بتنسيق JSON لمتغيرات الرسالة
+Keep only numbers that sent an inbound message within this many days (0 = no limit). Uses the local WhatsApp Message history.,الإبقاء فقط على الأرقام التي أرسلت رسالة واردة خلال هذه الأيام (0 = بدون حد). يستخدم سجل رسائل واتساب المحلي.
+Keep only numbers whose conversation contains this word (searches local inbound messages).,الإبقاء فقط على الأرقام التي تحتوي محادثتها على هذه الكلمة (يبحث في الرسائل الواردة محلياً).
+Keep only numbers with at least this many inbound messages (0 = no limit).,الإبقاء فقط على الأرقام التي لديها هذا العدد من الرسائل الواردة كحد أدنى (0 = بدون حد).
+Keep resending this reminder on an interval until the Condition above is no longer true (e.g. the invoice is paid or the subscription renewed). Requires a Condition and a Reference Date.,إعادة إرسال هذا التذكير كل فترة حتى يصبح الشرط أعلاه غير محقق (مثل سداد الفاتورة أو تجديد الاشتراك). يتطلب شرطاً وتاريخاً مرجعياً.
+Keyword In Conversation,كلمة مفتاحية في المحادثة
+Kind,النوع
+Label,التسمية
+Language,اللغة
+Language Code,رمز اللغة
+Last error,آخر خطأ
+Last Interaction,آخر تفاعل
+Last Modified Date,تاريخ آخر تعديل
+Last outbound was delivered/read but no inbound reply after it.,آخر رسالة صادرة تم تسليمها/قراءتها ولكن لم يرد عليها العميل.
+Last Reminder Sent On,آخر تذكير أُرسل في
+Last Sent On,آخر إرسال في
+Lead,عميل محتمل
+Lead Source,مصدر العميل المحتمل
+Leave empty to queue immediately after submission. Future times are picked up automatically by the scheduler.,اتركه فارغاً للجدولة فور الاعتماد. الأوقات المستقبلية يتم التقاطها وتشغيلها تلقائياً بواسطة المجدول.
+Leave empty to send immediately after submission,اتركه فارغاً للإرسال فوراً بعد الترحيل
+Legacy credential. Stored encrypted. Prefer Evolution Server + Whatsapp Instance for new setups.,بيانات اعتماد قديمة مخزنة مشفرة. يُفضل استخدام خادم Evolution + نسخة واتساب للإعدادات الجديدة.
+Legacy setting. Prefer Evolution Server for new setups.,إعداد قديم. يُفضل استخدام خادم Evolution للإعدادات الجديدة.
+"Legacy settings. Use <b>Whatsapp Instance</b> for connection, QR code, status and logout. Existing API keys are migrated securely during update.",إعدادات قديمة. استخدم <b>نسخة واتساب</b> للاتصال ورمز QR والحالة وتسجيل الخروج. يتم نقل مفاتيح API الحالية بأمان أثناء التحديث.
+Linked DocType,مستند مرتبط
+Linked User,المستخدم المرتبط
+List Name,اسم القائمة
+"List of templates to rotate among recipients (recipient 1 gets template 1, recipient 2 gets template 2, etc.) to prevent spam pattern detection.",قائمة القوالب للتبديل بينها على المستلمين (المستلم 1 يستلم قالب 1، المستلم 2 يستلم قالب 2، إلخ) لمنع اكتشاف خوارزميات السبام.
+List Quality Score,مؤشر جودة القائمة
+"Live connection state, fetched automatically from the Mubtkir API. Cannot be edited manually.",حالة الاتصال المباشرة، تُجلب تلقائياً من Mubtkir API. لا يمكن تعديلها يدوياً.
+Loading QR code...,جاري تحميل رمز QR...
+location,موقع
+Lock,قفل
+Logs,السجلات
+Look Back (days),الرجوع للخلف (أيام)
+Make sure that Template variables are same as Recipient data fields,تأكد أن متغيرات القالب مطابقة لحقول بيانات المستلم
+Manual,يدوي
+Mark as read,تعيين كمقروء
+Marked as read,تم التعيين كمقروء
+MARKETING,تسويق
+Max Attachment Size (MB),أقصى حجم للمرفق (ميجابايت)
+Max Batch Size Ceiling,الحد الأقصى لحجم الدفعة
+Max Delay (seconds),أقصى تأخير (ثوانٍ)
+Max Delay must be greater than or equal to Min Delay.,يجب أن يكون الحد الأقصى للتأخير أكبر من أو يساوي الحد الأدنى.
+"Maximum allowed size, in megabytes, for outgoing attachments.",أقصى حجم مسموح به بالميجابايت للمرفقات الصادرة.
+Maximum batch size ceiling (e.g. max 50 messages/day),الحد الأقصى لحجم الدفعة (مثال: 50 رسالة/يوم)
+Maximum delay in seconds between messages (random delay used),أقصى تأخير بالثواني بين الرسائل (يُستخدم تأخير عشوائي)
+Maximum number of records to import (optional),الحد الأقصى لعدد السجلات المراد استيرادها (اختياري)
+Media & Image Attachments,مرفقات الوسائط والصور
+Media URL/content is required.,رابط الوسائط/المحتوى مطلوب.
+Message,الرسالة
+Message & Template Rotation,الرسالة وتدوير القوالب
+Message Caption,نص مرافق للرسالة
+Message Content,محتوى الرسالة
+Message Content or an attachment is required.,محتوى الرسالة أو المرفق مطلوب.
+Message delay cannot be negative.,لا يمكن أن يكون تأخير الرسالة سالباً.
+Message ID,معرف الرسالة
+Message Preview,معاينة الرسالة
+Message Progress,تقدم الرسائل
+Message Template,قالب الرسالة
+Message text is required for an Evolution text message.,نص الرسالة مطلوب لرسالة نصية عبر Evolution.
+Message text is required.,نص الرسالة مطلوب.
+Message Type,نوع الرسالة
+Messages,الرسائل
+Messaging,المراسلة
+Meta,Meta
+Meta Cloud API Settings,إعدادات Meta Cloud API
+Meta Data,بيانات Meta
+Meta sending for content type {0} is not supported.,إرسال Meta لنوع المحتوى {0} غير مدعوم.
+Meta Settings Incomplete,إعدادات Meta غير مكتملة
+Meta Token Missing,رمز Meta المميز مفقود
+"Meta URL, Version and Phone ID are required in WhatsApp Settings.",عنوان URL وإصدار ومعرف الهاتف لـ Meta مطلوبة في إعدادات واتساب.
+Meta WhatsApp Error,خطأ واتساب Meta
+Min Delay (seconds),أقل تأخير (ثوانٍ)
+Min Inbound Messages,الحد الأدنى للرسائل الواردة
+Minimum delay in seconds between messages (random delay used),أقل تأخير بالثواني بين الرسائل (يُستخدم تأخير عشوائي)
+Mobile no,رقم الجوال
+Mobile Number,رقم الجوال
+Mobile Number Field,حقل رقم الجوال
+Mobile Number is required,رقم الجوال مطلوب
+Mobile number not found for the selected contact.,لم يُعثر على رقم جوال لجهة الاتصال المختارة.
+Mobile number with country code,رقم الجوال مع رمز الدولة
+Monday,الإثنين
+Monthly,شهري
+Monthly Long,شهري (طويل)
+Mubtkir API / Instance Settings,إعدادات Mubtkir API / النسخ
+"Mubtkir API base URL, e.g. https://api.example.com. Visible to System Manager only.",الرابط الأساسي لـ Mubtkir API، مثال: https://api.example.com. مرئي لمدير النظام فقط.
+"Mubtkir API base URL, e.g. https://evo.example.com. Visible to System Manager only.",الرابط الأساسي لـ Mubtkir API، مثال: https://evo.example.com. مرئي لمدير النظام فقط.
+Mubtkir API Error,خطأ Mubtkir API
+Mubtkir API error: {0},خطأ في Mubtkir API: {0}
+Mubtkir API error: {0} — {1},خطأ في Mubtkir API: {0} — {1}
+Mubtkir API Phone Settings,إعدادات هاتف Mubtkir API
+Mubtkir API Phone Settings not configured,إعدادات هاتف Mubtkir API غير مضبوطة
+Mubtkir API Server,خادم Mubtkir API
+Mubtkir API server is reachable and responding correctly.,خادم Mubtkir API متاح ويستجيب بشكل صحيح.
+Mubtkir API server that hosts this instance.,خادم Mubtkir API الذي يستضيف هذه النسخة.
+Mubtkir API server used by default when creating new WhatsApp instances.,خادم Mubtkir API المستخدم افتراضياً عند إنشاء نسخ واتساب جديدة.
+Mubtkir API Server {0} is missing its Base URL or API Key.,خادم Mubtkir API {0} يفتقد عنوان Base URL أو مفتاح API.
+Multiple WhatsApp Notifications match this document. Disable the extra notifications or keep one matching notification.,تتطابق إشعارات واتساب متعددة مع هذا المستند. يرجى تعطيل الإشعارات الإضافية أو الإبقاء على إشعار مطابق واحد.
+Name,الاسم
+Name Field,حقل الاسم
+Namespace,مساحة الاسم
+New Bulk WhatsApp Message,رسالة واتساب جماعية جديدة
+New List Name,اسم القائمة الجديدة
+New Whatsapp Instance,نسخة واتساب جديدة
+New WhatsApp Message,رسالة واتساب جديدة
+New WhatsApp Recipient List,قائمة مستلمي واتساب جديدة
+New WhatsApp Templates,قالب واتساب جديد
+Next batch queued for sending,تمت جدولة الدفعة التالية للإرسال
+Next Batch Scheduled Time,موعد الدفعة القادمة المجدول
+No active Evolution Server is configured. Set Default Server in WhatsApp Settings.,لم يتم تكوين خادم Evolution نشط. حدد الخادم الافتراضي في إعدادات واتساب.
+No active WhatsApp Notification for this document status. Configure an automatic notification first.,لا يوجد إشعار واتساب نشط لحالة المستند هذه. يرجى تكوين إشعار تلقائي أولاً.
+No alerts for today,لا توجد تنبيهات لليوم
+No Data,لا توجد بيانات
+No Mubtkir API Server is configured for this instance.,لا يوجد خادم Mubtkir API مضبوط لهذه النسخة.
+No numbers selected.,لم يتم تحديد أي أرقام.
+No permitted report columns are available.,لا توجد أعمدة تقرير مصرح لك بالوصول إليها.
+No recipients to preview. Add recipients first.,لا يوجد مستلمون للمعاينة. أضف مستلمين أولاً.
+No report specified.,لم يُحدَّد تقرير.
+No WhatsApp instance available to send from. Set 'Send From Instance'.,لا توجد نسخة واتساب متاحة للإرسال منها. حدّد «الإرسال من النسخة».
+No WhatsApp instance linked,لا توجد نسخة واتساب مرتبطة
+No WhatsApp instance to send from. Set 'Send From Instance'.,لا توجد نسخة واتساب للإرسال منها. حدّد «الإرسال من النسخة».
+Not permitted to export this report.,غير مصرح لك بتصدير هذا التقرير.
+Not permitted to send WhatsApp messages,غير مصرح لك بإرسال رسائل واتساب
+Notification,إشعار
+Notification Name,اسم الإشعار
+Notification Type,نوع الإشعار
+Notifications,الإشعارات
+Number,رقم
+Number of batches to complete before increasing the batch size (e.g. every 2 batches),عدد الدفعات المطلوبة قبل زيادة حجم الدفعة (مثال: كل دفعتين)
+Number of days between repeated reminders for the same document.,عدد الأيام بين التذكيرات المتكررة لنفس المستند.
+Number of days to keep message history before cleanup.,عدد الأيام للاحتفاظ بسجل الرسائل قبل التنظيف.
+Number of messages to send per batch/day before cooling down (e.g. 20),عدد الرسائل في كل دفعة قبل التوقف والتبريد (مثال: 20)
+"Number of successfully accepted messages, not total attempts.",عدد الرسائل المقبولة بنجاح، وليس إجمالي المحاولات.
+Offline,غير متصل
+Online,متصل
+Only active servers are used to create new instances.,تُستخدم الخوادم النشطة فقط لإنشاء نسخ جديدة.
+Only if amount is due,فقط إذا كان هناك مبلغ مستحق
+Only if total exceeds 1000,فقط إذا تجاوز الإجمالي ١٠٠٠
+Only submitted (docstatus check),المرحّلة فقط (فحص حالة المستند)
+Only submitted documents,المستندات المرحّلة فقط
+Only With Name,بالاسم فقط
+"Open the instance in ERPNext, click <b>Show QR Code</b> and re-scan it to reconnect.",افتح النسخة في ERPNext، واضغط على <b>عرض رمز QR</b> وامسحه مجدداً لإعادة الاتصال.
+Open Whatsapp Instances,فتح نسخ واتساب
+"Open WhatsApp on your phone, go to Settings → Linked Devices → Link a Device.",افتح واتساب على جوالك، اذهب إلى الإعدادات ← الأجهزة المرتبطة ← ربط جهاز.
+"Optional filters passed to the report, as a JSON object. Example: {""company"": ""My Co"", ""from_date"": ""2026-01-01""}.","فلاتر اختيارية تُمرر للتقرير ككائن JSON. مثال: {""company"": ""My Co"", ""from_date"": ""2026-01-01""}."
+"Optional image (PNG, JPG, WEBP), PDF, video or audio. When using Evolution API, images are sent directly to WhatsApp with your message text as a caption.","صورة اختيارية (PNG, JPG, WEBP) أو ملف PDF أو فيديو أو صوت. عند استخدام Evolution API، تُرسل الصور مباشرة لواتساب مع نص الرسالة كشرح توضيحي."
+"Optional media for the campaign: image, PDF, video or audio. Uploaded from your device or picked from ERPNext files.",وسائط اختيارية للحملة: صورة أو PDF أو فيديو أو صوت. تُرفع من جهازك أو تُختار من ملفات ERPNext.
+"Optional mobile number (with country code) of the company supervisor, for future WhatsApp-based alerts.",رقم جوال اختياري (مع رمز الدولة) لمشرف الشركة، لتنبيهات واتساب المستقبلية.
+"Optional shared secret for Evolution webhooks. When set, requests must send it in X-Webhook-Secret, X-Evolution-Webhook-Secret, Authorization Bearer, or ?secret=.",رمز سري مشترك اختياري لـ webhooks الخاصة بـ Evolution. عند تعيينه، يجب إرساله في الترويسات X-Webhook-Secret أو X-Evolution-Webhook-Secret أو Authorization Bearer أو ?secret=.
+Optional text sent with the report file.,نص اختياري يُرسل مع ملف التقرير.
+Optional WhatsApp Template specific to this recipient,قالب واتساب اختياري مخصص لهذا المستلم
+"Optional. If set, the report is sent to this number and the party lookup is skipped.",اختياري. إذا تم تحديده، يُرسل التقرير إلى هذا الرقم مباشرة ويتم تجاوز البحث عن العميل.
+OTP,رمز تحقق
+Outgoing,صادرة
+Output format of the report file that is sent.,صيغة مخرجات ملف التقرير المرسل.
+Partially Failed,فشل جزئي
+Party,الطرف المعني
+Party Type,نوع الطرف
+PDF,ملف PDF
+PDF Generation Error,خطأ في إنشاء PDF
+PDF generation failed due to network error. Please ensure your site URL is properly configured in site_config.json (set 'host_name,فشل إنشاء ملف PDF بسبب خطأ في الشبكة. يرجى التأكد من ضبط رابط الموقع بشكل صحيح في site_config.json
+Pending,قيد الانتظار
+Pending Messages,الرسائل المعلّقة
+Per Recipient,قالب مخصص لكل مستلم
+Per-instance API key returned by the Mubtkir API. Visible to System Manager only.,مفتاح API لكل نسخة يُرجعه Mubtkir API. مرئي لمدير النظام فقط.
+"Per-recipient diagnostics: endpoint, HTTP status and the raw Evolution response. Use it to trace why a message did not arrive.",تشخيص لكل مستلم: نقطة النهاية وحالة HTTP ورد Evolution الخام. استخدمه لتتبّع سبب عدم وصول الرسالة.
+Phone Field,حقل رقم الجوال
+Phone ID,معرّف الهاتف
+Phone Number,رقم الهاتف
+Phone number not found,لم يُعثر على رقم الجوال
+Phone Source,مصدر رقم الجوال
+"Plain text body of the campaign, used when 'Use Template' is off. You can also attach an image, PDF, video or audio file below.",نص الحملة، يُستخدم عند إيقاف «استخدام قالب». يمكنك أيضاً إرفاق صورة أو PDF أو فيديو أو ملف صوتي بالأسفل.
+"Plain text body. Supports Spintax {Option 1|Option 2|Option 3} and placeholders {name}, {mobile}.",نص الرسالة العادي. يدعم العبارات التبادلية {خيار 1|خيار 2|خيار 3} والمتغيرات {name} و {mobile}.
+Please add at least one recipient,يرجى إضافة مستلم واحد على الأقل
+Please add at least one template in Rotating Templates,يرجى إضافة قالب واحد على الأقل في القوالب الدوّارة
+Please add at least one template in the Rotating Templates table.,يرجى إضافة قالب واحد على الأقل في جدول القوالب الدوّارة.
+Please enter a recipient number.,يرجى إدخال رقم المستلم.
+Please enter message content or attach a file,يرجى كتابة نص الرسالة أو إرفاق ملف
+Please save the document before pulling.,يرجى حفظ المستند قبل السحب.
+Please save the document before sending WhatsApp.,يرجى حفظ المستند قبل إرسال الواتساب.
+Please save the document first.,يرجى حفظ المستند أولاً.
+Please select a DocType and Mobile Field before importing,يرجى اختيار نوع المستند وحقل الجوال قبل الاستيراد
+Please select a recipient list,يرجى اختيار قائمة مستلمين
+Please select a Reference Document Type first,يرجى اختيار نوع المستند المرجعي أولاً
+Please select a template,يرجى اختيار قالب
+Please set an Mubtkir API Server on this instance first.,يرجى ضبط خادم Mubtkir API لهذه النسخة أولاً.
+Prevent duplicate sends,منع الإرسال المكرر
+Preview,معاينة
+Preview Message,معاينة الرسالة
+Preview Messages,معاينة الرسائل
+Primary Contact,جهة الاتصال الرئيسية
+Print Format,تنسيق الطباعة
+Print format to attach as PDF. Leave empty to use default.,قالب الطباعة المراد إرفاقه كـ PDF. اتركه فارغاً لاستخدام الافتراضي.
+Profile Name,اسم الملف الشخصي
+Pull each number's full conversation history from Evolution (includes old chats before webhook). Slower but accurate. Off = use only messages stored in ERPNext.,سحب سجل المحادثات الكامل لكل رقم من Evolution (يشمل الدردشات القديمة قبل الويب هوك). أبطأ ولكنه دقيق. إيقاف = استخدام الرسائل المخزنة في ERPNext فقط.
+Pull Numbers,سحب الأرقام
+Pulled,تم السحب
+Pulled Numbers,الأرقام المسحوبة
+Pulling numbers from WhatsApp...,جاري سحب الأرقام من واتساب...
+Python expression that must be true to send. See the Help section below for ready-to-use examples (click an example to insert it).,تعبير Python يجب أن يكون صحيحاً للإرسال. راجع قسم المساعدة أدناه لأمثلة جاهزة (اضغط على مثال لإدراجه).
+Queued,في الطابور
+Quick preset: pull only Dead numbers (90+ days) for a re-engagement campaign.,إعداد سريع: سحب الأرقام الخاملة فقط (90+ يوماً) لحملة إعادة تنشيط وتفاعل.
+Random Delay Between Messages,فاصل زمني عشوائي بين الرسائل
+Raw Response,الاستجابة الخام
+reaction,تفاعل
+Read,مقروءة
+Read / No Reply,مقروء / بدون رد
+Read Messages,الرسائل المقروءة
+Receipt,إيصال
+Received,واردة
+Received Messages,الرسائل الواردة
+Recipient,المستلم
+Recipient Code,رمز المستلم
+Recipient Count,عدد المستلمين
+Recipient Data,بيانات المستلم
+Recipient Data (JSON),بيانات المستلم (JSON)
+Recipient has no mobile number,المستلم ليس لديه رقم جوال
+Recipient List,قائمة مستلمين
+Recipient Mobile (override),جوال المستلم (تجاوز)
+Recipient mobile number is required.,رقم جوال المستلم مطلوب.
+Recipient Name,اسم المستلم
+Recipient Number,رقم المستلم
+Recipient Type,نوع المستلم
+Recipients,المستلمون
+Reconciling instances with Mubtkir API...,جاري مطابقة النسخ مع Mubtkir API...
+Recurring Reminder,تذكير متكرر
+Reference Date,التاريخ المرجعي
+Reference DocType,المستند المرجعي
+Reference Document Type,نوع المستند المرجعي
+Reference name,اسم المرجع
+Reference Name,اسم المرجع
+Reminders Sent,عدد التذكيرات المرسلة
 Render and send this report now?,عرض وإرسال هذا التقرير الآن؟
 Rendering and sending report...,جاري عرض وإرسال التقرير...
-Report sent.,تم إرسال التقرير.
-Last Sent On,آخر إرسال في
-"Could not resolve a recipient mobile number. Set a Party with a contact, or a mobile override.",تعذّر تحديد رقم جوال المستلم. حدّد طرفاً له جهة اتصال، أو أدخل رقم تجاوز.
-No WhatsApp instance available to send from. Set 'Send From Instance'.,لا توجد نسخة واتساب متاحة للإرسال منها. حدّد «الإرسال من النسخة».
+Repeat Every,التكرار كل
+Repeat Every (days),التكرار كل (أيام)
+Repeat interval (every N days/weeks/months depending on Frequency).,فترة التكرار (كل N أيام/أسابيع/أشهر حسب نوع التكرار).
+Repeat Until Condition Clears,التكرار حتى يتحقق الشرط
+Replied Within (days),تم الرد خلال (أيام)
+Reply,رد
+Reply To Message ID,رد على معرّف الرسالة
+Report,التقرير
+Report Builder arguments must be a JSON object.,يجب أن تكون معاملات منشئ التقارير بصيغة كائن JSON.
+Report Builder columns are missing. Refresh the report and try again.,أعمدة منشئ التقارير مفقودة. يرجى تحديث التقرير والمحاولة مرة أخرى.
+Report Builder settings require a Report Builder report.,إعدادات منشئ التقارير تتطلب تقرير من نوع منشئ التقارير.
+Report exceeds {0} rows. Narrow the filters before sending.,يتجاوز التقرير {0} صفاً. يرجى تضييق الفلاتر قبل الإرسال.
+Report Filters (JSON),فلاتر التقرير (JSON)
+"Report Filters must be a JSON object (e.g. {\""company\"": \""My Co\""}).","يجب أن تكون فلاتر التقرير بصيغة كائن JSON (مثال: {""company"": ""شركتي""})."
 Report Filters must be valid JSON.,يجب أن تكون فلاتر التقرير بصيغة JSON صحيحة.
-Type of the recipient party. The Party list and mobile number follow this.,نوع الطرف المستلم. تتبع قائمة الطرف ورقم الجوال هذا الاختيار.
-Use WhatsApp Template for Message,استخدام قالب واتساب للرسالة
-Take the accompanying message from a WhatsApp Template instead of free text.,أخذ الرسالة المرافقة من قالب واتساب بدلاً من نص حر.
-Message Template,قالب الرسالة
-Template whose body is sent as the caption with the report.,القالب الذي يُرسل نصه مرافقاً للتقرير.
-Shareholder,مساهم
-Employee,موظف
-Customer,عميل
-Supplier,مورّد
-Send to WhatsApp,إرسال للواتساب
-Send Report to WhatsApp,إرسال التقرير للواتساب
+Report sent.,تم إرسال التقرير.
+Reports,التقارير
+Request Fingerprint,بصمة الطلب
+Required only for DocType Event and Days Before/After,مطلوب فقط لحدث المستند وأيام قبل/بعد
+Result,النتيجة
+Results,النتائج
+Retention Days,أيام الاحتفاظ
+Retention Days cannot be negative.,أيام الاحتفاظ لا يمكن أن تكون سالبة.
+Retry Failed Messages,إعادة محاولة الرسائل الفاشلة
+Rotate Multiple Templates,تدوير عدة قوالب
+Rotating Templates,القوالب الدوّارة
+Sample,عينة
+Sample Values,قيم تجريبية
+Saturday,السبت
+Save / Export,حفظ / تصدير
 Save as Scheduled,حفظ كمجدول
+Save form before importing,احفظ النموذج قبل الاستيراد
+Save Selected,حفظ المحدد
+Save the document before sending.,احفظ المستند قبل الإرسال.
+Save the selected numbers to the chosen destination.,حفظ الأرقام المحددة في الوجهة المختارة.
+Save this Report Builder report before scheduling it.,احفظ تقرير منشئ التقارير هذا قبل جدولته.
+Saved Report Builder Settings,إعدادات منشئ التقارير المحفوظة
 Saved. Review the schedule and enable it.,تم الحفظ. راجع الجدولة وفعّلها.
-No report specified.,لم يُحدَّد تقرير.
-The connected WhatsApp instance used to send this campaign. Defaults to your own instance if left empty.,نسخة الواتساب المتصلة المستخدمة لإرسال هذه الحملة. تُستخدم نسختك تلقائياً إذا تُرك فارغاً.
-No WhatsApp instance to send from. Set 'Send From Instance'.,لا توجد نسخة واتساب للإرسال منها. حدّد «الإرسال من النسخة».
-Turn on to send a pre-approved WhatsApp Template as the message. Turn off to send the plain Message Content above.,فعّله لإرسال قالب واتساب معتمد كرسالة. أوقفه لإرسال نص «محتوى الرسالة» أعلاه.
-The WhatsApp Template used as the campaign message.,قالب واتساب المستخدم كرسالة الحملة.
-"How template placeholders ({{1}}, {{2}}...) are filled. Common: the same values for all recipients (set once below). Unique: different values taken from each recipient's own data.",كيف تُملأ متغيّرات القالب ({{1}}، {{2}}...). مشترك: نفس القيم لكل المستلمين (تُحدَّد مرة واحدة بالأسفل). فريد: قيم مختلفة تُؤخذ من بيانات كل مستلم.
-"Shared values for the template placeholders, as JSON. Example: {""1"": ""Mubtkir"", ""2"": ""20% off""} fills {{1}} and {{2}} for everyone.","القيم المشتركة لمتغيّرات القالب بصيغة JSON. مثال: {""1"": ""مبتكر""، ""2"": ""خصم 20%""} تملأ {{1}} و{{2}} للجميع."
-Preview Messages,معاينة الرسائل
-Building preview...,جاري بناء المعاينة...
-No recipients to preview. Add recipients first.,لا يوجد مستلمون للمعاينة. أضف مستلمين أولاً.
-Showing the first 25 recipients.,عرض أول 25 مستلماً.
-(template not found),(القالب غير موجود)
-Messaging,المراسلة
-Automation,الأتمتة
-Logs,السجلات
-Attachment Too Large,المرفق كبير جداً
-"The attachment is {0} MB, over the {1} MB limit. WhatsApp rejects large media (videos above ~16 MB) even if the send looks successful. Use a smaller file.",حجم المرفق {0} ميجابايت، ويتجاوز الحد {1} ميجابايت. واتساب يرفض الوسائط الكبيرة (الفيديو أكبر من ~16 ميجا) حتى لو بدا الإرسال ناجحاً. استخدم ملفاً أصغر.
-Last error,آخر خطأ
-Bulk Send Result,نتيجة الإرسال الجماعي
-Send Log,سجل الإرسال
-View Send Log,عرض سجل الإرسال
-"Per-recipient diagnostics: endpoint, HTTP status and the raw Evolution response. Use it to trace why a message did not arrive.",تشخيص لكل مستلم: نقطة النهاية وحالة HTTP ورد Evolution الخام. استخدمه لتتبّع سبب عدم وصول الرسالة.
-Send Test Message,إرسال رسالة اختبار
-Sending test message...,جاري إرسال رسالة الاختبار...
-"International format, e.g. 9665XXXXXXXX. A local 05XXXXXXXX is auto-converted.",الصيغة الدولية، مثل 9665XXXXXXXX. الرقم المحلي 05XXXXXXXX يُحوَّل تلقائياً.
-Recipient Number,رقم المستلم
-Sent to,أُرسل إلى
-Evolution response,رد Evolution
-Sent — check delivery,أُرسل — تحقّق من الوصول
+Saving selected numbers...,جاري حفظ الأرقام المحددة...
+Scan the QR Code with WhatsApp,امسح رمز QR بواسطة واتساب
+Schedule,الجدولة
+Scheduled Time,الوقت المجدول
+Scheduler Event,حدث مجدول
+Select,اختيار
+Select a Source Instance first.,اختر النسخة المصدر أولاً.
+Select a WhatsApp Template or choose another Template Mode.,اختر قالب واتساب أو اختر نمط قالب آخر.
+Select Template,اختر قالباً
+Select the field that contains the phone number. For Linked DocType use format: link_field.fieldname e.g. customer.mobile_no,اختر الحقل الذي يحتوي على رقم الهاتف. للمستندات المرتبطة استخدم الصيغة: link_field.fieldname مثل customer.mobile_no
+Selected,المحدد
+Selected recipient list has no recipients,قائمة المستلمين المختارة لا تحتوي على مستلمين
+Send,إرسال
+Send days before or after the reference date,إرسال الأيام قبل أو بعد التاريخ المرجعي
+Send every N units. Example: 3 with Daily = every 3 days. 2 with Weekly = every 2 weeks.,إرسال كل N وحدات. مثال: 3 مع يومي = كل 3 أيام. 2 مع أسبوعي = كل أسبوعين.
 Send Failed,فشل الإرسال
-If the response looks OK but the message did not arrive: check that the number is a real WhatsApp account and that this instance is truly connected (phone → Linked Devices).,إذا كان الرد سليماً لكن الرسالة لم تصل: تأكد أن الرقم حساب واتساب حقيقي وأن هذه النسخة متصلة فعلاً (الجوال ← الأجهزة المرتبطة).
+Send From Instance,الإرسال من النسخة
+Send in limited batches with cool-down hours to protect the number from getting banned.,الإرسال على دفعات محدودة مع فترة انتظار وتبريد لحماية الرقم من الحظر.
+Send Log,سجل الإرسال
+Send Next Batch Now,إرسال الدفعة التالية الآن
+Send Now,إرسال الآن
+Send Report to WhatsApp,إرسال التقرير للواتساب
+Send Test Message,إرسال رسالة اختبار
+Send Thank-you When Cleared,إرسال شكر عند التحقق
+Send Time,وقت الإرسال
+Send to,إرسال إلى
+Send To Whatsapp,إرسال إلى واتساب
+Send to WhatsApp,إرسال للواتساب
+Send WhatsApp,إرسال واتساب
+Send WhatsApp Message,إرسال رسالة واتساب
+Sender Number,رقم المُرسِل
+Sending message {0} of {1} to {2},جاري إرسال الرسالة {0} من {1} إلى {2}
+Sending test message...,جاري إرسال رسالة الاختبار...
+Sending via the configured WhatsApp template...,جاري الإرسال عبر قالب واتساب المكوّن...
+Sending WhatsApp Messages,جاري إرسال رسائل واتساب
+Sent,مُرسَلة
+Sent Count,عدد المُرسَل
+Sent Messages,الرسائل المرسلة
+Sent to,أُرسل إلى
+Sent — check delivery,أُرسل — تحقّق من الوصول
+Sequence code recip-num-### assigned on import.,كود التسلسل recip-num-### المعين عند الاستيراد.
+Server Label,تسمية الخادم
+Set Property After Alert,تعيين خاصية بعد التنبيه
+Settings,الإعدادات
+Share of pulled numbers that are engaged (Active/B-tier or better). Higher = healthier list.,نسبة الأرقام المسحوبة المتفاعلة (نشط/فئة B أو أفضل). كلما ارتفعت كانت القائمة أكثر جودة.
+"Shared values for the template placeholders, as JSON. Example: {""1"": ""Mubtkir"", ""2"": ""20% off""}","القيم المشتركة لمتغيرات القالب بصيغة JSON. مثال: {""1"": ""مبتكر"", ""2"": ""خصم 20%""}"
+"Shared values for the template placeholders, as JSON. Example: {""1"": ""Mubtkir"", ""2"": ""20% off""} fills {{1}} and {{2}} for everyone.","القيم المشتركة لمتغيّرات القالب بصيغة JSON. مثال: {""1"": ""مبتكر""، ""2"": ""خصم 20%""} تملأ {{1}} و{{2}} للجميع."
+Shareholder,مساهم
+Show QR Code,عرض رمز QR
+Showing the first 25 recipients.,عرض أول 25 مستلماً.
+Sign in to send WhatsApp messages.,سجل الدخول لإرسال رسائل واتساب.
+Single Template,قالب موحد
+Site encryption key is required for private WhatsApp attachments.,مفتاح تشفير الموقع مطلوب لمرفقات واتساب الخاصة.
+Skip numbers that have no display name.,تخطي الأرقام التي ليس لها اسم معروض.
+Source,المصدر
+Source Instance,النسخة المصدر
+Source Type,نوع المصدر
+Specific customer group,مجموعة عملاء محددة
+Status,الحالة
+Status Indicator,مؤشر الحالة
+Success,نجاح
+Successfully Sent to,تم الإرسال بنجاح إلى
+Sunday,الأحد
+Supplier,مورّد
+Sync Complete,اكتملت المزامنة
+Sync Failed,فشلت المزامنة
+Sync Instances,مزامنة النسخ
+Sync with Mubtkir API,مزامنة مع Mubtkir API
+Syncing with Mubtkir API...,جاري المزامنة مع Mubtkir API...
+Take the accompanying message from a WhatsApp Template instead of free text.,أخذ الرسالة المرافقة من قالب واتساب بدلاً من نص حر.
+Target Recipient List,قائمة المستلمين المستهدفة
+Template,القالب
+Template Header Parameters,معاملات ترويسة القالب
+Template Label,اسم القالب
+Template Mode,نمط القالب
+Template Name,اسم القالب
+Template Parameters,معاملات القالب
+Template used for the thank-you message.,القالب المستخدم لرسالة الشكر.
+Template Variables,متغيّرات القالب
+Template whose body is sent as the caption with the report.,القالب الذي يُرسل نصه مرافقاً للتقرير.
+Template {0} not found,القالب {0} غير موجود
+Test Connection,اختبار الاتصال
+Test recipient added,تمت إضافة مستلم تجريبي
+TEXT,نص
+text,نص
+Text,نص
+Thank-you Sent,تم إرسال الشكر
+Thank-you Template,قالب الشكر
+"The attachment is {0} MB, over the configured {1} MB limit.",حجم المرفق {0} ميجابايت، متجاوزاً الحد الأقصى المسموح به {1} ميجابايت.
+"The attachment is {0} MB, over the {1} MB limit. WhatsApp rejects large media (videos above ~16 MB) even if the send looks successful. Use a smaller file.",حجم المرفق {0} ميجابايت، ويتجاوز الحد {1} ميجابايت. واتساب يرفض الوسائط الكبيرة (الفيديو أكبر من ~16 ميجا) حتى لو بدا الإرسال ناجحاً. استخدم ملفاً أصغر.
+The connected WhatsApp instance used to send this campaign. Defaults to your own instance if left empty.,نسخة الواتساب المتصلة المستخدمة لإرسال هذه الحملة. تُستخدم نسختك تلقائياً إذا تُرك فارغاً.
+The connected WhatsApp instance used to send. Leave empty to use the current user's instance.,نسخة واتساب المتصلة المستخدمة للإرسال. اتركها فارغة لاستخدام نسخة المستخدم الحالي.
+The ERPNext report to render and send.,تقرير ERPNext المراد إنشاؤه وإرساله.
+The instance has been disconnected.,تم قطع اتصال النسخة بنجاح.
+The private attachment was not found.,لم يتم العثور على المرفق الخاص.
+The report and Report Builder document type do not match.,التقرير ونوع مستند منشئ التقارير غير متطابقين.
+The report changed. Close this dialog and open it from the current report.,تم تغيير التقرير. أغلق هذه النافذة وافتحها من التقرير الحالي.
+The selected WhatsApp Template has no message body.,قالب واتساب المختار ليس له نص رسالة.
+The specific recipient. Their mobile number is resolved from the linked primary contact.,المستلم المحدد. يتم جلب رقم جواله من جهة الاتصال الرئيسية المرتبطة.
+The user who owns this instance. A user may own at most one instance.,المستخدم المالك لهذه النسخة. يمكن للمستخدم امتلاك نسخة واحدة كحد أقصى.
+The WhatsApp Notification does not have a template.,إشعار واتساب لا يحتوي على قالب.
+The WhatsApp Template used as the campaign message.,قالب واتساب المستخدم كرسالة الحملة.
+"This instance no longer exists on the Mubtkir API server. The record has been kept and reset — use ""Create Instance"" to re-create it under the same name.",لم تعد هذه النسخة موجودة على خادم Mubtkir API. تم الاحتفاظ بالسجل وإعادة تعيينه — استخدم «إنشاء النسخة» لإعادة إنشائها بنفس الاسم.
+"This report is being prepared. Generate it first, then send it.",جاري تجهيز التقرير. يرجى إنشاؤه أولاً ثم إرساله.
+This window will close automatically.,ستُغلق هذه النافذة تلقائياً.
+Thursday,الخميس
+Tier,الفئة
+Tier A: min inbound msgs,الفئة A: الحد الأدنى للرسائل الواردة
+Tier Summary,ملخص الفئات
+"Time to send. Used for Daily, Weekly, and Monthly schedules.",وقت الإرسال. يُستخدم للجداول اليومية والأسبوعية والشهرية.
+Timestamp of the last successful connection.,الطابع الزمني لآخر اتصال ناجح.
+Title,العنوان
+TO,إلى
+To Date,إلى تاريخ
+Toggle Select All,تحديد / إلغاء تحديد الكل
+Token,الرمز
+TRANSACTIONAL,معاملات
+Tuesday,الثلاثاء
+Turn on to send a pre-approved WhatsApp Template as the message. Turn off to send the plain Message Content above.,فعّله لإرسال قالب واتساب معتمد كرسالة. أوقفه لإرسال نص «محتوى الرسالة» أعلاه.
+Turn on to send approved WhatsApp Templates. Turn off to send plain Message Content.,تفعيل لإرسال قوالب واتساب المعتمدة. إيقاف لإرسال نص الرسالة العادي.
+Type,النوع
+Type of the recipient party. The Party list and mobile number follow this.,نوع الطرف المستلم. تتبع قائمة الطرف ورقم الجوال هذا الاختيار.
+Unique,فريد
+unknown,غير معروف
+Unknown error,خطأ غير معروف
+Unsupported document type,نوع مستند غير مدعوم
+Unsupported WhatsApp channel: {0},قناة واتساب غير مدعومة: {0}
+Upload the file as public. Whatsapp cannot access the private file.,قم برفع الملف كملف عام. لا يمكن لواتساب الوصول إلى الملفات الخاصة.
+URL,الرابط
+Use Template,استخدام قالب
+Use the Export to Excel button for Excel output.,استخدم زر التصدير إلى Excel لمخرجات الإكسل.
+Use WhatsApp Template for Message,استخدام قالب واتساب للرسالة
+User,المستخدم
+User Already Linked,المستخدم مرتبط بالفعل
+UTILITY,خدمي
+Validate Recipients,التحقق من المستلمين
+Validation Results,نتائج التحقق
+Value To Be Set,القيمة المراد تعيينها
+Variable Type,نوع المتغيّرات
+Verify each number actually has WhatsApp before adding (slower).,التحقق من أن كل رقم لديه واتساب بالفعل قبل إضافته (أبطأ).
+Verify WhatsApp Numbers,التحقق من أرقام واتساب
+Version,الإصدار
+video,فيديو
+View Send Log,عرض سجل الإرسال
+Wait Between Batches (Hours),فترة الانتظار بين الدفعات (بالساعات)
+Waiting for the connection... this dialog will refresh automatically.,في انتظار الاتصال... ستُحدَّث هذه النافذة تلقائياً.
+Webhook Security,أمان Webhook
+Webhook Verify Token,رمز التحقق للويب هوك
+Wednesday,الأربعاء
+Weekly,أسبوعي
+Weekly Long,أسبوعي (طويل)
+WhatsApp,واتساب
+WhatsApp Connected,واتساب متصل
+WhatsApp connected successfully!,تم اتصال واتساب بنجاح!
+WhatsApp Connecting,واتساب يتصل
+WhatsApp Contact Puller,ساحب جهات اتصال واتساب
+WhatsApp delivery was not confirmed. Check WhatsApp Message logs.,لم يتم تأكيد تسليم رسالة واتساب. راجع سجلات رسائل واتساب.
+WhatsApp Disabled,واتساب معطّل
+WhatsApp Disconnected,واتساب منقطع
+Whatsapp Instance,نسخة واتساب
+WhatsApp Instance,نسخة واتساب
+WhatsApp instance {0} has no Evolution Server configured.,نسخة واتساب {0} لا يوجد خادم Evolution محدد لها.
+WhatsApp instance {0} was not found.,لم يتم العثور على نسخة واتساب {0}.
+WhatsApp Management,إدارة واتساب
+WhatsApp Message,رسالة واتساب
+WhatsApp Message Fields,حقول رسالة واتساب
+WhatsApp message sent,تم إرسال رسالة واتساب
+WhatsApp Message Sent Successfully,تم إرسال رسالة واتساب بنجاح
+WhatsApp message was not created.,لم يتم إنشاء رسالة واتساب.
+WhatsApp Notification,إشعار واتساب
+WhatsApp Notification Log,سجل إشعارات واتساب
+WhatsApp Operation,عملية واتساب
+WhatsApp Pulled Number,رقم واتساب المسحوب
+WhatsApp Recipient,مستلم واتساب
+WhatsApp Recipient List,قائمة مستلمي واتساب
+WhatsApp Reminder Log,سجل تذكيرات واتساب
+WhatsApp Scheduled Report,تقرير واتساب مجدول
+WhatsApp Send Failed,فشل إرسال واتساب
+WhatsApp sending is disabled in WhatsApp Settings.,إرسال واتساب معطّل في إعدادات واتساب.
+WhatsApp Settings,إعدادات واتساب
+WhatsApp status unavailable,حالة واتساب غير متاحة
+WhatsApp Template,قالب واتساب
+WhatsApp Template requires a document.,قالب واتساب يتطلب مستنداً.
+WhatsApp Template requires document,قالب واتساب يتطلب مستنداً
+WhatsApp Templates,قوالب واتساب
+"When on, an email and an internal notification are sent whenever a connected WhatsApp instance drops.",عند التفعيل، يُرسَل إيميل وإشعار داخلي كلما انقطع اتصال نسخة واتساب متصلة.
+"When the condition clears (e.g. payment received), send a one-time thank-you message and stop reminding.",عند تحقّق الشرط (مثل استلام السداد)، يُرسَل رسالة شكر لمرة واحدة ويتوقف التذكير.
+When the next batch is scheduled to resume automatically.,موعد استئناف الدفعة التالية تلقائياً.
+Which connected WhatsApp instance to pull numbers from.,نسخة واتساب المتصلة المراد سحب الأرقام منها.
+Which day of the week to send,يوم الأسبوع المراد الإرسال فيه
+Win-back Preset (90d dormant),إعداد استعادة العملاء (خامل 90 يوماً)
+Yearly,سنوي
+You are not authorized to use this WhatsApp instance.,غير مصرح لك باستخدام نسخة واتساب هذه.
+You are not permitted to delete WhatsApp instances.,غير مصرح لك بحذف نسخ واتساب.
+You are not permitted to sync Mubtkir API servers.,غير مسموح لك بمزامنة خوادم Mubtkir API.
+You haven't created a Whatsapp Instance yet,لم تنشئ نسخة واتساب بعد
+طريقة استخدام هذه الشاشة,طريقة استخدام هذه الشاشة
+عن هذه الشاشة,عن هذه الشاشة
+⚠ WhatsApp disconnected! Click the status dot to reconnect.,⚠ واتساب غير متصل! اضغط على نقطة الحالة لإعادة الاتصال.
+⚠ WhatsApp disconnected: {0},⚠ انقطع اتصال واتساب: {0}
